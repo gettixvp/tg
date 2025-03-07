@@ -476,5 +476,5 @@ async def main():
     config.debug = True
     await hypercorn.asyncio.serve(app, config)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
