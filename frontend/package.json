@@ -2,9 +2,11 @@
   "name": "apartment-bot-frontend",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://apartment-bot-81rv.onrender.com/mini-app",
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -12,19 +14,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "devDependencies": {
-    "react-scripts": "5.0.1"
-  },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   }
 }
