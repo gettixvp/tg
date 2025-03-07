@@ -5,4 +5,4 @@ services:
     plan: free
     buildCommand: "./start.sh"
     startCommand: "python3 backend/app.py"
-    runtime: python3.13
+    runtime: python3.12
