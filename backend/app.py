@@ -4,7 +4,7 @@ import re
 import urllib.parse
 import sqlite3
 from typing import List, Dict, Optional
-from flask import Flask, request, jsonify
+from flask import Flask, send_from_directory, render_template
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
 from telegram.error import Forbidden, TimedOut
@@ -54,7 +54,7 @@ def init_db():
 
 init_db()
 
-app = Flask(__name__, static_folder='static', static_url_path='/')
+app = Flask(__name__, static_folder='static', static_url_path='')
 
 class ApartmentParser:
     @staticmethod
@@ -447,9 +447,20 @@ async def webhook():
         logger.warning("Получен пустой update от Telegram")
     return '', 200
 
+@app.route('/')
+def home():
+    return "Backend is running"
+
 @app.route('/mini-app')
 def mini_app():
-    return app.send_static_file('index.html')
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/mini-app/<path:path>')
+def static_proxy(path):
+    try:
+        return send_from_directory(app.static_folder, path)
+    except FileNotFoundError:
+        return send_from_directory(app.static_folder, 'index.html')
 
 async def main():
     bot = ApartmentBot()
