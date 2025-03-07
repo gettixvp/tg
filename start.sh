@@ -1,9 +1,14 @@
 #!/bin/bash
+set -e  # Прерываем выполнение при любой ошибке
+
+echo "Starting deployment process..."
+
 echo "Installing Python dependencies..."
 python3 -m pip install -r requirements.txt || { echo "Failed to install Python dependencies"; exit 1; }
 
 echo "Changing to frontend directory..."
 cd frontend || { echo "Frontend directory not found"; exit 1; }
+pwd  # Выводим текущую директорию для проверки
 
 echo "Installing npm dependencies..."
 npm install || { echo "Failed to install npm dependencies"; exit 1; }
@@ -15,12 +20,24 @@ echo "Listing build contents..."
 ls -la build
 
 echo "Moving build to static..."
-# Удаляем старую папку static, если она существует, и перемещаем новую
-rm -rf ../static
+# Удаляем старую папку static, если она существует
+if [ -d "../static" ]; then
+    echo "Removing existing static directory..."
+    rm -rf ../static || { echo "Failed to remove existing static directory"; exit 1; }
+else
+    echo "No existing static directory found."
+fi
+echo "Moving build to static..."
 mv build ../static || { echo "Failed to move build to static"; exit 1; }
+
+echo "Listing static contents after move..."
+ls -la ../static
 
 echo "Changing to backend directory..."
 cd ../backend || { echo "Backend directory not found"; exit 1; }
+pwd  # Выводим текущую директорию для проверки
 
 echo "Starting app.py..."
 python3 app.py || { echo "Failed to start app.py"; exit 1; }
+
+echo "Deployment completed successfully!"
