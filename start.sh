@@ -15,8 +15,8 @@ echo "Listing build contents..."
 ls -la build
 
 echo "Moving build to static..."
-# Удаляем старую папку static/build, если она существует, и перемещаем новую
-rm -rf ../static/build
+# Удаляем старую папку static, если она существует, и перемещаем новую
+rm -rf ../static
 mv build ../static || { echo "Failed to move build to static"; exit 1; }
 
 echo "Changing to backend directory..."
