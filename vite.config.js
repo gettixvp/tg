@@ -3,13 +3,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/', // Важно для Render
+  base: '/',
   build: {
     outDir: 'dist',
-    rollupOptions: {
-      output: {
-        manualChunks: undefined
-      }
-    }
-  }
+  },
+  // Указываем, где искать index.html
+  root: '.', // корень проекта
 });
