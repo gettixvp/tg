@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: apartment-bot
-    env: python
-    plan: free
-    buildCommand: "./start.sh"
-    startCommand: "python3 backend/app.py"
-    runtime: python3.12
