@@ -7,41 +7,52 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3001;
+// === Корень — для проверки ===
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Finance Backend API работает!', 
+    endpoints: ['POST /api/auth', 'GET /api/user/:email', 'PUT /api/user/:id', 'POST /api/transactions']
+  });
+});
 
-// Регистрация/Вход (простой, без проверки email)
+// === Аутентификация ===
 app.post('/api/auth', async (req, res) => {
   const { email, password, first_name } = req.body;
+  if (!email || !password || !first_name) {
+    return res.status(400).json({ error: 'email, password, first_name обязательны' });
+  }
+
   try {
     let user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (user.rows.length === 0) {
-      // Регистрация
       const hash = await bcrypt.hash(password, 10);
       const newUser = await pool.query(
         'INSERT INTO users (email, password_hash, first_name) VALUES ($1, $2, $3) RETURNING *',
         [email, hash, first_name]
       );
-      user = { rows: [newUser.rows[0]] };
+      user = newUser;
     } else {
-      // Проверка пароля
       const valid = await bcrypt.compare(password, user.rows[0].password_hash);
       if (!valid) return res.status(401).json({ error: 'Неверный пароль' });
     }
-    // Загружаем данные
+
     const transactions = await pool.query(
       'SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC',
       [user.rows[0].id]
     );
+
     res.json({
       user: user.rows[0],
       transactions: transactions.rows
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Auth error:', err);
+    res.status(500).json({ error: 'Серверная ошибка' });
   }
 });
 
-// Получение/Обновление данных пользователя
+// === Остальные роуты (user, transactions) ===
 app.get('/api/user/:email', async (req, res) => {
   try {
     const user = await pool.query('SELECT * FROM users WHERE email = $1', [req.params.email]);
@@ -65,7 +76,6 @@ app.put('/api/user/:id', async (req, res) => {
   }
 });
 
-// Сохранение транзакции
 app.post('/api/transactions', async (req, res) => {
   const { user_id, type, amount, description, category } = req.body;
   try {
@@ -79,4 +89,8 @@ app.post('/api/transactions', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
+// === Порт Render ===
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Сервер запущен на порту ${PORT}`);
+});
