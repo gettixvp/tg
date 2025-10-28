@@ -1,123 +1,223 @@
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+require('dotenv').config();
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// === Проверка файлов ===
-const publicDir = path.join(__dirname, 'public');
-const indexFile = path.join(publicDir, 'index.html');
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/finance-tracker';
 
-console.log('Проверка файлов...');
-if (!fs.existsSync(publicDir)) {
-  console.error('FATAL: Папка public не найдена!');
-  process.exit(1);
-}
-if (!fs.existsSync(indexFile)) {
-  console.error('FATAL: public/index.html не найден!');
-  process.exit(1);
-}
-console.log('SUCCESS: public/index.html найден');
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => console.error('MongoDB connection error:', err));
 
-// Статические файлы
-app.use(express.static(publicDir));
+// User Schema
+const userSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  balance: { type: Number, default: 0 },
+  income: { type: Number, default: 0 },
+  expenses: { type: Number, default: 0 },
+  savings: { type: Number, default: 0 },
+  transactions: [{
+    id: Number,
+    type: String,
+    amount: Number,
+    description: String,
+    category: String,
+    date: String
+  }]
+}, { timestamps: true });
 
-// === База данных в памяти ===
-const users = {};
-const SECRET = process.env.SECRET || 'render-finance-secret-2025';
+const User = mongoose.model('User', userSchema);
 
-// === Регистрация ===
-app.post('/register', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email и пароль обязательны' });
-    if (users[email]) return res.status(400).json({ error: 'Пользователь существует' });
+// Authentication middleware
+const authenticateToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-    const hash = await bcrypt.hash(password, 10);
-    users[email] = {
-      hash,
-      data: { balance: 0, income: 0, expenses: 0, savings: 0, transactions: [] }
-    };
-    const token = jwt.sign({ email }, SECRET, { expiresIn: '30d' });
-    res.json({ token });
-  } catch (err) {
-    console.error('Register error:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
   }
-});
 
-// === Логин ===
-app.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = users[email];
-    if (!user || !(await bcrypt.compare(password, user.hash))) {
-      return res.status(401).json({ error: 'Неверный email или пароль' });
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
     }
-    const token = jwt.sign({ email }, SECRET, { expiresIn: '30d' });
-    res.json({ token });
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
-});
 
-// === Авторизация ===
-const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Нет токена' });
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const { email } = jwt.verify(token, SECRET);
-    req.user = users[email];
-    if (!req.user) return res.status(401).json({ error: 'Неверный токен' });
+    req.user = user;
     next();
-  } catch (err) {
-    console.error('Auth error:', err);
-    res.status(401).json({ error: 'Неавторизован' });
+  } catch (error) {
+    return res.status(403).json({ error: 'Invalid token' });
   }
 };
 
-// === API ===
-app.get('/getData', authenticate, (req, res) => {
-  res.json(req.user.data);
+// Routes
+
+// Register endpoint
+app.post('/register', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const user = new User({
+      email,
+      password: hashedPassword,
+      balance: 0,
+      income: 0,
+      expenses: 0,
+      savings: 0,
+      transactions: []
+    });
+
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: user._id,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.post('/saveData', authenticate, (req, res) => {
-  req.user.data = req.body;
-  res.json({ success: true });
+// Login endpoint
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// === SPA ===
-app.get('*', (req, res) => {
-  res.sendFile(indexFile);
+// Get user data
+app.get('/getData', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      balance: user.balance,
+      income: user.income,
+      expenses: user.expenses,
+      savings: user.savings,
+      transactions: user.transactions || []
+    });
+  } catch (error) {
+    console.error('Get data error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// === ЗАПУСК СЕРВЕРА ===
-const PORT = process.env.PORT;  // <-- ОБЯЗАТЕЛЬНО! Без || 3000
+// Save user data
+app.post('/saveData', authenticateToken, async (req, res) => {
+  try {
+    const { balance, income, expenses, savings, transactions } = req.body;
 
-if (!PORT) {
-  console.error('FATAL: process.env.PORT не установлен!');
-  process.exit(1);
-}
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        balance: balance || 0,
+        income: income || 0,
+        expenses: expenses || 0,
+        savings: savings || 0,
+        transactions: transactions || []
+      },
+      { new: true }
+    );
 
-console.log(`Запуск сервера на порту ${PORT}...`);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`SERVER LIVE ON PORT ${PORT}`);
-  console.log(`URL: https://${process.env.RENDER_EXTERNAL_HOSTNAME || 'localhost'}`);
-  console.log('Render должен увидеть порт и перейти в статус LIVE');
+    res.json({ message: 'Data saved successfully' });
+  } catch (error) {
+    console.error('Save data error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// === Keep-alive (на всякий случай) ===
-setInterval(() => {
-  console.log(`Keep-alive: ${new Date().toISOString()}`);
-}, 300000); // каждые 5 минут
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+// Handle graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await mongoose.connection.close();
+  process.exit(0);
+});
