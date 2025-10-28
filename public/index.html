@@ -11,17 +11,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    @keyframes slide-up {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .animate-slide-up { animation: slide-up 0.3s ease-out; }
   </style>
 </head>
@@ -31,7 +22,7 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Lucide Icons
+    // Иконки (Lucide)
     const Wallet = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
@@ -39,21 +30,18 @@
         <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
       </svg>
     );
-
     const TrendingUp = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
         <polyline points="16 7 22 7 22 13" />
       </svg>
     );
-
     const TrendingDown = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
         <polyline points="16 17 22 17 22 11" />
       </svg>
     );
-
     const PiggyBank = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2h0V5z" />
@@ -61,14 +49,12 @@
         <path d="M16 11h0" />
       </svg>
     );
-
     const Plus = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M5 12h14" />
         <path d="M12 5v14" />
       </svg>
     );
-
     const History = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -76,31 +62,22 @@
         <path d="M12 7v5l4 2" />
       </svg>
     );
-
     const Settings = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
         <circle cx="12" cy="12" r="3" />
       </svg>
     );
-
     const Moon = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
       </svg>
     );
-
     const Sun = ({ size = 24, className = "" }) => (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2" />
-        <path d="M12 20v2" />
-        <path d="m4.93 4.93 1.41 1.41" />
-        <path d="m17.66 17.66 1.41 1.41" />
-        <path d="M2 12h2" />
-        <path d="M20 12h2" />
-        <path d="m6.34 17.66-1.41 1.41" />
-        <path d="m19.07 4.93-1.41 1.41" />
+        <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" />
+        <path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
       </svg>
     );
 
@@ -130,15 +107,12 @@
       useEffect(() => {
         const initApp = async () => {
           let isTelegram = false;
-
           if (window.Telegram?.WebApp) {
             const tg = window.Telegram.WebApp;
             tg.ready();
             tg.expand();
             const initDataUnsafe = tg.initDataUnsafe;
-            if (initDataUnsafe.user) {
-              setUser(initDataUnsafe.user);
-            }
+            if (initDataUnsafe.user) setUser(initDataUnsafe.user);
             setTheme(tg.colorScheme || 'light');
             isTelegram = true;
           } else {
@@ -150,9 +124,7 @@
           if (storedToken) {
             setToken(storedToken);
             setLoggedIn(true);
-            if (isTelegram) {
-              await loadUserData(storedToken);
-            }
+            if (isTelegram) await loadUserData(storedToken);
           } else if (!isTelegram) {
             setLoggedIn(true);
             setToken('demo');
@@ -184,9 +156,7 @@
             setTransactions(data.transactions || []);
             prepareChartData(data.transactions || []);
           }
-        } catch (err) {
-          console.error('Ошибка загрузки:', err);
-        }
+        } catch (err) { console.error(err); }
       };
 
       const saveUserData = async () => {
@@ -200,9 +170,7 @@
             },
             body: JSON.stringify({ balance, income, expenses, savings, transactions })
           });
-        } catch (err) {
-          console.error('Ошибка сохранения:', err);
-        }
+        } catch (err) { console.error(err); }
       };
 
       useEffect(() => {
@@ -210,17 +178,17 @@
           saveUserData();
           prepareChartData(transactions);
         }
-      }, [balance, income, expenses, savings, transactions, loggedIn]);
+      }, [balance, income, expenses, savings, transactions]);
 
       const handleRegister = async () => {
         try {
-          const response = await fetch(`${backendUrl}/register`, {
+          const res = await fetch(`${backendUrl}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
           });
-          if (response.ok) {
-            const { token } = await response.json();
+          if (res.ok) {
+            const { token } = await res.json();
             localStorage.setItem('authToken', token);
             setToken(token);
             setLoggedIn(true);
@@ -235,13 +203,13 @@
 
       const handleLogin = async () => {
         try {
-          const response = await fetch(`${backendUrl}/login`, {
+          const res = await fetch(`${backendUrl}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
           });
-          if (response.ok) {
-            const { token } = await response.json();
+          if (res.ok) {
+            const { token } = await res.json();
             localStorage.setItem('authToken', token);
             setToken(token);
             setLoggedIn(true);
@@ -256,8 +224,7 @@
 
       const addTransaction = () => {
         if (!amount || !description) return;
-
-        const newTransaction = {
+        const newTx = {
           id: Date.now(),
           type: transactionType,
           amount: parseFloat(amount),
@@ -265,9 +232,7 @@
           category: category || 'Другое',
           date: new Date().toISOString()
         };
-
-        setTransactions([newTransaction, ...transactions]);
-
+        setTransactions([newTx, ...transactions]);
         if (transactionType === 'income') {
           setIncome(income + parseFloat(amount));
           setBalance(balance + parseFloat(amount));
@@ -278,7 +243,6 @@
           setSavings(savings + parseFloat(amount));
           setBalance(balance - parseFloat(amount));
         }
-
         setAmount('');
         setDescription('');
         setCategory('');
@@ -291,23 +255,19 @@
         const expenseData = [];
         const last7Days = new Date();
         last7Days.setDate(last7Days.getDate() - 6);
-
         for (let i = 0; i < 7; i++) {
           const day = new Date(last7Days);
           day.setDate(day.getDate() + i);
           labels.push(day.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
-
           const dayIncome = trans
             .filter(t => t.type === 'income' && new Date(t.date).toDateString() === day.toDateString())
             .reduce((sum, t) => sum + t.amount, 0);
           incomeData.push(dayIncome);
-
           const dayExpense = trans
             .filter(t => t.type === 'expense' && new Date(t.date).toDateString() === day.toDateString())
             .reduce((sum, t) => sum + t.amount, 0);
           expenseData.push(dayExpense);
         }
-
         setChartData({
           labels,
           datasets: [
@@ -315,15 +275,15 @@
               label: 'Доходы',
               data: incomeData,
               borderColor: 'rgb(34, 197, 94)',
-              backgroundColor: 'rgba(34, 197, 94, 0.5)',
+              backgroundColor: 'rgba(34, 197, 94, 0.5)'
             },
             {
               label: 'Расходы',
               data: expenseData,
               borderColor: 'rgb(239, 68, 68)',
-              backgroundColor: 'rgba(239, 68, 68, 0.5)',
-            },
-          ],
+              backgroundColor: 'rgba(239, 68, 68, 0.5)'
+            }
+          ]
         });
       };
 
@@ -332,17 +292,16 @@
           const ctx = document.getElementById('financeChart').getContext('2d');
           const existingChart = Chart.getChart(ctx);
           if (existingChart) existingChart.destroy();
-
           new Chart(ctx, {
             type: 'line',
             data: chartData,
             options: {
               responsive: true,
-              scales: { y: { beginAtZero: true } },
-            },
+              scales: { y: { beginAtZero: true } }
+            }
           });
         }
-      }, [chartData, theme]);
+      }, [chartData]);
 
       const categories = {
         expense: ['Еда', 'Транспорт', 'Развлечения', 'Счета', 'Покупки', 'Здоровье', 'Коммунальные платежи', 'Шоппинг', 'Другое'],
@@ -350,13 +309,7 @@
         savings: ['Отпуск', 'Накопления', 'Экстренный фонд', 'Цель', 'Другое']
       };
 
-      const formatCurrency = (value) => {
-        return new Intl.NumberFormat('ru-RU', {
-          style: 'currency',
-          currency: 'RUB',
-          minimumFractionDigits: 0
-        }).format(value);
-      };
+      const formatCurrency = (value) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(value);
 
       const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -383,10 +336,7 @@
       if (!user) {
         return (
           <div className={`min-h-screen ${bgColor} flex items-center justify-center p-4`}>
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className={textPrimary}>Загрузка...</p>
-            </div>
+            <p className={textPrimary}>Загрузка...</p>
           </div>
         );
       }
@@ -396,13 +346,10 @@
           <div className={`${cardBg} ${textPrimary} p-6 rounded-b-3xl shadow-sm`}>
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-2xl font-bold">Привет, {user.first_name || 'Пользователь'}! 👋</h1>
+                <h1 className="text-2xl font-bold">Привет, {user.first_name || 'Пользователь'}!</h1>
                 <p className={`text-sm ${textSecondary}`}>Управляй своими финансами</p>
               </div>
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className={`p-3 rounded-full ${inputBg}`}
-              >
+              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`p-3 rounded-full ${inputBg}`}>
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
               </button>
             </div>
@@ -440,7 +387,6 @@
                     <p className={`text-xs ${textSecondary}`}>Доход</p>
                     <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(income)}</p>
                   </div>
-
                   <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="bg-red-100 p-2 rounded-lg">
@@ -450,7 +396,6 @@
                     <p className={`text-xs ${textSecondary}`}>Расход</p>
                     <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(expenses)}</p>
                   </div>
-
                   <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
                     <div className="flex items-center gap-2 mb-2">
                       <div className="bg-blue-100 p-2 rounded-lg">
@@ -467,38 +412,53 @@
                   <canvas id="financeChart" height="200"></canvas>
                 </div>
 
+                  <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
+                    <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Последние операции</h3>
+                    {transactions.length === 0 ? (
+                      <p className={`text-center py-8 ${textSecondary}`}>Пока нет операций</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {transactions.slice(0, 5).map((transaction) => (
+                          <div key={transaction.id} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${transaction.type === 'income' ? 'bg-green-100' : transaction.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'}`}>
+                                {transaction.type === 'income' ? <TrendingUp size={18} className="text-green-600" /> : transaction.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> : <PiggyBank size={18} className="text-blue-600" />}
+                              </div>
+                              <div>
+                                <p className={`font-medium ${textPrimary}`}>{transaction.description}</p>
+                                <p className={`text-xs ${textSecondary}`}>{transaction.category} • {formatDate(transaction.date)}</p>
+                              </div>
+                            </div>
+                            <p className={`font-bold ${transaction.type === 'income' ? 'text-green-600' : transaction.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
+                              {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'history' && (
                 <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-                  <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Последние операции</h3>
+                  <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История операций</h3>
                   {transactions.length === 0 ? (
                     <p className={`text-center py-8 ${textSecondary}`}>Пока нет операций</p>
                   ) : (
                     <div className="space-y-3">
-                      {transactions.slice(0, 5).map((transaction) => (
-                        <div key={transaction.id} className="flex items-center justify-between">
+                      {transactions.map((transaction) => (
+                        <div key={transaction.id} className={`flex items-center justify-between pb-3 ${borderColor} border-b last:border-0`}>
                           <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${
-                              transaction.type === 'income' ? 'bg-green-100' :
-                              transaction.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'
-                            }`}>
-                              {transaction.type === 'income' ? (
-                                <TrendingUp size={18} className="text-green-600" />
-                              ) : transaction.type === 'expense' ? (
-                                <TrendingDown size={18} className="text-red-600" />
-                              ) : (
-                                <PiggyBank size={18} className="text-blue-600" />
-                              )}
+                            <div className={`p-2 rounded-lg ${transaction.type === 'income' ? 'bg-green-100' : transaction.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'}`}>
+                              {transaction.type === 'income' ? <TrendingUp size={18} className="text-green-600" /> : transaction.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> : <PiggyBank size={18} className="text-blue-600" />}
                             </div>
                             <div>
                               <p className={`font-medium ${textPrimary}`}>{transaction.description}</p>
-                              <p className={`text-xs ${textSecondary}`}>
-                                {transaction.category} • {formatDate(transaction.date)}
-                              </p>
+                              <p className={`text-xs ${textSecondary}`}>{transaction.category} • {formatDate(transaction.date)}</p>
                             </div>
                           </div>
-                          <p className={`font-bold ${
-                            transaction.type === 'income' ? 'text-green-600' :
-                            transaction.type === 'expense' ? 'text-red-600' : 'text-blue-600'
-                          }`}>
+                          <p className={`font-bold ${transaction.type === 'income' ? 'text-green-600' : transaction.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
                             {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                           </p>
                         </div>
@@ -506,281 +466,129 @@
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === 'history' && (
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-                <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История операций</h3>
-                {transactions.length === 0 ? (
-                  <p className={`text-center py-8 ${textSecondary}`}>Пока нет операций</p>
-                ) : (
-                  <div className="space-y-3">
-                    {transactions.map((transaction) => (
-                      <div key={transaction.id} className={`flex items-center justify-between pb-3 ${borderColor} border-b last:border-0`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${
-                            transaction.type === 'income' ? 'bg-green-100' :
-                            transaction.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'
-                          }`}>
-                            {transaction.type === 'income' ? (
-                              <TrendingUp size={18} className="text-green-600" />
-                            ) : transaction.type === 'expense' ? (
-                              <TrendingDown size={18} className="text-red-600" />
-                            ) : (
-                              <PiggyBank size={18} className="text-blue-600" />
-                            )}
-                          </div>
-                          <div>
-                            <p className={`font-medium ${textPrimary}`}>{transaction.description}</p>
-                            <p className={`text-xs ${textSecondary}`}>
-                              {transaction.category} • {formatDate(transaction.date)}
-                            </p>
-                          </div>
-                        </div>
-                        <p className={`font-bold ${
-                          transaction.type === 'income' ? 'text-green-600' :
-                          transaction.type === 'expense' ? 'text-red-600' : 'text-blue-600'
-                        }`}>
-                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                        </p>
-                      </div>
-                    ))}
+              {activeTab === 'savings' && (
+                <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
+                  <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Копилка</h3>
+                  <div className="mb-6">
+                    <div className={`bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl p-6 text-white`}>
+                      <p className="text-sm opacity-90 mb-1">Общая сумма накоплений</p>
+                      <h2 className="text-4xl font-bold">{formatCurrency(savings)}</h2>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'savings' && (
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-                <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Копилка</h3>
-                <div className="mb-6">
-                  <div className={`bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl p-6 text-white`}>
-                    <p className="text-sm opacity-90 mb-1">Общая сумма накоплений</p>
-                    <h2 className="text-4xl font-bold">{formatCurrency(savings)}</h2>
-                  </div>
-                </div>
-                <div className="space-y-3">
                   {transactions.filter(t => t.type === 'savings').length === 0 ? (
                     <p className={`text-center py-8 ${textSecondary}`}>Начните копить на свою цель!</p>
                   ) : (
-                    transactions.filter(t => t.type === 'savings').map((transaction) => (
-                      <div key={transaction.id} className={`flex items-center justify-between pb-3 ${borderColor} border-b last:border-0`}>
-                        <div className="flex items-center gap-3">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <PiggyBank size={18} className="text-blue-600" />
+                    <div className="space-y-3">
+                      {transactions.filter(t => t.type === 'savings').map((transaction) => (
+                        <div key={transaction.id} className={`flex items-center justify-between pb-3 ${borderColor} border-b last:border-0`}>
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-100 p-2 rounded-lg">
+                              <PiggyBank size={18} className="text-blue-600" />
+                            </div>
+                            <div>
+                              <p className={`font-medium ${textPrimary}`}>{transaction.description}</p>
+                              <p className={`text-xs ${textSecondary}`}>{transaction.category} • {formatDate(transaction.date)}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className={`font-medium ${textPrimary}`}>{transaction.description}</p>
-                            <p className={`text-xs ${textSecondary}`}>
-                              {transaction.category} • {formatDate(transaction.date)}
-                            </p>
-                          </div>
+                          <p className="font-bold text-blue-600">+{formatCurrency(transaction.amount)}</p>
                         </div>
-                        <p className="font-bold text-blue-600">
-                          +{formatCurrency(transaction.amount)}
-                        </p>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === 'settings' && (
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-                <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Настройки</h3>
-                {loggedIn ? (
-                  <div>
-                    <p className={`text-sm ${textSecondary} mb-4`}>Вы вошли как {email || 'пользователь'}</p>
-                    <button
-                      onClick={() => {
-                        localStorage.removeItem('authToken');
-                        setLoggedIn(false);
-                        setToken(null);
-                        setBalance(0);
-                        setIncome(0);
-                        setExpenses(0);
-                        setSavings(0);
-                        setTransactions([]);
-                        setChartData(null);
-                      }}
-                      className="w-full py-4 rounded-xl bg-red-500 text-white font-medium"
-                    >
-                      Выйти
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full p-4 rounded-xl ${inputBg} ${textPrimary}`}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Пароль"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full p-4 rounded-xl ${inputBg} ${textPrimary}`}
-                    />
-                    <div className="flex gap-3">
+              {activeTab === 'settings' && (
+                <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
+                  <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Настройки</h3>
+                  {loggedIn ? (
+                    <div>
+                      <p className={`text-sm ${textSecondary} mb-4`}>Вы вошли как {email || 'пользователь'}</p>
                       <button
-                        onClick={() => setIsRegister(!isRegister)}
-                        className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}
+                        onClick={() => {
+                          localStorage.removeItem('authToken');
+                          setLoggedIn(false);
+                          setToken(null);
+                          setBalance(0); setIncome(0); setExpenses(0); setSavings(0); setTransactions([]); setChartData(null);
+                        }}
+                        className="w-full py-4 rounded-xl bg-red-500 text-white font-medium"
                       >
-                        {isRegister ? 'Войти' : 'Регистрация'}
-                      </button>
-                      <button
-                        onClick={isRegister ? handleRegister : handleLogin}
-                        className="flex-1 py-4 rounded-xl bg-blue-500 text-white font-medium"
-                      >
-                        {isRegister ? 'Зарегистрироваться' : 'Войти'}
+                        Выйти
                       </button>
                     </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className={`w-full p-4 rounded-xl ${inputBg} ${textPrimary}`} />
+                      <input type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} className={`w-full p-4 rounded-xl ${inputBg} ${textPrimary}`} />
+                      <div className="flex gap-3">
+                        <button onClick={() => setIsRegister(!isRegister)} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}>
+                          {isRegister ? 'Войти' : 'Регистрация'}
+                        </button>
+                        <button onClick={isRegister ? handleRegister : handleLogin} className="flex-1 py-4 rounded-xl bg-blue-500 text-white font-medium">
+                          {isRegister ? 'Зарегистрироваться' : 'Войти'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {showAddModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+                <div className={`${cardBg} rounded-t-3xl w-full max-w-md p-6 animate-slide-up`}>
+                  <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Новая операция</h3>
+                  <div className="flex gap-2 mb-4">
+                    <button onClick={() => setTransactionType('expense')} className={`flex-1 py-3 rounded-xl font-medium ${transactionType === 'expense' ? 'bg-red-500 text-white' : `${inputBg} ${textSecondary}`}`}>Расход</button>
+                    <button onClick={() => setTransactionType('income')} className={`flex-1 py-3 rounded-xl font-medium ${transactionType === 'income' ? 'bg-green-500 text-white' : `${inputBg} ${textSecondary}`}`}>Доход</button>
+                    <button onClick={() => setTransactionType('savings')} className={`flex-1 py-3 rounded-xl font-medium ${transactionType === 'savings' ? 'bg-blue-500 text-white' : `${inputBg} ${textSecondary}`}`}>Копилка</button>
                   </div>
-                )}
+                  <input type="number" placeholder="Сумма" value={amount} onChange={(e) => setAmount(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary} text-lg font-bold`} />
+                  <input type="text" placeholder="Описание" value={description} onChange={(e) => setDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}>
+                    <option value="">Выберите категорию</option>
+                    {categories[transactionType].map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowAddModal(false)} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}>Отмена</button>
+                    <button onClick={addTransaction} className={`flex-1 py-4 rounded-xl ${transactionType === 'income' ? 'bg-green-500' : transactionType === 'expense' ? 'bg-red-500' : 'bg-blue-500'} text-white font-medium`}>Добавить</button>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
 
-          {showAddModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
-              <div className={`${cardBg} rounded-t-3xl w-full max-w-md p-6 animate-slide-up`}>
-                <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Новая операция</h3>
-                
-                <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => setTransactionType('expense')}
-                    className={`flex-1 py-3 rounded-xl font-medium ${
-                      transactionType === 'expense'
-                        ? 'bg-red-500 text-white'
-                        : `${inputBg} ${textSecondary}`
-                    }`}
-                  >
-                    Расход
-                  </button>
-                  <button
-                    onClick={() => setTransactionType('income')}
-                    className={`flex-1 py-3 rounded-xl font-medium ${
-                      transactionType === 'income'
-                        ? 'bg-green-500 text-white'
-                        : `${inputBg} ${textSecondary}`
-                    }`}
-                  >
-                    Доход
-                  </button>
-                  <button
-                    onClick={() => setTransactionType('savings')}
-                    className={`flex-1 py-3 rounded-xl font-medium ${
-                      transactionType === 'savings'
-                        ? 'bg-blue-500 text-white'
-                        : `${inputBg} ${textSecondary}`
-                    }`}
-                  >
-                    Копилка
-                  </button>
-                </div>
-
-                <input
-                  type="number"
-                  placeholder="Сумма"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary} text-lg font-bold`}
-                />
-
-                <input
-                  type="text"
-                  placeholder="Описание"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`}
-                />
-
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}
-                >
-                  <option value="">Выберите категорию</option>
-                  {categories[transactionType].map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowAddModal(false)}
-                    className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    onClick={addTransaction}
-                    className={`flex-1 py-4 rounded-xl ${
-                      transactionType === 'income' ? 'bg-green-500' :
-                      transactionType === 'expense' ? 'bg-red-500' : 'bg-blue-500'
-                    } text-white font-medium`}
-                  >
-                    Добавить
-                  </button>
-                </div>
+            <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t`}>
+              <div className="flex justify-around items-center p-4 max-w-md mx-auto">
+                <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}>
+                  <Wallet size={24} />
+                  <span className="text-xs mt-1">Обзор</span>
+                </button>
+                <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}>
+                  <History size={24} />
+                  <span className="text-xs mt-1">История</span>
+                </button>
+                <button onClick={() => setShowAddModal(true)} className="flex flex-col items-center -mt-6">
+                  <div className="bg-blue-500 text-white p-4 rounded-full shadow-lg">
+                    <Plus size={28} />
+                  </div>
+                </button>
+                <button onClick={() => setActiveTab('savings')} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}>
+                  <PiggyBank size={24} />
+                  <span className="text-xs mt-1">Копилка</span>
+                </button>
+                <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}>
+                  <Settings size={24} />
+                  <span className="text-xs mt-1">Настройки</span>
+                </button>
               </div>
             </div>
-          )}
-
-          <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t`}>
-            <div className="flex justify-around items-center p-4 max-w-md mx-auto">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}
-              >
-                <Wallet size={24} />
-                <span className="text-xs mt-1">Обзор</span>
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}
-              >
-                <History size={24} />
-                <span className="text-xs mt-1">История</span>
-              </button>
-
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex flex-col items-center -mt-6"
-              >
-                <div className="bg-blue-500 text-white p-4 rounded-full shadow-lg">
-                  <Plus size={28} />
-                </div>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('savings')}
-                className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}
-              >
-                <PiggyBank size={24} />
-                <span className="text-xs mt-1">Копилка</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}
-              >
-                <Settings size={24} />
-                <span className="text-xs mt-1">Настройки</span>
-              </button>
-            </div>
           </div>
-        </div>
-      );
-    };
+        );
+      };
 
-    ReactDOM.render(<FinanceApp />, document.getElementById('root'));
-  </script>
-</body>
+      ReactDOM.render(<FinanceApp />, document.getElementById('root'));
+    </script>
+  </body>
 </html>
