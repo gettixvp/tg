@@ -630,4 +630,5 @@ const FinanceApp = ({ apiUrl }) => {
   );
 };
 
+
 export default FinanceApp;
