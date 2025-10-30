@@ -1,4 +1,3 @@
-// backend/db.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -7,7 +6,7 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Создание таблиц
+// Создание таблиц (запустится один раз)
 (async () => {
   try {
     await pool.query(`
