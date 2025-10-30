@@ -1,13 +1,11 @@
-// backend/server.js
 const express = require('express');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const pool = require('./db');
 
-// === ИНИЦИАЛИЗАЦИЯ APP ПЕРЕД CORS ===
+// Инициализация Express
 const app = express();
 
-// CORS (после app)
 app.use(cors({
   origin: ['https://web.telegram.org', 'https://*.onrender.com', 'http://localhost:5173'],
   credentials: true
@@ -15,28 +13,25 @@ app.use(cors({
 
 app.use(express.json());
 
-// === Тестовый роут ===
+// Тестовый роут
 app.get('/', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Finance Backend API работает!', 
+    message: 'Finance Backend API работает!',
     endpoints: ['POST /api/auth', 'GET /api/user/:email', 'PUT /api/user/:id', 'POST /api/transactions']
   });
 });
 
-// === Аутентификация ===
+// Аутентификация
 app.post('/api/auth', async (req, res) => {
   const { email, password, first_name, currency, token } = req.body;
-  
   if (!email || (!password && !token) || !first_name) {
     return res.status(400).json({ error: 'email, password/token, first_name обязательны' });
   }
 
   try {
     let user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    
     if (user.rows.length === 0) {
-      // Регистрация
       const hash = await bcrypt.hash(password, 10);
       const newUser = await pool.query(
         'INSERT INTO users (email, password_hash, first_name, currency) VALUES ($1, $2, $3, $4) RETURNING *',
@@ -44,14 +39,12 @@ app.post('/api/auth', async (req, res) => {
       );
       user = { rows: [newUser.rows[0]] };
     } else {
-      // Вход
       const valid = token 
-        ? user.rows[0].password_hash === token  // Для авто-входа
+        ? user.rows[0].password_hash === token
         : await bcrypt.compare(password, user.rows[0].password_hash);
       if (!valid) return res.status(401).json({ error: 'Неверный пароль' });
     }
 
-    // Загружаем транзакции
     const transactions = await pool.query(
       'SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC',
       [user.rows[0].id]
@@ -67,7 +60,7 @@ app.post('/api/auth', async (req, res) => {
   }
 });
 
-// === Получение пользователя ===
+// Получение пользователя
 app.get('/api/user/:email', async (req, res) => {
   try {
     const user = await pool.query('SELECT * FROM users WHERE email = $1', [req.params.email]);
@@ -79,7 +72,7 @@ app.get('/api/user/:email', async (req, res) => {
   }
 });
 
-// === Обновление пользователя ===
+// Обновление пользователя
 app.put('/api/user/:id', async (req, res) => {
   const { balance, income, expenses, savings, currency, goalSavings } = req.body;
   try {
@@ -94,7 +87,7 @@ app.put('/api/user/:id', async (req, res) => {
   }
 });
 
-// === Сохранение транзакции ===
+// Сохранение транзакции
 app.post('/api/transactions', async (req, res) => {
   const { user_id, type, amount, description, category } = req.body;
   try {
@@ -109,7 +102,7 @@ app.post('/api/transactions', async (req, res) => {
   }
 });
 
-// === Получение транзакций ===
+// Получение транзакций
 app.get('/api/transactions', async (req, res) => {
   const { user_id } = req.query;
   try {
@@ -124,7 +117,7 @@ app.get('/api/transactions', async (req, res) => {
   }
 });
 
-// === Render: Порт ===
+// Запуск сервера
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Сервер запущен на порту ${PORT}`);
