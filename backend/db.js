@@ -1,3 +1,4 @@
+// backend/db.js
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -20,6 +21,7 @@ const pool = new Pool({
         expenses NUMERIC DEFAULT 0,
         savings NUMERIC DEFAULT 0,
         currency VARCHAR(10) DEFAULT 'RUB',
+        goal_savings NUMERIC DEFAULT 50000,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -36,9 +38,9 @@ const pool = new Pool({
       );
     `);
 
-    console.log('Таблицы users и transactions созданы/проверены');
+    console.log('Таблицы созданы/проверены');
   } catch (err) {
-    console.error('Ошибка создания таблиц:', err);
+    console.error('DB error:', err);
   }
 })();
 
