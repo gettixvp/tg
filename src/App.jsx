@@ -1,4 +1,9 @@
-const API_URL = 'https://walletback-aghp.onrender.com';
+const API_URL = 'https://walletback-aghp.onrender.com'; // БЕЗ /api
+
 export default function App() {
-  return <FinanceApp apiUrl={API_URL} />;
+  return (
+    <div id="app">
+      <FinanceApp apiUrl={API_URL} />
+    </div>
+  );
 }
