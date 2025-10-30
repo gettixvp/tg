@@ -37,9 +37,9 @@ const FinanceApp = ({ apiUrl }) => {
   const [category, setCategory] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [authCurrency, setAuthCurrency] = useState('RUB');
+  const [authCurrency, setAuthCurrency] = useState('('RUB');
 
-  // =================== Telegram API ===================
+  // =================== Telegram API (защита от undefined) ===================
   const tg = typeof window !== 'undefined' && window.Telegram?.WebApp;
   const haptic = tg?.HapticFeedback;
 
@@ -54,7 +54,7 @@ const FinanceApp = ({ apiUrl }) => {
 
   const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
 
-  // =================== Сессия ===================
+  // =================== Сессия (localStorage) ===================
   useEffect(() => {
     const session = localStorage.getItem('finance_session');
     if (session) {
@@ -72,7 +72,7 @@ const FinanceApp = ({ apiUrl }) => {
       });
       if (res.ok) {
         const data = await res.json();
-        setUser(data.user);
+        setUser({ ...data.user, first_name: displayName });
         setIsAuthenticated(true);
         loadUserData(data.user.id);
       }
@@ -81,7 +81,7 @@ const FinanceApp = ({ apiUrl }) => {
     }
   };
 
-  const saveSession = (email) => {
+  const saveSession = () => {
     const token = btoa(email + ':' + btoa(password));
     localStorage.setItem('finance_session', JSON.stringify({ email, token }));
   };
@@ -104,12 +104,12 @@ const FinanceApp = ({ apiUrl }) => {
       setUser({ ...data.user, first_name: displayName });
       setCurrency(authCurrency);
       setIsAuthenticated(true);
-      saveSession(email);
+      saveSession();
       loadUserData(data.user.id);
       setShowAuthModal(false);
       if (haptic) haptic.impactOccurred('light');
     } catch (err) {
-      alert('Нет связи с сервером. Попробуйте позже.');
+      alert('Нет связи с сервером');
     }
   };
 
@@ -122,12 +122,12 @@ const FinanceApp = ({ apiUrl }) => {
       setExpenses(data.expenses || 0);
       setSavings(data.savings || 0);
       setCurrency(data.currency || 'RUB');
-      setGoalSavings(data.goalSavings || 50000);
+      setGoalSavings(data.goal_savings || 50000);
 
       const txRes = await fetch(`${apiUrl}/api/transactions?user_id=${userId}`);
       setTransactions(await txRes.json());
     } catch (err) {
-      console.error(err);
+      console.error('Load error:', err);
     }
   };
 
@@ -192,13 +192,15 @@ const FinanceApp = ({ apiUrl }) => {
 
   // =================== График Chart.js ===================
   useEffect(() => {
-    if (!showChart) return;
+    if (!showChart || !window.Chart) return;
 
-    const ctx = document.getElementById('financeChart')?.getContext('2d');
+    const canvas = document.getElementById('financeChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let chart = window.financeChart;
-    if (chart) chart.destroy();
+    if (window.financeChart) window.financeChart.destroy();
 
     const data = chartType === 'income'
       ? transactions.filter(t => t.type === 'income')
@@ -213,7 +215,7 @@ const FinanceApp = ({ apiUrl }) => {
     const values = Object.values(categories);
     const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
 
-    chart = new window.Chart(ctx, {
+    window.financeChart = new window.Chart(ctx, {
       type: 'pie',
       data: {
         labels,
@@ -227,10 +229,6 @@ const FinanceApp = ({ apiUrl }) => {
         plugins: { legend: { position: 'bottom' } }
       }
     });
-
-    window.financeChart = chart;
-
-    return () => { if (chart) chart.destroy(); };
   }, [showChart, chartType, transactions]);
 
   // =================== Вибро ===================
@@ -285,6 +283,7 @@ const FinanceApp = ({ apiUrl }) => {
   const borderColor = theme === 'dark' ? 'border-zinc-800' : 'border-gray-200';
   const inputBg = theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100';
 
+  // =================== РЕНДЕР ===================
   return (
     <div className={`min-h-screen ${bgColor} pb-20`}>
       {/* Header — только на Обзор */}
@@ -292,10 +291,10 @@ const FinanceApp = ({ apiUrl }) => {
         <div className={`${cardBg} ${textPrimary} p-6 rounded-b-3xl shadow-sm`}>
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold">Привет, {isAuthenticated ? user.first_name : displayName}!</h1>
+              <h1 className="text-2xl font-bold">Привет, {isAuthenticated ? user?.first_name : displayName}!</h1>
               <p className={`text-sm ${textSecondary}`}>{isAuthenticated ? 'Аккаунт подключён' : 'Демо-режим'}</p>
             </div>
-            <button onClick={() => { handleTabChange('settings'); vibrate(); }} className={`p-3 rounded-full ${inputBg}`}>
+            <button onClick={() => handleTabChange('settings')} className={`p-3 rounded-full ${inputBg}`}>
               <Settings size={20} />
             </button>
           </div>
@@ -311,8 +310,9 @@ const FinanceApp = ({ apiUrl }) => {
         </div>
       )}
 
-      {/* Content */}
+      {/* Контент */}
       <div className="p-4">
+        {/* Обзор */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
@@ -332,6 +332,7 @@ const FinanceApp = ({ apiUrl }) => {
                 <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(savings)}</p>
               </div>
             </div>
+
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Последние операции</h3>
               {transactions.length === 0 ? (
@@ -362,6 +363,7 @@ const FinanceApp = ({ apiUrl }) => {
           </div>
         )}
 
+        {/* История */}
         {activeTab === 'history' && (
           <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
             <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История операций</h3>
@@ -392,6 +394,7 @@ const FinanceApp = ({ apiUrl }) => {
           </div>
         )}
 
+        {/* Копилка */}
         {activeTab === 'savings' && (
           <div className="space-y-4">
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
@@ -409,6 +412,7 @@ const FinanceApp = ({ apiUrl }) => {
                 Пополнить копилку
               </button>
             </div>
+
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История пополнений</h3>
               {transactions.filter(t => t.type === 'savings').length === 0 ? (
@@ -433,6 +437,7 @@ const FinanceApp = ({ apiUrl }) => {
           </div>
         )}
 
+        {/* Настройки */}
         {activeTab === 'settings' && (
           <div className="space-y-4">
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
@@ -480,7 +485,7 @@ const FinanceApp = ({ apiUrl }) => {
         </div>
       )}
 
-      {/* Add Modal */}
+      {/* Модалка добавления */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
           <div className={`${cardBg} rounded-t-3xl w-full max-w-md p-6`}>
@@ -493,7 +498,7 @@ const FinanceApp = ({ apiUrl }) => {
               ))}
             </div>
             <input type="number" placeholder="Сумма" value={amount} onChange={e => setAmount(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary} text-lg font-bold`} />
-            <input type="text" placeholder="Описание" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPhantom}`} />
+            <input type="text" placeholder="Описание" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
             <select value={category} onChange={e => setCategory(e.target.value)} className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}>
               <option value="">Категория</option>
               {categories[transactionType].map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -506,7 +511,7 @@ const FinanceApp = ({ apiUrl }) => {
         </div>
       )}
 
-      {/* Auth Modal */}
+      {/* Модалка входа */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`${cardBg} rounded-2xl p-6 w-full max-w-md`}>
@@ -525,7 +530,7 @@ const FinanceApp = ({ apiUrl }) => {
         </div>
       )}
 
-      {/* Bottom Nav */}
+      {/* Нижняя навигация */}
       <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t`}>
         <div className="flex justify-around items-center p-4 max-w-md mx-auto">
           <button onClick={() => handleTabChange('overview')} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
