@@ -11,8 +11,6 @@ import {
   Sun,
   LogOut,
   LogIn,
-  Maximize,
-  Minimize,
 } from 'lucide-react';
 
 const LS_KEY = 'finance_settings_v2';
@@ -41,7 +39,6 @@ const FinanceApp = ({ apiUrl }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authCurrency, setAuthCurrency] = useState('RUB');
-  const [fullscreen, setFullscreen] = useState(false);
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
 
   // =================== Telegram API ===================
@@ -55,7 +52,7 @@ const FinanceApp = ({ apiUrl }) => {
   const vibrateWarning = () => haptic?.notificationOccurred && haptic.notificationOccurred('warning');
   const vibrateSelect = () => haptic?.selectionChanged && haptic.selectionChanged();
 
-  // =================== Safe Area + Fullscreen Events ===================
+  // =================== Safe Area ===================
   useEffect(() => {
     if (tg) {
       tg.ready();
@@ -74,14 +71,8 @@ const FinanceApp = ({ apiUrl }) => {
       tg.onEvent?.('safeAreaChanged', updateSafeArea);
       updateSafeArea();
 
-      // Fullscreen events
-      const onFullscreenChanged = () => setFullscreen(tg.isFullscreen ?? false);
-      tg.onEvent?.('fullscreenChanged', onFullscreenChanged);
-
-      // cleanup
       return () => {
         tg.offEvent?.('safeAreaChanged', updateSafeArea);
-        tg.offEvent?.('fullscreenChanged', onFullscreenChanged);
       };
     }
   }, [tg]);
@@ -89,7 +80,6 @@ const FinanceApp = ({ apiUrl }) => {
   const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
 
   // =================== Сессия (localStorage) ===================
-  // Сохраняем все настройки, вход и тему в localStorage
   useEffect(() => {
     // При старте подтянуть настройки и сессию
     const ls = localStorage.getItem(LS_KEY);
@@ -537,29 +527,7 @@ const FinanceApp = ({ apiUrl }) => {
                 </button>
               )}
             </div>
-            {/* 2. Fullscreen */}
-            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border flex items-center justify-between`}>
-              <h3 className={`text-lg font-bold ${textPrimary}`}>Полноэкранный режим</h3>
-              {!fullscreen && tg?.requestFullscreen && (
-                <button
-                  onClick={handleFullscreen}
-                  className="p-3 rounded-full bg-blue-500 text-white ml-3"
-                  title="На весь экран"
-                >
-                  <Maximize size={20} />
-                </button>
-              )}
-              {fullscreen && tg?.exitFullscreen && (
-                <button
-                  onClick={handleExitFullscreen}
-                  className="p-3 rounded-full bg-gray-700 text-white ml-3"
-                  title="Выйти из полноэкранного"
-                >
-                  <Minimize size={20} />
-                </button>
-              )}
-            </div>
-            {/* 3. Тема */}
+            {/* 2. Тема */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
               <button
@@ -570,14 +538,14 @@ const FinanceApp = ({ apiUrl }) => {
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
               </button>
             </div>
-            {/* 4. Валюта */}
+            {/* 3. Валюта */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
               <select value={currency} onChange={e => { setCurrency(e.target.value); vibrateSelect(); }} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
                 {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
               </select>
             </div>
-            {/* 5. Цель копилки */}
+            {/* 4. Цель копилки */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Цель копилки</h3>
               <input type="number" value={goalSavings} onChange={e => setGoalSavings(parseFloat(e.target.value) || 0)} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`} placeholder="Цель" />
