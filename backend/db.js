@@ -1,45 +1,45 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+// db.js
+const { Pool } = require("pg");
+require("dotenv").config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: { rejectUnauthorized: false } // для Render и других хостингов
 });
 
-(async () => {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        first_name VARCHAR(255),
-        balance NUMERIC DEFAULT 0,
-        income NUMERIC DEFAULT 0,
-        expenses NUMERIC DEFAULT 0,
-        savings NUMERIC DEFAULT 0,
-        currency VARCHAR(10) DEFAULT 'RUB',
-        goal_savings NUMERIC DEFAULT 50000,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+async function initDB() {
+  // Создаём таблицу пользователей
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT,
+      first_name TEXT,
+      balance NUMERIC DEFAULT 0,      -- общий баланс (BYN)
+      income NUMERIC DEFAULT 0,       -- доходы (BYN)
+      expenses NUMERIC DEFAULT 0,     -- расходы (BYN)
+      savings_usd NUMERIC DEFAULT 0,  -- накопления (USD)
+      goal_savings NUMERIC DEFAULT 0, -- цель накоплений (USD)
+      currency TEXT DEFAULT 'BYN'
+    );
+  `);
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        type VARCHAR(20) NOT NULL,
-        amount NUMERIC NOT NULL,
-        description TEXT,
-        category VARCHAR(100),
-        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+  // Таблица транзакций
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS transactions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,                -- income | expense | savings
+      amount NUMERIC NOT NULL,           -- сумма в BYN (основная)
+      converted_amount_usd NUMERIC,      -- если savings → сколько получилось в USD
+      description TEXT,
+      category TEXT,
+      date TIMESTAMP DEFAULT NOW()
+    );
+  `);
 
-    console.log('Таблицы созданы/проверены');
-  } catch (err) {
-    console.error('DB error:', err);
-  }
-})();
+  console.log("✅ DB initialized");
+}
 
+initDB();
 module.exports = pool;

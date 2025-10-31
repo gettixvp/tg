@@ -1,121 +1,114 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const cors = require('cors');
-const pool = require('./db');
+// server.js
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bcrypt = require("bcrypt");
+const pool = require("./db");
 
 const app = express();
-
-app.use(cors({
-  origin: [
-    'https://web.telegram.org',
-    /\.onrender\.com$/,
-    'http://localhost:5173'
-  ],
-  credentials: true
-}));
-
 app.use(express.json());
+app.use(cors());
 
-app.get('/', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'Finance Backend API работает!',
-    endpoints: ['POST /api/auth', 'GET /api/user/:email', 'PUT /api/user/:id', 'POST /api/transactions']
-  });
-});
-
-// Аутентификация
-app.post('/api/auth', async (req, res) => {
-  const { email, password, first_name, currency, token } = req.body;
-  if (!email || (!password && !token) || !first_name) {
-    return res.status(400).json({ error: 'email, password/token, first_name обязательны' });
-  }
+// --- Регистрация / Вход ---
+app.post("/api/auth", async (req, res) => {
+  const { email, password, first_name } = req.body;
 
   try {
-    let user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (user.rows.length === 0) {
-      const hash = await bcrypt.hash(password, 10);
-      const newUser = await pool.query(
-        'INSERT INTO users (email, password_hash, first_name, currency) VALUES ($1, $2, $3, $4) RETURNING *',
-        [email, hash, first_name, currency || 'RUB']
+    // Проверяем есть ли пользователь
+    const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+
+    if (existing.rowCount === 0) {
+      // Регистрация
+      const password_hash = password ? await bcrypt.hash(password, 10) : null;
+      const userResult = await pool.query(
+        `INSERT INTO users (email, password_hash, first_name)
+         VALUES ($1,$2,$3) RETURNING *`,
+        [email, password_hash, first_name || email]
       );
-      user = { rows: [newUser.rows[0]] };
-    } else {
-      const valid = token
-        ? user.rows[0].password_hash === token
-        : await bcrypt.compare(password, user.rows[0].password_hash);
-      if (!valid) return res.status(401).json({ error: 'Неверный пароль' });
+      return res.json({ user: convertUser(userResult.rows[0]), transactions: [] });
     }
 
-    const transactions = await pool.query(
-      'SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC',
-      [user.rows[0].id]
-    );
+    // Вход
+    const user = existing.rows[0];
+    if (user.password_hash && password) {
+      const ok = await bcrypt.compare(password, user.password_hash);
+      if (!ok) return res.status(401).json({ error: "Неверный пароль" });
+    }
 
-    res.json({
-      user: user.rows[0],
-      transactions: transactions.rows
-    });
-  } catch (err) {
-    console.error('Auth error:', err);
-    res.status(500).json({ error: 'Серверная ошибка' });
+    // Забираем транзакции
+    const tx = await pool.query("SELECT * FROM transactions WHERE user_id=$1 ORDER BY date DESC", [user.id]);
+
+    res.json({ user: convertUser(user), transactions: tx.rows });
+
+  } catch (e) {
+    console.error("Auth error:", e);
+    res.status(500).json({ error: "Ошибка сервера" });
   }
 });
 
-app.get('/api/user/:email', async (req, res) => {
-  try {
-    const user = await pool.query('SELECT * FROM users WHERE email = $1', [req.params.email]);
-    if (user.rows.length === 0) return res.status(404).json({ error: 'Пользователь не найден' });
-    res.json(user.rows[0]);
-  } catch (err) {
-    console.error('User GET error:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
+// --- Сохранение данных пользователя ---
+app.put("/api/user/:id", async (req, res) => {
+  const { balance, income, expenses, savings, goalSavings } = req.body;
 
-app.put('/api/user/:id', async (req, res) => {
-  const { balance, income, expenses, savings, currency, goalSavings } = req.body;
   try {
     await pool.query(
-      'UPDATE users SET balance = $1, income = $2, expenses = $3, savings = $4, currency = $5, goal_savings = $6 WHERE id = $7',
-      [balance, income, expenses, savings, currency, goalSavings, req.params.id]
+      `UPDATE users
+       SET balance=$1, income=$2, expenses=$3, savings_usd=$4, goal_savings=$5
+       WHERE id=$6`,
+      [balance, income, expenses, savings, goalSavings, req.params.id]
     );
     res.json({ success: true });
-  } catch (err) {
-    console.error('User PUT error:', err);
-    res.status(500).json({ error: err.message });
+  } catch (e) {
+    console.error("User update error:", e);
+    res.status(500).json({ error: "Не удалось сохранить данные" });
   }
 });
 
-app.post('/api/transactions', async (req, res) => {
-  const { user_id, type, amount, description, category } = req.body;
+// --- Новая транзакция ---
+app.post("/api/transactions", async (req, res) => {
+  const { user_id, type, amount, description, category, converted_amount_usd } = req.body;
+
   try {
-    await pool.query(
-      'INSERT INTO transactions (user_id, type, amount, description, category) VALUES ($1, $2, $3, $4, $5)',
-      [user_id, type, amount, description, category]
+    const r = await pool.query(
+      `INSERT INTO transactions (user_id, type, amount, converted_amount_usd, description, category)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       RETURNING *`,
+      [user_id, type, amount, converted_amount_usd, description, category]
     );
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Tx POST error:', err);
-    res.status(500).json({ error: err.message });
+    res.json(r.rows[0]);
+  } catch (e) {
+    console.error("TX insert error:", e);
+    res.status(500).json({ error: "Ошибка сохранения транзакции" });
   }
 });
 
-app.get('/api/transactions', async (req, res) => {
+// --- Получить транзакции пользователя ---
+app.get("/api/transactions", async (req, res) => {
   const { user_id } = req.query;
   try {
-    const transactions = await pool.query(
-      'SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC',
+    const r = await pool.query(
+      "SELECT * FROM transactions WHERE user_id=$1 ORDER BY date DESC",
       [user_id]
     );
-    res.json(transactions.rows);
-  } catch (err) {
-    console.error('Tx GET error:', err);
-    res.status(500).json({ error: err.message });
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: "Ошибка получения транзакций" });
   }
 });
 
+// --- Helper: привести объект user к удобному формату ---
+function convertUser(u) {
+  return {
+    id: u.id,
+    email: u.email,
+    first_name: u.first_name,
+    balance: Number(u.balance),
+    income: Number(u.income),
+    expenses: Number(u.expenses),
+    savings_usd: Number(u.savings_usd),
+    goal_savings: Number(u.goal_savings),
+  };
+}
+
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
