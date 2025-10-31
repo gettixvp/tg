@@ -7,15 +7,12 @@ import {
   Plus,
   History,
   Settings,
-  Moon,
-  Sun,
   LogOut,
   LogIn,
 } from 'lucide-react';
 
 const LS_KEY = 'finance_settings_v2';
 
-// Категории с цветом и иконкой
 const categoriesMeta = {
   'Еда': { color: 'bg-orange-400', icon: '🍔' },
   'Транспорт': { color: 'bg-blue-400', icon: '🚗' },
@@ -24,6 +21,14 @@ const categoriesMeta = {
   'Покупки': { color: 'bg-purple-400', icon: '🛒' },
   'Здоровье': { color: 'bg-yellow-400', icon: '💊' },
   'Другое': { color: 'bg-gray-400', icon: '💼' },
+  'Зарплата': { color: 'bg-green-400', icon: '💵' },
+  'Фриланс': { color: 'bg-cyan-400', icon: '👨‍💻' },
+  'Подарки': { color: 'bg-yellow-300', icon: '🎁' },
+  'Инвестиции': { color: 'bg-indigo-400', icon: '📈' },
+  'Отпуск': { color: 'bg-blue-300', icon: '🏖️' },
+  'Накопления': { color: 'bg-blue-800', icon: '💰' },
+  'Экстренный фонд': { color: 'bg-red-400', icon: '🚨' },
+  'Цель': { color: 'bg-emerald-300', icon: '🎯' },
 };
 
 const categoriesList = {
@@ -40,14 +45,15 @@ const currencies = [
   { code: 'UAH', symbol: '₴', name: 'Гривна' },
 ];
 
-const FinanceApp = ({ apiUrl }) => {
-  // =================== Состояния ===================
+export default function FinanceApp({ apiUrl }) {
+  // ===== Состояния =====
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [theme, setTheme] = useState('light');
   const [currency, setCurrency] = useState('RUB');
   const [goalSavings, setGoalSavings] = useState(50000);
+  const [goalInput, setGoalInput] = useState('50000');
   const [balance, setBalance] = useState(10000);
   const [income, setIncome] = useState(50000);
   const [expenses, setExpenses] = useState(30000);
@@ -67,28 +73,25 @@ const FinanceApp = ({ apiUrl }) => {
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-  // refs для автофокуса и снятия фокуса
+  // refs для автофокуса
   const amountInputRef = useRef(null);
-  const descInputRef = useRef(null);
 
-  // =================== Telegram API ===================
+  // ===== Telegram API =====
   const tg = typeof window !== 'undefined' && window.Telegram?.WebApp;
   const haptic = tg?.HapticFeedback;
 
-  // =================== Haptic Utils ===================
+  // ===== Haptic =====
   const vibrate = () => haptic?.impactOccurred && haptic.impactOccurred('light');
   const vibrateSuccess = () => haptic?.notificationOccurred && haptic.notificationOccurred('success');
   const vibrateError = () => haptic?.notificationOccurred && haptic.notificationOccurred('error');
-  const vibrateWarning = () => haptic?.notificationOccurred && haptic.notificationOccurred('warning');
   const vibrateSelect = () => haptic?.selectionChanged && haptic.selectionChanged();
 
-  // =================== Safe Area ===================
+  // ===== Safe Area =====
   useEffect(() => {
     if (tg) {
       tg.ready();
       tg.expand();
       setTheme(tg.colorScheme || 'light');
-
       // Safe area
       const updateSafeArea = () => {
         setSafeAreaInset({
@@ -100,20 +103,16 @@ const FinanceApp = ({ apiUrl }) => {
       };
       tg.onEvent?.('safeAreaChanged', updateSafeArea);
       updateSafeArea();
-
-      return () => {
-        tg.offEvent?.('safeAreaChanged', updateSafeArea);
-      };
+      return () => tg.offEvent?.('safeAreaChanged', updateSafeArea);
     }
   }, [tg]);
 
   const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
 
-  // =================== Keyboard адаптивность ===================
+  // ===== Keyboard =====
   useEffect(() => {
     let prevHeight = window.innerHeight;
     const onResize = () => {
-      // 120px — средняя высота клавиатуры на мобильных
       setIsKeyboardOpen(window.innerHeight < prevHeight - 120);
       prevHeight = window.innerHeight;
     };
@@ -127,15 +126,15 @@ const FinanceApp = ({ apiUrl }) => {
     }
   }
 
-  // =================== Сессия (localStorage) ===================
+  // ===== Session =====
   useEffect(() => {
-    // При старте подтянуть настройки и сессию
     const ls = localStorage.getItem(LS_KEY);
     if (ls) {
       try {
         const data = JSON.parse(ls);
         setCurrency(data.currency || 'RUB');
         setGoalSavings(data.goalSavings || 50000);
+        setGoalInput(data.goalSavings?.toString() || '50000');
         setTheme(data.theme || 'light');
         setEmail(data.email || '');
         setPassword(data.password || '');
@@ -153,7 +152,6 @@ const FinanceApp = ({ apiUrl }) => {
   }, []);
 
   useEffect(() => {
-    // Сохранять все настройки и вход при изменении
     localStorage.setItem(LS_KEY, JSON.stringify({
       currency, goalSavings, theme, email, password, authCurrency, isAuthenticated, user
     }));
@@ -170,7 +168,7 @@ const FinanceApp = ({ apiUrl }) => {
         const data = await res.json();
         setUser({ ...data.user, first_name: displayName });
         setIsAuthenticated(true);
-        loadUserData(data.user.id);
+        await loadUserData(data.user.id);
         vibrateSuccess();
       }
     } catch (err) {
@@ -184,7 +182,7 @@ const FinanceApp = ({ apiUrl }) => {
     localStorage.setItem('finance_session', JSON.stringify({ email, token }));
   };
 
-  // =================== Аутентификация ===================
+  // ===== Auth =====
   const handleAuth = async () => {
     blurAll();
     if (!email || !password) {
@@ -199,11 +197,8 @@ const FinanceApp = ({ apiUrl }) => {
       });
       if (!res.ok) {
         let msg = '';
-        try {
-          msg = (await res.json()).error || await res.text();
-        } catch {
-          msg = res.status + ' ' + res.statusText;
-        }
+        try { msg = (await res.json()).error || await res.text(); }
+        catch { msg = res.status + ' ' + res.statusText; }
         vibrateError();
         alert(`Ошибка: ${msg}`);
         return;
@@ -213,7 +208,7 @@ const FinanceApp = ({ apiUrl }) => {
       setCurrency(authCurrency);
       setIsAuthenticated(true);
       saveSession();
-      loadUserData(data.user.id);
+      await loadUserData(data.user.id);
       setShowAuthModal(false);
       vibrateSuccess();
     } catch (err) {
@@ -232,6 +227,7 @@ const FinanceApp = ({ apiUrl }) => {
       setSavings(data.savings || 0);
       setCurrency(data.currency || 'RUB');
       setGoalSavings(data.goal_savings || 50000);
+      setGoalInput((data.goal_savings ?? 50000).toString());
 
       const txRes = await fetch(`${apiUrl}/api/transactions?user_id=${userId}`);
       setTransactions(await txRes.json());
@@ -246,12 +242,15 @@ const FinanceApp = ({ apiUrl }) => {
     localStorage.removeItem('finance_session');
     setIsAuthenticated(false);
     setUser(null);
-    setBalance(10000); setIncome(50000); setExpenses(30000); setSavings(10000);
+    setBalance(10000);
+    setIncome(50000);
+    setExpenses(30000);
+    setSavings(10000);
     setTransactions([]);
-    vibrateWarning();
+    vibrateError();
   };
 
-  // =================== Сохранение ===================
+  // ===== Сохранение =====
   const saveUserData = async () => {
     if (!isAuthenticated || !user?.id) return;
     try {
@@ -262,10 +261,9 @@ const FinanceApp = ({ apiUrl }) => {
       });
     } catch (err) {}
   };
-
   useEffect(() => { saveUserData(); }, [balance, income, expenses, savings, goalSavings]); // eslint-disable-line
 
-  // =================== Транзакции ===================
+  // ===== Транзакции =====
   const addTransaction = async () => {
     blurAll();
     if (!amount) {
@@ -309,21 +307,20 @@ const FinanceApp = ({ apiUrl }) => {
     });
   };
 
-  // =================== График Chart.js ===================
+  // ===== Chart.js =====
   useEffect(() => {
     if (!showChart || !window.Chart) return;
-
     const canvas = document.getElementById('financeChart');
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
     if (window.financeChart) window.financeChart.destroy();
 
     const data = chartType === 'income'
       ? transactions.filter(t => t.type === 'income')
-      : transactions.filter(t => t.type === 'expense');
+      : chartType === 'expense'
+      ? transactions.filter(t => t.type === 'expense')
+      : transactions.filter(t => t.type === 'savings');
 
     const categoriesData = {};
     data.forEach(t => {
@@ -332,15 +329,14 @@ const FinanceApp = ({ apiUrl }) => {
 
     const labels = Object.keys(categoriesData);
     const values = Object.values(categoriesData);
-    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
-
+    const colors = labels.map(cat => categoriesMeta[cat]?.color?.replace('bg-', '').replace('-400','') || '#ccc');
     window.financeChart = new window.Chart(ctx, {
       type: 'pie',
       data: {
         labels,
         datasets: [{
           data: values,
-          backgroundColor: colors.slice(0, labels.length),
+          backgroundColor: colors,
         }]
       },
       options: {
@@ -348,12 +344,12 @@ const FinanceApp = ({ apiUrl }) => {
         plugins: { legend: { position: 'bottom' } }
       }
     });
-    // eslint-disable-next-line
   }, [showChart, chartType, transactions]);
 
+  // ===== Форматирование =====
   const currentCurrency = currencies.find(c => c.code === currency) || currencies[0];
-
   const formatCurrency = (value) => {
+    if (typeof value !== 'number' || isNaN(value)) return '';
     const formatted = new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: currency,
@@ -362,7 +358,6 @@ const FinanceApp = ({ apiUrl }) => {
     const standardSymbol = Intl.NumberFormat('ru-RU', { style: 'currency', currency }).format(0).replace(/\d\s/g, '');
     return formatted.replace(standardSymbol, currentCurrency.symbol);
   };
-
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -371,20 +366,35 @@ const FinanceApp = ({ apiUrl }) => {
     if (date.toDateString() === yesterday.toDateString()) return `Вчера, ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   };
-
   const formatTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const bgColor = theme === 'dark' ? 'bg-black' : 'bg-gray-50';
   const cardBg = theme === 'dark' ? 'bg-zinc-900' : 'bg-white';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-zinc-800' : 'border-gray-200';
   const inputBg = theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100';
 
-  // =================== Рендер строки транзакции с цветным аватаром ===================
+  // ===== Pie chart данные для главной =====
+  function getPieData(type) {
+    const data = transactions.filter(t => t.type === type);
+    const catList = categoriesList[type];
+    const catData = {};
+    catList.forEach(cat => { catData[cat] = 0; });
+    data.forEach(tx => { catData[tx.category] = (catData[tx.category] || 0) + tx.amount; });
+    const labels = catList;
+    const values = catList.map(cat => catData[cat]);
+    const colors = catList.map(cat => ({
+      'expense': categoriesMeta[cat]?.color || 'bg-gray-300',
+      'income': categoriesMeta[cat]?.color || 'bg-gray-300',
+      'savings': categoriesMeta[cat]?.color || 'bg-gray-300',
+    })[type].replace('bg-', '').replace('-400',''));
+    return { labels, values, colors };
+  }
+
+  // ====== Транзакция (универсальная строка для истории/копилки) ======
   const TxRow = ({ tx }) => (
     <div key={tx.id} className="flex items-center justify-between pb-3 border-b last:border-0">
       <div className="flex items-center gap-3">
@@ -405,10 +415,10 @@ const FinanceApp = ({ apiUrl }) => {
     </div>
   );
 
-  // =================== РЕНДЕР ===================
+  // ===== РЕНДЕР =====
   return (
     <div
-      className={`min-h-screen flex flex-col ${bgColor} pb-20`}
+      className={`min-h-screen flex flex-col ${theme === 'dark' ? 'bg-black' : 'bg-gray-50'} pb-20`}
       style={{
         paddingTop: safeAreaInset.top || 0,
         paddingBottom: safeAreaInset.bottom || 0,
@@ -416,7 +426,8 @@ const FinanceApp = ({ apiUrl }) => {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      {/* Header — только на Обзор, приветствие только для гостя */}
+
+      {/* Header — только на Обзор, только для гостя */}
       {activeTab === 'overview' && (
         <div className={`${cardBg} ${textPrimary} p-6 rounded-b-3xl shadow-sm`}>
           {!isAuthenticated && (
@@ -425,55 +436,77 @@ const FinanceApp = ({ apiUrl }) => {
               <p className={`text-sm ${textSecondary}`}>Войдите в аккаунт для синхронизации.</p>
             </div>
           )}
-          <div className={`${theme === 'dark' ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'} rounded-2xl p-6 text-white`}>
-            <p className="text-sm opacity-90 mb-1">Общий баланс</p>
-            <h2 className="text-4xl font-bold mb-4">{formatCurrency(balance)}</h2>
-            <div className="flex justify-between text-xs">
-              <div><p className="opacity-80">Доходы</p><p className="font-semibold">{formatCurrency(income)}</p></div>
-              <div><p className="opacity-80">Расходы</p><p className="font-semibold">{formatCurrency(expenses)}</p></div>
-              <div><p className="opacity-80">Накоплено</p><p className="font-semibold">{formatCurrency(savings)}</p></div>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* Контент */}
       <div className="p-4 flex-1 w-full max-w-md mx-auto">
-        {/* Обзор */}
+
+        {/* ========== ГЛАВНАЯ ========== */}
         {activeTab === 'overview' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border cursor-pointer`} onClick={() => { setChartType('income'); setShowChart(true); vibrate(); blurAll(); }}>
-                <div className="bg-green-100 p-2 rounded-lg w-fit mb-2"><TrendingUp size={16} className="text-green-600" /></div>
-                <p className={`text-xs ${textSecondary}`}>Доход</p>
-                <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(income)}</p>
+          <div className="space-y-5">
+            {/* Доходы */}
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border flex flex-col items-center`}>
+              <div className="font-bold text-xl mb-2">Доходы</div>
+              <div className="flex flex-col items-center">
+                <div className="h-32 w-32">
+                  <canvas
+                    id="incomePie"
+                    height="128"
+                    width="128"
+                    style={{ width: 128, height: 128 }}
+                  ></canvas>
+                </div>
+                <div className="mt-2 text-2xl font-bold text-green-600">{formatCurrency(income)}</div>
               </div>
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border cursor-pointer`} onClick={() => { setChartType('expense'); setShowChart(true); vibrate(); blurAll(); }}>
-                <div className="bg-red-100 p-2 rounded-lg w-fit mb-2"><TrendingDown size={16} className="text-red-600" /></div>
-                <p className={`text-xs ${textSecondary}`}>Расход</p>
-                <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(expenses)}</p>
-              </div>
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-                <div className="bg-blue-100 p-2 rounded-lg w-fit mb-2"><PiggyBank size={16} className="text-blue-600" /></div>
-                <p className={`text-xs ${textSecondary}`}>Копилка</p>
-                <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(savings)}</p>
-              </div>
+              <button
+                className="mt-2 text-xs text-blue-500 underline"
+                onClick={() => { setChartType('income'); setShowChart(true); vibrate(); blurAll(); }}
+              >Показать по категориям</button>
             </div>
 
-            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Последние операции</h3>
-              {transactions.length === 0 ? (
-                <p className={`text-center py-8 ${textSecondary}`}>Пока нет операций</p>
-              ) : (
-                <div className="space-y-3">
-                  {transactions.slice(0, 5).map(tx => <TxRow tx={tx} key={tx.id} />)}
+            {/* Расходы */}
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border flex flex-col items-center`}>
+              <div className="font-bold text-xl mb-2">Расходы</div>
+              <div className="flex flex-col items-center">
+                <div className="h-32 w-32">
+                  <canvas
+                    id="expensePie"
+                    height="128"
+                    width="128"
+                    style={{ width: 128, height: 128 }}
+                  ></canvas>
                 </div>
-              )}
+                <div className="mt-2 text-2xl font-bold text-red-500">{formatCurrency(expenses)}</div>
+              </div>
+              <button
+                className="mt-2 text-xs text-blue-500 underline"
+                onClick={() => { setChartType('expense'); setShowChart(true); vibrate(); blurAll(); }}
+              >Показать по категориям</button>
+            </div>
+
+            {/* Копилка (баланс + pie) */}
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border flex flex-col items-center`}>
+              <div className="font-bold text-xl mb-2">Копилка</div>
+              <div className="flex flex-col items-center">
+                <div className="h-32 w-32">
+                  <canvas
+                    id="savingsPie"
+                    height="128"
+                    width="128"
+                    style={{ width: 128, height: 128 }}
+                  ></canvas>
+                </div>
+                <div className="mt-2 text-2xl font-bold text-blue-600">{formatCurrency(savings)}</div>
+              </div>
+              <button
+                className="mt-2 text-xs text-blue-500 underline"
+                onClick={() => { setActiveTab('savings'); vibrate(); blurAll(); }}
+              >Перейти в копилку</button>
             </div>
           </div>
         )}
 
-        {/* История */}
+        {/* ========== ИСТОРИЯ ========== */}
         {activeTab === 'history' && (
           <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
             <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История операций</h3>
@@ -487,33 +520,78 @@ const FinanceApp = ({ apiUrl }) => {
           </div>
         )}
 
-        {/* Копилка */}
+        {/* ========== КОПИЛКА ========== */}
         {activeTab === 'savings' && (
           <div className="space-y-4">
-            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Копилка</h3>
-              <div className={`bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl p-6 text-white mb-4`}>
-                <p className="text-sm opacity-90 mb-1">Накоплено</p>
-                <h2 className="text-4xl font-bold mb-2">{formatCurrency(savings)}</h2>
-                <p className="text-sm opacity-80">Цель: {formatCurrency(goalSavings)}</p>
-                <input
-                  type="number"
-                  className="mt-2 mb-2 w-full p-3 rounded-xl text-black"
-                  value={goalSavings}
-                  onChange={e => setGoalSavings(parseFloat(e.target.value) || 0)}
-                  placeholder="Цель"
-                  onFocus={() => setIsKeyboardOpen(true)}
-                  onBlur={() => setIsKeyboardOpen(false)}
-                  onKeyDown={e => { if (e.key === 'Enter') blurAll(); }}
-                />
-                <div className="w-full bg-white/20 rounded-full h-3 mt-2">
-                  <div className="bg-white h-3 rounded-full transition-all" style={{ width: `${Math.min((savings / goalSavings) * 100, 100)}%` }}></div>
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border flex flex-col items-center`}>
+              <div className="font-bold text-xl mb-2">Копилка</div>
+              <div className="relative flex flex-col items-center w-full">
+                {/* Диаграмма круговая прогресса */}
+                <div
+                  className="relative flex items-center justify-center mb-3"
+                  style={{ width: 160, height: 160 }}
+                >
+                  {/* Прогресс кольцо */}
+                  <svg width="160" height="160">
+                    <circle
+                      cx="80" cy="80" r="72"
+                      fill="none"
+                      stroke="#D1D5DB"
+                      strokeWidth="14"
+                    />
+                    <circle
+                      cx="80" cy="80" r="72"
+                      fill="none"
+                      stroke="#3B82F6"
+                      strokeWidth="14"
+                      strokeDasharray={2 * Math.PI * 72}
+                      strokeDashoffset={
+                        2 * Math.PI * 72 * (1 - Math.min((savings || 0) / (goalSavings || 1), 1))
+                      }
+                      strokeLinecap="round"
+                      style={{ transition: 'stroke-dashoffset 0.5s' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-bold text-blue-600">
+                      {formatCurrency(savings)}
+                    </span>
+                    <span className="text-xs text-gray-400 mt-1">из {formatCurrency(goalSavings)}</span>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {goalSavings ? Math.round((savings / goalSavings) * 100) : 0}%
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm mt-2">{Math.round((savings / goalSavings) * 100)}% достигнуто</p>
+                {/* Поле ввода цели */}
+                <div className="w-full flex flex-col items-center mt-2">
+                  <span className="text-sm text-gray-400">Цель:</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="w-36 mt-1 mb-2 px-3 py-2 rounded-xl text-center text-lg border outline-none text-blue-900"
+                    value={goalInput}
+                    min={0}
+                    onChange={e => {
+                      const val = e.target.value.replace(/^0+/, ''); // убрать ведущие нули
+                      setGoalInput(val);
+                      if (val === '') return setGoalSavings(0);
+                      const num = parseInt(val, 10);
+                      if (!isNaN(num)) setGoalSavings(num);
+                    }}
+                    onFocus={() => setIsKeyboardOpen(true)}
+                    onBlur={() => setIsKeyboardOpen(false)}
+                    onKeyDown={e => { if (e.key === 'Enter') blurAll(); }}
+                    placeholder="Ваша цель"
+                  />
+                </div>
               </div>
-              <button onClick={() => { setTransactionType('savings'); setShowAddModal(true); vibrate(); blurAll(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl">
-                Пополнить копилку
-              </button>
+              <button
+                onClick={() => { setTransactionType('savings'); setShowAddModal(true); vibrate(); blurAll(); }}
+                className="w-14 h-14 flex items-center justify-center font-bold text-2xl text-blue-600 mt-4 mb-1 select-none"
+                style={{ background: 'none', border: 'none' }}
+              >+</button>
+              <span className="text-xs text-gray-400">Пополнить копилку</span>
             </div>
 
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
@@ -529,7 +607,7 @@ const FinanceApp = ({ apiUrl }) => {
           </div>
         )}
 
-        {/* Настройки */}
+        {/* ========== НАСТРОЙКИ ========== */}
         {activeTab === 'settings' && (
           <div className="space-y-4">
             {/* 1. Вход / Регистрация и приветствие для авторизованного */}
@@ -576,7 +654,13 @@ const FinanceApp = ({ apiUrl }) => {
       {showChart && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`${cardBg} rounded-2xl p-6 w-full max-w-md`}>
-            <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>{chartType === 'income' ? 'Доходы' : 'Расходы'} по категориям</h3>
+            <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>
+              {chartType === 'income'
+                ? 'Доходы'
+                : chartType === 'expense'
+                ? 'Расходы'
+                : 'Копилка'} по категориям
+            </h3>
             <div className="relative h-64">
               <canvas id="financeChart"></canvas>
             </div>
@@ -600,16 +684,16 @@ const FinanceApp = ({ apiUrl }) => {
             <input
               ref={amountInputRef}
               type="number"
+              inputMode="decimal"
               placeholder="Сумма"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
+              onChange={e => setAmount(e.target.value.replace(/^0+/,''))}
               onFocus={() => setIsKeyboardOpen(true)}
               onBlur={() => setIsKeyboardOpen(false)}
               onKeyDown={e => { if (e.key === 'Enter') blurAll(); }}
               className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary} text-lg font-bold`}
             />
             <input
-              ref={descInputRef}
               type="text"
               placeholder="Описание (необязательно)"
               value={description}
@@ -660,13 +744,13 @@ const FinanceApp = ({ apiUrl }) => {
         </div>
       )}
 
-      {/* Нижняя навигация — скрывать при открытой клавиатуре */}
+      {/* Нижняя навигация */}
       {!isKeyboardOpen && (
         <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t transition-all duration-200`}>
           <div className="flex justify-around items-center p-4 max-w-md mx-auto">
-            <button onClick={() => { setActiveTab('overview'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
+            <button onClick={() => { setActiveTab('overview'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Главная</span></button>
             <button onClick={() => { setActiveTab('history'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}><History size={24} /><span className="text-xs mt-1">История</span></button>
-            <button onClick={() => { setShowAddModal(true); vibrate(); blurAll(); }} className="flex flex-col items-center -mt-6"><div className="bg-blue-500 text-white p-4 rounded-full shadow-lg"><Plus size={28} /></div></button>
+            <button onClick={() => { setShowAddModal(true); vibrate(); blurAll(); }} className="flex flex-col items-center text-blue-600 text-3xl font-bold -mt-6">+</button>
             <button onClick={() => { setActiveTab('savings'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}><PiggyBank size={24} /><span className="text-xs mt-1">Копилка</span></button>
             <button onClick={() => { setActiveTab('settings'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}><Settings size={24} /><span className="text-xs mt-1">Настройки</span></button>
           </div>
@@ -674,6 +758,4 @@ const FinanceApp = ({ apiUrl }) => {
       )}
     </div>
   );
-};
-
-export default FinanceApp;
+}
