@@ -12,7 +12,7 @@ import {
   LogOut,
   LogIn,
   Maximize,
-  Minimize
+  Minimize,
 } from 'lucide-react';
 
 const FinanceApp = ({ apiUrl }) => {
@@ -40,67 +40,90 @@ const FinanceApp = ({ apiUrl }) => {
   const [password, setPassword] = useState('');
   const [authCurrency, setAuthCurrency] = useState('RUB');
   const [fullscreen, setFullscreen] = useState(false);
-  const [safeAreaInset, setSafeAreaInset] = useState({});
-  const [contentSafeAreaInset, setContentSafeAreaInset] = useState({});
+  const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
 
   // =================== Telegram API ===================
   const tg = typeof window !== 'undefined' && window.Telegram?.WebApp;
   const haptic = tg?.HapticFeedback;
 
-  useEffect(() => {
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      setTheme(tg.colorScheme || 'light');
-
-      // Слушаем события Telegram WebApp API
-      const onFullscreenChanged = () => setFullscreen(tg.isFullscreen ?? false);
-
-      tg.onEvent?.('fullscreenChanged', onFullscreenChanged);
-
-      // Safe area
-      const updateSafeArea = () => {
-        setSafeAreaInset(tg.safeAreaInset || {});
-        setContentSafeAreaInset(tg.contentSafeAreaInset || {});
-      };
-      tg.onEvent?.('safeAreaChanged', updateSafeArea);
-      tg.onEvent?.('contentSafeAreaChanged', updateSafeArea);
-
-      // Инициализация safeArea
-      updateSafeArea();
-
-      // Снимаем подписки при размонтировании
-      return () => {
-        tg.offEvent?.('fullscreenChanged', onFullscreenChanged);
-        tg.offEvent?.('safeAreaChanged', updateSafeArea);
-        tg.offEvent?.('contentSafeAreaChanged', updateSafeArea);
-      };
-    }
-  }, [tg]);
-
-  const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
+  // =================== Haptic Utils ===================
+  const vibrate = () => {
+    if (haptic?.impactOccurred) haptic.impactOccurred('light');
+  };
+  const vibrateSuccess = () => {
+    if (haptic?.notificationOccurred) haptic.notificationOccurred('success');
+  };
+  const vibrateError = () => {
+    if (haptic?.notificationOccurred) haptic.notificationOccurred('error');
+  };
+  const vibrateWarning = () => {
+    if (haptic?.notificationOccurred) haptic.notificationOccurred('warning');
+  };
+  const vibrateSelect = () => {
+    if (haptic?.selectionChanged) haptic.selectionChanged();
+  };
 
   // =================== FullScreen ===================
   const handleFullscreen = async () => {
     if (tg?.requestFullscreen) {
       try {
         await tg.requestFullscreen();
+        setFullscreen(true);
+        vibrate();
       } catch (e) {
-        // Можно показать сообщение или проигнорировать
-        if (haptic) haptic.notificationOccurred('error');
+        vibrateError();
       }
     }
   };
-
   const handleExitFullscreen = async () => {
     if (tg?.exitFullscreen) {
       try {
         await tg.exitFullscreen();
+        setFullscreen(false);
+        vibrate();
       } catch (e) {
-        if (haptic) haptic.notificationOccurred('error');
+        vibrateError();
       }
     }
   };
+
+  // =================== Safe Area + Fullscreen при старте ===================
+  useEffect(() => {
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      setTheme(tg.colorScheme || 'light');
+
+      // Safe area
+      const updateSafeArea = () => {
+        setSafeAreaInset({
+          top: tg.safeAreaInset?.top || 0,
+          bottom: tg.safeAreaInset?.bottom || 0,
+          left: tg.safeAreaInset?.left || 0,
+          right: tg.safeAreaInset?.right || 0,
+        });
+      };
+      tg.onEvent?.('safeAreaChanged', updateSafeArea);
+      updateSafeArea();
+
+      // Fullscreen events
+      const onFullscreenChanged = () => setFullscreen(tg.isFullscreen ?? false);
+      tg.onEvent?.('fullscreenChanged', onFullscreenChanged);
+
+      // Попробовать сразу открыть fullscreen если доступно
+      if (typeof tg.requestFullscreen === 'function') {
+        tg.requestFullscreen().catch(() => {});
+      }
+
+      // cleanup
+      return () => {
+        tg.offEvent?.('safeAreaChanged', updateSafeArea);
+        tg.offEvent?.('fullscreenChanged', onFullscreenChanged);
+      };
+    }
+  }, [tg]);
+
+  const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
 
   // =================== Сессия (localStorage) ===================
   useEffect(() => {
@@ -124,9 +147,11 @@ const FinanceApp = ({ apiUrl }) => {
         setUser({ ...data.user, first_name: displayName });
         setIsAuthenticated(true);
         loadUserData(data.user.id);
+        vibrateSuccess();
       }
     } catch (err) {
       localStorage.removeItem('finance_session');
+      vibrateError();
     }
   };
 
@@ -137,7 +162,10 @@ const FinanceApp = ({ apiUrl }) => {
 
   // =================== Аутентификация ===================
   const handleAuth = async () => {
-    if (!email || !password) return alert('Введите email и пароль');
+    if (!email || !password) {
+      vibrateError();
+      return alert('Введите email и пароль');
+    }
     try {
       const res = await fetch(`${apiUrl}/api/auth`, {
         method: 'POST',
@@ -146,6 +174,7 @@ const FinanceApp = ({ apiUrl }) => {
       });
       if (!res.ok) {
         const err = await res.text();
+        vibrateError();
         alert(`Ошибка: ${err}`);
         return;
       }
@@ -156,8 +185,9 @@ const FinanceApp = ({ apiUrl }) => {
       saveSession();
       loadUserData(data.user.id);
       setShowAuthModal(false);
-      if (haptic) haptic.impactOccurred('light');
+      vibrateSuccess();
     } catch (err) {
+      vibrateError();
       alert('Нет связи с сервером');
     }
   };
@@ -176,6 +206,7 @@ const FinanceApp = ({ apiUrl }) => {
       const txRes = await fetch(`${apiUrl}/api/transactions?user_id=${userId}`);
       setTransactions(await txRes.json());
     } catch (err) {
+      vibrateError();
       console.error('Load error:', err);
     }
   };
@@ -186,7 +217,7 @@ const FinanceApp = ({ apiUrl }) => {
     setUser(null);
     setBalance(10000); setIncome(50000); setExpenses(30000); setSavings(10000);
     setTransactions([]);
-    if (haptic) haptic.notificationOccurred('warning');
+    vibrateWarning();
   };
 
   // =================== Сохранение ===================
@@ -205,12 +236,15 @@ const FinanceApp = ({ apiUrl }) => {
 
   // =================== Транзакции ===================
   const addTransaction = async () => {
-    if (!amount || !description) return;
+    if (!amount) {
+      vibrateError();
+      return;
+    }
     const newTx = {
       id: Date.now(),
       type: transactionType,
       amount: parseFloat(amount),
-      description,
+      description: description || '', // Описание не обязательно
       category: category || 'Другое',
       date: new Date().toISOString(),
     };
@@ -228,7 +262,7 @@ const FinanceApp = ({ apiUrl }) => {
       setBalance(b => b - newTx.amount);
     }
     setAmount(''); setDescription(''); setCategory(''); setShowAddModal(false);
-    if (haptic) haptic.impactOccurred('light');
+    vibrateSuccess();
   };
 
   const saveTransaction = async (tx) => {
@@ -281,16 +315,7 @@ const FinanceApp = ({ apiUrl }) => {
     // eslint-disable-next-line
   }, [showChart, chartType, transactions]);
 
-  // =================== Вибро ===================
-  const vibrate = () => {
-    if (haptic) haptic.impactOccurred('light');
-  };
-
-  const handleTabChange = (tab) => { setActiveTab(tab); vibrate(); };
-  const handleThemeChange = () => { setTheme(t => t === 'dark' ? 'light' : 'dark'); vibrate(); };
-  const handleCurrencyChange = (c) => { setCurrency(c); vibrate(); };
-
-  // =================== Валюты ===================
+  // =================== UI Цвета ===================
   const currencies = [
     { code: 'RUB', symbol: '₽', name: 'Российский рубль' },
     { code: 'BYN', symbol: 'Br', name: 'Белорусский рубль' },
@@ -320,7 +345,7 @@ const FinanceApp = ({ apiUrl }) => {
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   };
 
-  const categories = {
+  const categoriesList = {
     expense: ['Еда', 'Транспорт', 'Развлечения', 'Счета', 'Покупки', 'Здоровье', 'Другое'],
     income: ['Зарплата', 'Фриланс', 'Подарки', 'Инвестиции', 'Другое'],
     savings: ['Отпуск', 'Накопления', 'Экстренный фонд', 'Цель', 'Другое'],
@@ -332,15 +357,19 @@ const FinanceApp = ({ apiUrl }) => {
   const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-zinc-800' : 'border-gray-200';
   const inputBg = theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100';
+  const themeToggleBg = theme === 'dark' ? 'bg-yellow-400' : 'bg-zinc-800';
 
   // =================== РЕНДЕР ===================
   return (
-    <div className={`min-h-screen ${bgColor} pb-20`} style={{
-      paddingTop: safeAreaInset.top || 0,
-      paddingBottom: safeAreaInset.bottom || 0,
-      paddingLeft: safeAreaInset.left || 0,
-      paddingRight: safeAreaInset.right || 0
-    }}>
+    <div
+      className={`min-h-screen ${bgColor} pb-20`}
+      style={{
+        paddingTop: safeAreaInset.top || 0,
+        paddingBottom: safeAreaInset.bottom || 0,
+        paddingLeft: safeAreaInset.left || 0,
+        paddingRight: safeAreaInset.right || 0,
+      }}
+    >
       {/* Кнопки полноэкранного режима */}
       <div className="fixed top-2 right-2 z-50 flex gap-2">
         {!fullscreen && tg?.requestFullscreen && (
@@ -363,17 +392,12 @@ const FinanceApp = ({ apiUrl }) => {
         )}
       </div>
 
-      {/* Header — только на Обзор */}
+      {/* Header — только на Обзор, без иконки настроек */}
       {activeTab === 'overview' && (
         <div className={`${cardBg} ${textPrimary} p-6 rounded-b-3xl shadow-sm`}>
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Привет, {isAuthenticated ? user?.first_name : displayName}!</h1>
-              <p className={`text-sm ${textSecondary}`}>{isAuthenticated ? 'Аккаунт подключён' : 'Демо-режим'}</p>
-            </div>
-            <button onClick={() => handleTabChange('settings')} className={`p-3 rounded-full ${inputBg}`}>
-              <Settings size={20} />
-            </button>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">Привет, {isAuthenticated ? user?.first_name : displayName}!</h1>
+            <p className={`text-sm ${textSecondary}`}>{isAuthenticated ? 'Аккаунт подключён' : 'Демо-режим'}</p>
           </div>
           <div className={`${theme === 'dark' ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'} rounded-2xl p-6 text-white`}>
             <p className="text-sm opacity-90 mb-1">Общий баланс</p>
@@ -421,11 +445,11 @@ const FinanceApp = ({ apiUrl }) => {
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${tx.type === 'income' ? 'bg-green-100' : tx.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'}`}>
                           {tx.type === 'income' ? <TrendingUp size={18} className="text-green-600" /> :
-                           tx.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> :
-                           <PiggyBank size={18} className="text-blue-600" />}
+                            tx.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> :
+                              <PiggyBank size={18} className="text-blue-600" />}
                         </div>
                         <div>
-                          <p className={`font-medium ${textPrimary}`}>{tx.description}</p>
+                          <p className={`font-medium ${textPrimary}`}>{tx.description || '—'}</p>
                           <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
                         </div>
                       </div>
@@ -453,11 +477,11 @@ const FinanceApp = ({ apiUrl }) => {
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${tx.type === 'income' ? 'bg-green-100' : tx.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'}`}>
                         {tx.type === 'income' ? <TrendingUp size={18} className="text-green-600" /> :
-                         tx.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> :
-                         <PiggyBank size={18} className="text-blue-600" />}
+                          tx.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> :
+                            <PiggyBank size={18} className="text-blue-600" />}
                       </div>
                       <div>
-                        <p className={`font-medium ${textPrimary}`}>{tx.description}</p>
+                        <p className={`font-medium ${textPrimary}`}>{tx.description || '—'}</p>
                         <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
                       </div>
                     </div>
@@ -501,7 +525,7 @@ const FinanceApp = ({ apiUrl }) => {
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 p-2 rounded-lg"><PiggyBank size={18} className="text-blue-600" /></div>
                         <div>
-                          <p className={`font-medium ${textPrimary}`}>{tx.description}</p>
+                          <p className={`font-medium ${textPrimary}`}>{tx.description || '—'}</p>
                           <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
                         </div>
                       </div>
@@ -519,13 +543,17 @@ const FinanceApp = ({ apiUrl }) => {
           <div className="space-y-4">
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
-              <button onClick={handleThemeChange} className={`p-3 rounded-full ${inputBg}`}>
+              <button
+                onClick={() => { handleThemeChange(); vibrate(); }}
+                className={`p-3 rounded-full ${themeToggleBg} flex items-center justify-center`}
+                aria-label="Сменить тему"
+              >
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
               </button>
             </div>
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
-              <select value={currency} onChange={e => handleCurrencyChange(e.target.value)} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
+              <select value={currency} onChange={e => { handleCurrencyChange(e.target.value); vibrateSelect(); }} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
                 {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
               </select>
             </div>
@@ -536,7 +564,7 @@ const FinanceApp = ({ apiUrl }) => {
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Аккаунт</h3>
               {!isAuthenticated ? (
-                <button onClick={() => setShowAuthModal(true)} className="w-full py-3 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2">
+                <button onClick={() => { setShowAuthModal(true); vibrate(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2">
                   <LogIn size={18} /> Войти
                 </button>
               ) : (
@@ -557,7 +585,7 @@ const FinanceApp = ({ apiUrl }) => {
             <div className="relative h-64">
               <canvas id="financeChart"></canvas>
             </div>
-            <button onClick={() => setShowChart(false)} className="mt-4 w-full py-3 bg-gray-500 text-white rounded-xl">Закрыть</button>
+            <button onClick={() => { setShowChart(false); vibrate(); }} className="mt-4 w-full py-3 bg-gray-500 text-white rounded-xl">Закрыть</button>
           </div>
         </div>
       )}
@@ -569,19 +597,19 @@ const FinanceApp = ({ apiUrl }) => {
             <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Новая операция</h3>
             <div className="flex gap-2 mb-4">
               {['expense', 'income', 'savings'].map(type => (
-                <button key={type} onClick={() => { setTransactionType(type); vibrate(); }} className={`flex-1 py-3 rounded-xl font-medium ${transactionType === type ? type === 'income' ? 'bg-green-500 text-white' : type === 'expense' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white' : `${inputBg} ${textSecondary}`}`}>
+                <button key={type} onClick={() => { setTransactionType(type); vibrateSelect(); }} className={`flex-1 py-3 rounded-xl font-medium ${transactionType === type ? type === 'income' ? 'bg-green-500 text-white' : type === 'expense' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white' : `${inputBg} ${textSecondary}`}`}>
                   {type === 'income' ? 'Доход' : type === 'expense' ? 'Расход' : 'Копилка'}
                 </button>
               ))}
             </div>
             <input type="number" placeholder="Сумма" value={amount} onChange={e => setAmount(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary} text-lg font-bold`} />
-            <input type="text" placeholder="Описание" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
+            <input type="text" placeholder="Описание (необязательно)" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
             <select value={category} onChange={e => setCategory(e.target.value)} className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}>
               <option value="">Категория</option>
-              {categories[transactionType].map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              {categoriesList[transactionType].map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
             <div className="flex gap-3">
-              <button onClick={() => setShowAddModal(false)} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}>Отмена</button>
+              <button onClick={() => { setShowAddModal(false); vibrate(); }} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}>Отмена</button>
               <button onClick={addTransaction} className={`flex-1 py-4 rounded-xl ${transactionType === 'income' ? 'bg-green-500' : transactionType === 'expense' ? 'bg-red-500' : 'bg-blue-500'} text-white font-medium`}>Добавить</button>
             </div>
           </div>
@@ -600,7 +628,7 @@ const FinanceApp = ({ apiUrl }) => {
               {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
             </select>
             <div className="flex gap-2">
-              <button onClick={() => setShowAuthModal(false)} className={`flex-1 py-3 ${inputBg} ${textPrimary} rounded-xl`}>Отмена</button>
+              <button onClick={() => { setShowAuthModal(false); vibrate(); }} className={`flex-1 py-3 ${inputBg} ${textPrimary} rounded-xl`}>Отмена</button>
               <button onClick={handleAuth} className="flex-1 py-3 bg-blue-500 text-white rounded-xl">Войти</button>
             </div>
           </div>
@@ -610,11 +638,11 @@ const FinanceApp = ({ apiUrl }) => {
       {/* Нижняя навигация */}
       <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t`}>
         <div className="flex justify-around items-center p-4 max-w-md mx-auto">
-          <button onClick={() => handleTabChange('overview')} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
-          <button onClick={() => handleTabChange('history')} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}><History size={24} /><span className="text-xs mt-1">История</span></button>
+          <button onClick={() => { handleTabChange('overview'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
+          <button onClick={() => { handleTabChange('history'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}><History size={24} /><span className="text-xs mt-1">История</span></button>
           <button onClick={() => { setShowAddModal(true); vibrate(); }} className="flex flex-col items-center -mt-6"><div className="bg-blue-500 text-white p-4 rounded-full shadow-lg"><Plus size={28} /></div></button>
-          <button onClick={() => handleTabChange('savings')} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}><PiggyBank size={24} /><span className="text-xs mt-1">Копилка</span></button>
-          <button onClick={() => handleTabChange('settings')} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}><Settings size={24} /><span className="text-xs mt-1">Настройки</span></button>
+          <button onClick={() => { handleTabChange('savings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}><PiggyBank size={24} /><span className="text-xs mt-1">Копилка</span></button>
+          <button onClick={() => { handleTabChange('settings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}><Settings size={24} /><span className="text-xs mt-1">Настройки</span></button>
         </div>
       </div>
     </div>
