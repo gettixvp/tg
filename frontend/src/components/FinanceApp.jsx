@@ -1,3 +1,4 @@
+// FinanceApp.jsx — полная исправленная версия
 import React, { useEffect, useState } from "react";
 import {
   Wallet,
@@ -53,10 +54,10 @@ export default function FinanceApp({ apiUrl }) {
   const [theme, setTheme] = useState("dark");
   const [currency, setCurrency] = useState("RUB");
   const [goalSavings, setGoalSavings] = useState(50000);
-  const [balance, setBalance] = useState(10000);
-  const [income, setIncome] = useState(50000);
-  const [expenses, setExpenses] = useState(30000);
-  const [savings, setSavings] = useState(10000);
+  const [balance, setBalance] = useState(0);
+  const [income, setIncome] = useState(0);
+  const [expenses, setExpenses] = useState(0);
+  const [savings, setSavings] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -103,6 +104,21 @@ export default function FinanceApp({ apiUrl }) {
       updateSafeArea();
       tg.onEvent?.("safeAreaChanged", updateSafeArea);
       return () => tg.offEvent?.("safeAreaChanged", updateSafeArea);
+    } else {
+      // If not TG, try load saved settings
+      try {
+        const ls = localStorage.getItem(LS_KEY);
+        if (ls) {
+          const data = JSON.parse(ls);
+          if (data) {
+            if (data.currency) setCurrency(data.currency);
+            if (data.theme) setTheme(data.theme);
+            if (data.goalSavings) { setGoalSavings(data.goalSavings); setGoalInput(String(data.goalSavings)); }
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to parse settings", e);
+      }
     }
   }, [tg]);
 
@@ -111,7 +127,6 @@ export default function FinanceApp({ apiUrl }) {
     let prevHeight = typeof window !== "undefined" ? window.innerHeight : 0;
     const onResize = () => {
       const cur = window.innerHeight;
-      // if viewport height reduced substantially => keyboard open
       setIsKeyboardOpen(cur < prevHeight - 120);
       prevHeight = cur;
     };
@@ -119,34 +134,12 @@ export default function FinanceApp({ apiUrl }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Load settings
-  useEffect(() => {
-    try {
-      const ls = localStorage.getItem(LS_KEY);
-      if (ls) {
-        const data = JSON.parse(ls);
-        if (data) {
-          if (data.currency) setCurrency(data.currency);
-          if (data.theme) setTheme(data.theme);
-          if (data.goalSavings) { setGoalSavings(data.goalSavings); setGoalInput(String(data.goalSavings)); }
-          if (typeof data.isAuthenticated === "boolean") setIsAuthenticated(data.isAuthenticated);
-          if (data.user) setUser(data.user);
-        }
-      }
-      const session = localStorage.getItem("finance_session");
-      if (session) {
-        // optional: auto login using saved token (implementation depends on backend)
-      }
-    } catch (e) {
-      console.warn("Failed to parse settings", e);
-    }
-  }, []);
-
+  // Persist settings (non-sensitive)
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify({
-      currency, goalSavings, theme, email, password, authCurrency, isAuthenticated, user
+      currency, goalSavings, theme
     }));
-  }, [currency, goalSavings, theme, email, password, authCurrency, isAuthenticated, user]);
+  }, [currency, goalSavings, theme]);
 
   // Helpers
   function blurAll() {
@@ -163,7 +156,6 @@ export default function FinanceApp({ apiUrl }) {
         currency,
         minimumFractionDigits: 0,
       }).format(num);
-      // replace default symbol with custom symbol if necessary
       const sample = Intl.NumberFormat("ru-RU", { style: "currency", currency }).format(0);
       const stdSym = sample.replace(/\d|\s|,|\.|0/g, "").trim();
       if (stdSym && currentCurrency.symbol && stdSym !== currentCurrency.symbol) {
@@ -230,9 +222,10 @@ export default function FinanceApp({ apiUrl }) {
       category: category || "Другое",
       date: new Date().toISOString(),
     };
+
+    // Update transactions and totals in a consistent order
     setTransactions((p) => [newTx, ...p]);
 
-    // update totals
     if (transactionType === "income") {
       setIncome((i) => i + n);
       setBalance((b) => b + n);
@@ -240,6 +233,7 @@ export default function FinanceApp({ apiUrl }) {
       setExpenses((e) => e + n);
       setBalance((b) => b - n);
     } else {
+      // savings: money moved into savings from main balance
       setSavings((s) => s + n);
       setBalance((b) => b - n);
     }
@@ -247,7 +241,18 @@ export default function FinanceApp({ apiUrl }) {
     setAmount(""); setDescription(""); setCategory(""); setShowAddModal(false);
     vibrateSuccess();
 
-    // optional: save to server if authenticated (non-blocking)
+    // persist per-user snapshot if authenticated
+    if (isAuthenticated && user?.email) {
+      persistUserSnapshot(user.email, {
+        balance: transactionType === "income" ? balance + n : transactionType === "expense" ? balance - n : balance - n,
+        income: transactionType === "income" ? income + n : income,
+        expenses: transactionType === "expense" ? expenses + n : expenses,
+        savings: transactionType === "savings" ? savings + n : savings,
+        transactions: [newTx, ...transactions],
+      });
+    }
+
+    // optional: save to server if apiUrl provided
     if (isAuthenticated && user?.id && apiUrl) {
       try {
         await fetch(`${apiUrl}/api/transactions`, {
@@ -261,24 +266,89 @@ export default function FinanceApp({ apiUrl }) {
     }
   };
 
-  // Auth (demo / placeholder)
+  // Persist per-user snapshot helper
+  const persistUserSnapshot = (userEmail, snapshot) => {
+    try {
+      const key = `finance_user_${userEmail}`;
+      const existing = JSON.parse(localStorage.getItem(key) || "{}");
+      const toSave = {
+        ...existing,
+        ...snapshot,
+      };
+      localStorage.setItem(key, JSON.stringify(toSave));
+    } catch (e) {
+      console.warn("Failed to persist user snapshot", e);
+    }
+  };
+
+  // Load per-user snapshot
+  const loadUserSnapshot = (userEmail) => {
+    try {
+      const key = `finance_user_${userEmail}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      console.warn("Failed to load user snapshot", e);
+      return null;
+    }
+  };
+
+  // Auth (demo / placeholder) — improved: load user snapshot if present
   const handleAuth = async () => {
     blurAll();
     if (!email || !password) {
       vibrateError();
       return alert("Введите email и пароль");
     }
-    // demo success
+    // create fake user and treat email as identifier
     const fakeUser = { id: Date.now(), email, first_name: displayName };
     setUser(fakeUser);
     setIsAuthenticated(true);
     setCurrency(authCurrency);
     setShowAuthModal(false);
+
+    // Try load user snapshot
+    const snap = loadUserSnapshot(email);
+    if (snap) {
+      // apply saved snapshot
+      setBalance(Number(snap.balance || 0));
+      setIncome(Number(snap.income || 0));
+      setExpenses(Number(snap.expenses || 0));
+      setSavings(Number(snap.savings || 0));
+      setTransactions(snap.transactions || []);
+    } else {
+      // first-time login: save current state as user's starting snapshot
+      persistUserSnapshot(email, {
+        balance, income, expenses, savings, transactions
+      });
+    }
+
+    // store session token (demo)
     const token = btoa(email + ":" + btoa(password));
     localStorage.setItem("finance_session", JSON.stringify({ email, token }));
     vibrateSuccess();
   };
 
+  const handleLogout = () => {
+    blurAll();
+    // save current user's snapshot before logout
+    if (isAuthenticated && user?.email) {
+      persistUserSnapshot(user.email, { balance, income, expenses, savings, transactions });
+    }
+    // then clear UI to guest zeros (as you requested consistent behavior)
+    setIsAuthenticated(false);
+    setUser(null);
+    setBalance(0);
+    setIncome(0);
+    setExpenses(0);
+    setSavings(0);
+    setTransactions([]);
+    localStorage.removeItem("finance_session");
+    vibrateError();
+  };
+
+  // Reset all (explicit button) - FULL zeros
   const handleResetAll = () => {
     if (!window.confirm("Сбросить данные? Это удалит баланс, доходы, расходы, копилку и операции.")) return;
     setBalance(0);
@@ -286,15 +356,10 @@ export default function FinanceApp({ apiUrl }) {
     setExpenses(0);
     setSavings(0);
     setTransactions([]);
-  };
-
-  const handleLogout = () => {
-    blurAll();
-    localStorage.removeItem("finance_session");
-    setIsAuthenticated(false);
-    setUser(null);
-    setBalance(10000); setIncome(50000); setExpenses(30000); setSavings(10000); setTransactions([]);
-    vibrateError();
+    // if user logged in, update their snapshot
+    if (isAuthenticated && user?.email) {
+      persistUserSnapshot(user.email, { balance: 0, income: 0, expenses: 0, savings: 0, transactions: [] });
+    }
   };
 
   // Chart rendering safe (if Chart.js exists)
@@ -317,7 +382,7 @@ export default function FinanceApp({ apiUrl }) {
 
     const labels = Object.keys(categoriesData);
     const values = Object.values(categoriesData);
-    const palette = ["#60A5FA", "#F472B6", "#34D399", "#F97316", "#A78BFA", "#FCA5A5", "#60A5FA"];
+    const palette = ["#2563EB", "#1E40AF", "#60A5FA", "#3B82F6", "#1D4ED8"];
     const bgColors = labels.map((_, i) => palette[i % palette.length]);
 
     window.financeChart = new window.Chart(ctx, {
@@ -341,7 +406,6 @@ export default function FinanceApp({ apiUrl }) {
   const textPrimary = isDark ? "text-gray-100" : "text-gray-900";
   const textSecondary = isDark ? "text-gray-300" : "text-gray-600";
   const inputBg = isDark ? "bg-zinc-800/60" : "bg-gray-100/70";
-  const accent = isDark ? "text-sky-300" : "text-blue-600";
 
   // savings progress compute
   const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1);
@@ -360,43 +424,42 @@ export default function FinanceApp({ apiUrl }) {
     >
       <div className={`fixed inset-0 ${isDark ? "bg-black/20" : "bg-white/5"} pointer-events-none`} />
 
-      {/* Header */}
-      <header className={`p-6 ${cardBg} ${cardBorder} border-b rounded-b-2xl shadow-sm backdrop-blur-sm`}>
-        <div className="flex items-start justify-between gap-4">
+      {/* Header (minimal — without big balance or greeting) */}
+      <header className={`p-4 ${cardBg} ${cardBorder} border-b rounded-b-2xl shadow-sm backdrop-blur-sm`}>
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className={`text-2xl font-bold ${textPrimary}`}>Привет, {user?.first_name || "гость"}!</h1>
-            <p className={`text-sm ${textSecondary}`}>Общий баланс</p>
+            <h1 className={`text-lg font-semibold ${textPrimary}`}>Финансы</h1>
+            <p className={`text-xs ${textSecondary}`}>Текущее состояние</p>
           </div>
-
-          {/* Removed theme switch from header as requested */}
-          <div className="flex items-center gap-3 opacity-0 pointer-events-none">
-            {/* kept placeholder to avoid layout shift */}
+          <div className="flex items-center gap-3">
             <div className="text-sm text-gray-400">{currency}</div>
-            <button className="px-3 py-2 rounded-lg border"> </button>
-          </div>
-        </div>
-
-        <div
-          className={`mt-5 rounded-2xl p-6 ${isDark ? "bg-gradient-to-br from-sky-800/70 to-violet-900/70" : "bg-gradient-to-br from-blue-400 to-purple-400"} text-white shadow-lg backdrop-blur-sm`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Баланс</p>
-              <h2 className="text-4xl font-bold leading-tight">{formatCurrency(balance)}</h2>
-            </div>
-
-            {/* removed income/expense mini column to keep balance single */}
-            <div />
+            {/* placeholder to keep layout stable */}
+            <div style={{ width: 36 }} />
           </div>
         </div>
       </header>
 
       {/* Main container */}
       <main className="p-4 flex-1 w-full max-w-md mx-auto">
-        {/* Overview */}
+        {/* Overview (Главная) — here we show the big 'Общий баланс' card only on overview */}
         {activeTab === "overview" && (
           <section className="space-y-4">
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
+            <div className={`mt-2 rounded-2xl p-5 ${isDark ? "bg-gradient-to-br from-sky-800/70 to-violet-900/70" : "bg-gradient-to-br from-blue-400 to-purple-400"} text-white shadow-lg backdrop-blur-sm`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm opacity-90">Общий баланс</p>
+                  <h2 className="text-3xl font-bold leading-tight">{formatCurrency(balance)}</h2>
+                </div>
+                <div className="text-right space-y-1">
+                  <div className="text-xs opacity-85">Доходы</div>
+                  <div className="font-semibold">{formatCurrency(income)}</div>
+                  <div className="text-xs opacity-85 mt-2">Расходы</div>
+                  <div className="font-semibold">{formatCurrency(expenses)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Последние операции</h3>
               {transactions.length === 0 ? (
                 <p className={`${textSecondary} text-center py-8`}>Пока нет операций</p>
@@ -411,7 +474,7 @@ export default function FinanceApp({ apiUrl }) {
 
         {/* History */}
         {activeTab === "history" && (
-          <section className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
+          <section className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
             <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История операций</h3>
             {transactions.length === 0 ? (
               <p className={`${textSecondary} text-center py-8`}>Нет операций</p>
@@ -426,29 +489,29 @@ export default function FinanceApp({ apiUrl }) {
         {/* Savings */}
         {activeTab === "savings" && (
           <section className="space-y-4">
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border flex flex-col`}> 
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border flex flex-col`}>
               <div className="flex items-center justify-between mb-4">
-                <div className="font-bold text-xl text-gray-100">Копилка</div>
+                <div className={`font-bold text-xl ${textPrimary}`}>Копилка</div>
                 <div className="text-sm text-gray-300">{formatCurrency(savings)} / {formatCurrency(goalSavings)}</div>
               </div>
 
-              {/* Thick horizontal progress bar - IT style gradient */}
+              {/* Thick horizontal progress bar — насыщенный синий градиент */}
               <div className="w-full mb-3">
-                <div className="w-full rounded-xl h-5 bg-[rgba(255,255,255,0.06)] overflow-hidden" style={{ boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.03)" : "inset 0 1px 0 rgba(0,0,0,0.04)"}}>
+                <div className="w-full rounded-xl h-6 bg-[rgba(255,255,255,0.04)] overflow-hidden" style={{ boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.03)" : "inset 0 1px 0 rgba(0,0,0,0.04)"}}>
                   <div
                     className="h-full rounded-xl transition-all"
                     style={{
                       width: `${savingsPct}%`,
                       background: isDark
-                        ? `linear-gradient(90deg, rgba(96,165,250,0.95), rgba(59,130,246,0.95))`
-                        : `linear-gradient(90deg, rgba(59,130,246,0.95), rgba(96,165,250,0.95))`,
-                      boxShadow: "0 6px 18px rgba(59,130,246,0.16)",
+                        ? `linear-gradient(90deg, #1E40AF, #2563EB)`
+                        : `linear-gradient(90deg, #2563EB, #60A5FA)`,
+                      boxShadow: "0 8px 24px rgba(37,99,235,0.14)",
                     }}
                   />
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
-                  <div>{savingsPct}%</div>
-                  <div className="text-right">До цели</div>
+                  <div className={`${textPrimary}`}>{savingsPct}%</div>
+                  <div className="text-right text-gray-400">До цели</div>
                 </div>
               </div>
 
@@ -466,7 +529,7 @@ export default function FinanceApp({ apiUrl }) {
               </div>
             </div>
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История пополнений</h3>
               {transactions.filter((t) => t.type === "savings").length === 0 ? (
                 <p className={`${textSecondary} text-center py-8`}>Начните копить!</p>
@@ -482,12 +545,14 @@ export default function FinanceApp({ apiUrl }) {
         {/* Settings */}
         {activeTab === "settings" && (
           <section className="space-y-4">
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Аккаунт</h3>
 
-            <button onClick={handleResetAll} className="w-full py-3 mb-3 bg-gray-600 text-white rounded-xl flex items-center justify-center gap-2">
-              Сбросить баланс
-            </button>
+              {/* Приветствие прямо в настройках — над кнопкой входа */}
+              <div className="mb-3 text-sm text-gray-400">
+                Привет, <span className={`font-semibold ${textPrimary}`}>{isAuthenticated ? (user?.first_name || user?.email) : "гость"}</span>
+              </div>
+
               {isAuthenticated ? (
                 <>
                   <div className="mb-2 font-semibold text-lg">{user?.first_name || user?.email}</div>
@@ -502,14 +567,21 @@ export default function FinanceApp({ apiUrl }) {
               )}
             </div>
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
+              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Управление</h3>
+              <button onClick={handleResetAll} className="w-full py-3 bg-gray-600 text-white rounded-xl flex items-center justify-center gap-2">
+                Сбросить баланс
+              </button>
+            </div>
+
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
               <button onClick={() => { setTheme((t) => (t === "dark" ? "light" : "dark")); }} className="underline text-sky-300">
                 Сменить тему на {isDark ? "светлую" : "тёмную"}
               </button>
             </div>
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
               <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
                 {currencies.map((c) => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
@@ -551,7 +623,7 @@ export default function FinanceApp({ apiUrl }) {
             <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Новая операция</h3>
 
             <div className="flex gap-2 mb-4">
-              { ["expense", "income", "savings"].map((type) => (
+              {["expense", "income", "savings"].map((type) => (
                 <button
                   key={type}
                   onClick={() => { setTransactionType(type); vibrateSelect(); }}
@@ -559,7 +631,7 @@ export default function FinanceApp({ apiUrl }) {
                 >
                   {type === "income" ? "Доход" : type === "expense" ? "Расход" : "Копилка"}
                 </button>
-              )) }
+              ))}
             </div>
 
             <input type="number" placeholder="Сумма" value={amount} onChange={(e) => setAmount(e.target.value.replace(/^0+/, ""))} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
@@ -647,18 +719,9 @@ export default function FinanceApp({ apiUrl }) {
 
 function NavButton({ icon, label, active, onClick, compact }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 px-3 py-1 transition-all ${compact ? "py-1" : "py-2"}`}>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 px-3 py-1 transition-all ${compact ? "py-1" : "py-2"}`} style={{ minWidth: 64 }}>
       <div className={active ? "text-sky-500" : "text-gray-400"}>{icon}</div>
       <span className={`text-[12px] ${active ? "text-sky-500 font-semibold" : "text-gray-400"}`}>{label}</span>
-    </button>
-  );
-}
-
-function TabButton({ children, active, onClick }) {
-  return (
-    <button onClick={onClick} className="flex flex-col items-center gap-1 px-3 py-1 transition-all">
-      <div className={active ? "text-sky-300" : "text-gray-400"}>{children}</div>
-      <span className={`text-[11px] ${active ? "text-sky-300 font-semibold" : "text-gray-400"}`}></span>
     </button>
   );
 }
