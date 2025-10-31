@@ -15,6 +15,31 @@ import {
 
 const LS_KEY = 'finance_settings_v2';
 
+// Цвет и иконка для категорий
+const categoriesMeta = {
+  'Еда': { color: 'bg-orange-400', icon: '🍔' },
+  'Транспорт': { color: 'bg-blue-400', icon: '🚗' },
+  'Развлечения': { color: 'bg-pink-400', icon: '🎉' },
+  'Счета': { color: 'bg-teal-400', icon: '💡' },
+  'Покупки': { color: 'bg-purple-400', icon: '🛒' },
+  'Здоровье': { color: 'bg-yellow-400', icon: '💊' },
+  'Другое': { color: 'bg-gray-400', icon: '💼' },
+};
+
+const categoriesList = {
+  expense: ['Еда', 'Транспорт', 'Развлечения', 'Счета', 'Покупки', 'Здоровье', 'Другое'],
+  income: ['Зарплата', 'Фриланс', 'Подарки', 'Инвестиции', 'Другое'],
+  savings: ['Отпуск', 'Накопления', 'Экстренный фонд', 'Цель', 'Другое'],
+};
+
+const currencies = [
+  { code: 'RUB', symbol: '₽', name: 'Российский рубль' },
+  { code: 'BYN', symbol: 'Br', name: 'Белорусский рубль' },
+  { code: 'USD', symbol: '$', name: 'Доллар США' },
+  { code: 'EUR', symbol: '€', name: 'Евро' },
+  { code: 'UAH', symbol: '₴', name: 'Гривна' },
+];
+
 const FinanceApp = ({ apiUrl }) => {
   // =================== Состояния ===================
   const [user, setUser] = useState(null);
@@ -230,7 +255,7 @@ const FinanceApp = ({ apiUrl }) => {
       id: Date.now(),
       type: transactionType,
       amount: parseFloat(amount),
-      description: txDesc || '', // Описание не обязательно
+      description: txDesc || '',
       category: category || 'Другое',
       date: new Date().toISOString(),
     };
@@ -301,15 +326,6 @@ const FinanceApp = ({ apiUrl }) => {
     // eslint-disable-next-line
   }, [showChart, chartType, transactions]);
 
-  // =================== UI Цвета ===================
-  const currencies = [
-    { code: 'RUB', symbol: '₽', name: 'Российский рубль' },
-    { code: 'BYN', symbol: 'Br', name: 'Белорусский рубль' },
-    { code: 'USD', symbol: '$', name: 'Доллар США' },
-    { code: 'EUR', symbol: '€', name: 'Евро' },
-    { code: 'UAH', symbol: '₴', name: 'Гривна' },
-  ];
-
   const currentCurrency = currencies.find(c => c.code === currency) || currencies[0];
 
   const formatCurrency = (value) => {
@@ -336,24 +352,38 @@ const FinanceApp = ({ apiUrl }) => {
     return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const categoriesList = {
-    expense: ['Еда', 'Транспорт', 'Развлечения', 'Счета', 'Покупки', 'Здоровье', 'Другое'],
-    income: ['Зарплата', 'Фриланс', 'Подарки', 'Инвестиции', 'Другое'],
-    savings: ['Отпуск', 'Накопления', 'Экстренный фонд', 'Цель', 'Другое'],
-  };
-
   const bgColor = theme === 'dark' ? 'bg-black' : 'bg-gray-50';
   const cardBg = theme === 'dark' ? 'bg-zinc-900' : 'bg-white';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-zinc-800' : 'border-gray-200';
   const inputBg = theme === 'dark' ? 'bg-zinc-800' : 'bg-gray-100';
-  const themeToggleBg = theme === 'dark' ? 'bg-yellow-400' : 'bg-zinc-800';
+
+  // =================== Рендер строки транзакции с цветным аватаром ===================
+  const TxRow = ({ tx }) => (
+    <div key={tx.id} className="flex items-center justify-between pb-3 border-b last:border-0">
+      <div className="flex items-center gap-3">
+        <div className={`flex items-center justify-center w-10 h-10 rounded-full text-xl ${categoriesMeta[tx.category]?.color ?? 'bg-gray-200'}`}>
+          {categoriesMeta[tx.category]?.icon ?? '💼'}
+        </div>
+        <div>
+          <p className={`font-medium ${textPrimary}`}>{tx.description || '—'}</p>
+          <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-0">
+        <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
+          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+        </p>
+        <span className="text-xs text-gray-400">{formatTime(tx.date)}</span>
+      </div>
+    </div>
+  );
 
   // =================== РЕНДЕР ===================
   return (
     <div
-      className={`min-h-screen ${bgColor} pb-20`}
+      className={`min-h-screen flex flex-col ${bgColor} pb-20`}
       style={{
         paddingTop: safeAreaInset.top || 0,
         paddingBottom: safeAreaInset.bottom || 0,
@@ -361,13 +391,15 @@ const FinanceApp = ({ apiUrl }) => {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      {/* Header — только на Обзор, без иконки настроек */}
+      {/* Header — только на Обзор, приветствие только для гостя */}
       {activeTab === 'overview' && (
         <div className={`${cardBg} ${textPrimary} p-6 rounded-b-3xl shadow-sm`}>
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">Привет, {isAuthenticated ? user?.first_name : displayName}!</h1>
-            <p className={`text-sm ${textSecondary}`}>{isAuthenticated ? 'Аккаунт подключён' : 'Демо-режим'}</p>
-          </div>
+          {!isAuthenticated && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Привет, гость!</h1>
+              <p className={`text-sm ${textSecondary}`}>Войдите в аккаунт для синхронизации.</p>
+            </div>
+          )}
           <div className={`${theme === 'dark' ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'} rounded-2xl p-6 text-white`}>
             <p className="text-sm opacity-90 mb-1">Общий баланс</p>
             <h2 className="text-4xl font-bold mb-4">{formatCurrency(balance)}</h2>
@@ -381,7 +413,7 @@ const FinanceApp = ({ apiUrl }) => {
       )}
 
       {/* Контент */}
-      <div className="p-4">
+      <div className="p-4 flex-1 w-full max-w-md mx-auto">
         {/* Обзор */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
@@ -409,27 +441,7 @@ const FinanceApp = ({ apiUrl }) => {
                 <p className={`text-center py-8 ${textSecondary}`}>Пока нет операций</p>
               ) : (
                 <div className="space-y-3">
-                  {transactions.slice(0, 5).map(tx => (
-                    <div key={tx.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${tx.type === 'income' ? 'bg-green-100' : tx.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'}`}>
-                          {tx.type === 'income' ? <TrendingUp size={18} className="text-green-600" /> :
-                            tx.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> :
-                              <PiggyBank size={18} className="text-blue-600" />}
-                        </div>
-                        <div>
-                          <p className={`font-medium ${textPrimary}`}>{tx.description || '—'}</p>
-                          <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-0">
-                        <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
-                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                        </p>
-                        <span className="text-xs text-gray-400">{formatTime(tx.date)}</span>
-                      </div>
-                    </div>
-                  ))}
+                  {transactions.slice(0, 5).map(tx => <TxRow tx={tx} key={tx.id} />)}
                 </div>
               )}
             </div>
@@ -444,27 +456,7 @@ const FinanceApp = ({ apiUrl }) => {
               <p className={`text-center py-8 ${textSecondary}`}>Нет операций</p>
             ) : (
               <div className="space-y-3">
-                {transactions.map(tx => (
-                  <div key={tx.id} className={`flex items-center justify-between pb-3 ${borderColor} border-b last:border-0`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${tx.type === 'income' ? 'bg-green-100' : tx.type === 'expense' ? 'bg-red-100' : 'bg-blue-100'}`}>
-                        {tx.type === 'income' ? <TrendingUp size={18} className="text-green-600" /> :
-                          tx.type === 'expense' ? <TrendingDown size={18} className="text-red-600" /> :
-                            <PiggyBank size={18} className="text-blue-600" />}
-                      </div>
-                      <div>
-                        <p className={`font-medium ${textPrimary}`}>{tx.description || '—'}</p>
-                        <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-0">
-                      <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
-                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </p>
-                      <span className="text-xs text-gray-400">{formatTime(tx.date)}</span>
-                    </div>
-                  </div>
-                ))}
+                {transactions.map(tx => <TxRow tx={tx} key={tx.id} />)}
               </div>
             )}
           </div>
@@ -479,6 +471,13 @@ const FinanceApp = ({ apiUrl }) => {
                 <p className="text-sm opacity-90 mb-1">Накоплено</p>
                 <h2 className="text-4xl font-bold mb-2">{formatCurrency(savings)}</h2>
                 <p className="text-sm opacity-80">Цель: {formatCurrency(goalSavings)}</p>
+                <input
+                  type="number"
+                  className="mt-2 mb-2 w-full p-3 rounded-xl text-black"
+                  value={goalSavings}
+                  onChange={e => setGoalSavings(parseFloat(e.target.value) || 0)}
+                  placeholder="Цель"
+                />
                 <div className="w-full bg-white/20 rounded-full h-3 mt-2">
                   <div className="bg-white h-3 rounded-full transition-all" style={{ width: `${Math.min((savings / goalSavings) * 100, 100)}%` }}></div>
                 </div>
@@ -495,21 +494,7 @@ const FinanceApp = ({ apiUrl }) => {
                 <p className={`text-center py-8 ${textSecondary}`}>Начните копить!</p>
               ) : (
                 <div className="space-y-3">
-                  {transactions.filter(t => t.type === 'savings').map(tx => (
-                    <div key={tx.id} className={`flex items-center justify-between pb-3 ${borderColor} border-b last:border-0`}>
-                      <div className="flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-lg"><PiggyBank size={18} className="text-blue-600" /></div>
-                        <div>
-                          <p className={`font-medium ${textPrimary}`}>{tx.description || '—'}</p>
-                          <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-0">
-                        <p className="font-bold text-blue-600">+{formatCurrency(tx.amount)}</p>
-                        <span className="text-xs text-gray-400">{formatTime(tx.date)}</span>
-                      </div>
-                    </div>
-                  ))}
+                  {transactions.filter(t => t.type === 'savings').map(tx => <TxRow tx={tx} key={tx.id} />)}
                 </div>
               )}
             </div>
@@ -519,29 +504,34 @@ const FinanceApp = ({ apiUrl }) => {
         {/* Настройки */}
         {activeTab === 'settings' && (
           <div className="space-y-4">
-            {/* 1. Вход / Регистрация */}
+            {/* 1. Вход / Регистрация и приветствие для авторизованного */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Аккаунт</h3>
-              {!isAuthenticated ? (
+              {isAuthenticated ? (
+                <div>
+                  <div className="mb-2 font-semibold text-lg">
+                    Привет, {user?.first_name || user?.email}!
+                  </div>
+                  <button onClick={handleLogout} className="w-full py-3 bg-red-500 text-white rounded-xl flex items-center justify-center gap-2">
+                    <LogOut size={18} /> Выйти
+                  </button>
+                </div>
+              ) : (
                 <button onClick={() => { setShowAuthModal(true); vibrate(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2">
                   <LogIn size={18} /> Войти
-                </button>
-              ) : (
-                <button onClick={handleLogout} className="w-full py-3 bg-red-500 text-white rounded-xl flex items-center justify-center gap-2">
-                  <LogOut size={18} /> Выйти
                 </button>
               )}
             </div>
             {/* 2. Тема */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
-              <button
+              <span
                 onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); vibrate(); }}
-                className={`p-3 rounded-full ${themeToggleBg} flex items-center justify-center`}
-                aria-label="Сменить тему"
+                className="cursor-pointer underline text-blue-500"
+                style={{ userSelect: 'none' }}
               >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
+                Сменить тему на {theme === 'dark' ? 'светлую' : 'тёмную'}
+              </span>
             </div>
             {/* 3. Валюта */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
@@ -549,11 +539,6 @@ const FinanceApp = ({ apiUrl }) => {
               <select value={currency} onChange={e => { setCurrency(e.target.value); vibrateSelect(); }} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
                 {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
               </select>
-            </div>
-            {/* 4. Цель копилки */}
-            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Цель копилки</h3>
-              <input type="number" value={goalSavings} onChange={e => setGoalSavings(parseFloat(e.target.value) || 0)} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`} placeholder="Цель" />
             </div>
           </div>
         )}
@@ -588,7 +573,11 @@ const FinanceApp = ({ apiUrl }) => {
             <input type="text" placeholder="Описание (необязательно)" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
             <select value={category} onChange={e => setCategory(e.target.value)} className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}>
               <option value="">Категория</option>
-              {categoriesList[transactionType].map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              {categoriesList[transactionType].map(cat => (
+                <option key={cat} value={cat}>
+                  {categoriesMeta[cat]?.icon ? categoriesMeta[cat].icon + ' ' : ''}{cat}
+                </option>
+              ))}
             </select>
             <div className="flex gap-3">
               <button onClick={() => { setShowAddModal(false); vibrate(); }} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}>Отмена</button>
