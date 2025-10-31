@@ -149,9 +149,14 @@ const FinanceApp = ({ apiUrl }) => {
         body: JSON.stringify({ email, password, first_name: displayName, currency: authCurrency }),
       });
       if (!res.ok) {
-        const err = await res.text();
+        let msg = '';
+        try {
+          msg = (await res.json()).error || await res.text();
+        } catch {
+          msg = res.status + ' ' + res.statusText;
+        }
         vibrateError();
-        alert(`Ошибка: ${err}`);
+        alert(`Ошибка: ${msg}`);
         return;
       }
       const data = await res.json();
