@@ -50,7 +50,7 @@ export default function FinanceApp({ apiUrl }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // overview | history | savings | settings
-  const [theme, setTheme] = useState("dark"); // default dark for nicer glass
+  const [theme, setTheme] = useState("dark");
   const [currency, setCurrency] = useState("RUB");
   const [goalSavings, setGoalSavings] = useState(50000);
   const [balance, setBalance] = useState(10000);
@@ -334,6 +334,10 @@ export default function FinanceApp({ apiUrl }) {
   const inputBg = isDark ? "bg-zinc-800/60" : "bg-gray-100/70";
   const accent = isDark ? "text-sky-300" : "text-blue-600";
 
+  // savings progress compute
+  const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1);
+  const savingsPct = Math.round(savingsProgress * 100);
+
   return (
     <div
       className={`min-h-screen flex flex-col transition-colors duration-400 ${pageBg}`}
@@ -342,27 +346,24 @@ export default function FinanceApp({ apiUrl }) {
         paddingBottom: safeAreaInset.bottom || 0,
         paddingLeft: safeAreaInset.left || 0,
         paddingRight: safeAreaInset.right || 0,
-        backgroundAttachment: "fixed", // fixed background for depth
+        backgroundAttachment: "fixed",
       }}
     >
-      {/* subtle overlay to make blur visible */}
       <div className={`fixed inset-0 ${isDark ? "bg-black/20" : "bg-white/5"} pointer-events-none`} />
 
-      {/* Header / balance card */}
-      <header className={`p-6 ${cardBg} ${cardBorder} border-b rounded-b-3xl shadow-sm backdrop-blur-sm`}>
+      {/* Header */}
+      <header className={`p-6 ${cardBg} ${cardBorder} border-b rounded-b-2xl shadow-sm backdrop-blur-sm`}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className={`text-2xl font-bold ${textPrimary}`}>Привет, {user?.first_name || "гость"}!</h1>
             <p className={`text-sm ${textSecondary}`}>Общий баланс</p>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Removed theme switch from header as requested */}
+          <div className="flex items-center gap-3 opacity-0 pointer-events-none">
+            {/* kept placeholder to avoid layout shift */}
             <div className="text-sm text-gray-400">{currency}</div>
-            <button
-              onClick={() => { setTheme((t) => (t === "dark" ? "light" : "dark")); vibrate(); }}
-              className="px-3 py-2 rounded-lg border"
-            >
-              {isDark ? "☀️" : "🌙"}
-            </button>
+            <button className="px-3 py-2 rounded-lg border"> </button>
           </div>
         </div>
 
@@ -374,12 +375,9 @@ export default function FinanceApp({ apiUrl }) {
               <p className="text-sm opacity-90">Баланс</p>
               <h2 className="text-4xl font-bold leading-tight">{formatCurrency(balance)}</h2>
             </div>
-            <div className="text-right space-y-1">
-              <div className="text-xs opacity-85">Доходы</div>
-              <div className="font-semibold">{formatCurrency(income)}</div>
-              <div className="text-xs opacity-85 mt-2">Расходы</div>
-              <div className="font-semibold">{formatCurrency(expenses)}</div>
-            </div>
+
+            {/* removed income/expense mini column to keep balance single */}
+            <div />
           </div>
         </div>
       </header>
@@ -389,34 +387,7 @@ export default function FinanceApp({ apiUrl }) {
         {/* Overview */}
         {activeTab === "overview" && (
           <section className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <CardSmall
-                title="Доход"
-                value={formatCurrency(income)}
-                onClick={() => { setChartType("income"); setShowChart(true); vibrate(); }}
-                theme={theme}
-                icon={<TrendingUp size={16} />}
-                color="emerald"
-              />
-              <CardSmall
-                title="Расход"
-                value={formatCurrency(expenses)}
-                onClick={() => { setChartType("expense"); setShowChart(true); vibrate(); }}
-                theme={theme}
-                icon={<TrendingDown size={16} />}
-                color="rose"
-              />
-              <CardSmall
-                title="Копилка"
-                value={formatCurrency(savings)}
-                onClick={() => { setActiveTab("savings"); vibrate(); }}
-                theme={theme}
-                icon={<PiggyBank size={16} />}
-                color="sky"
-              />
-            </div>
-
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Последние операции</h3>
               {transactions.length === 0 ? (
                 <p className={`${textSecondary} text-center py-8`}>Пока нет операций</p>
@@ -431,7 +402,7 @@ export default function FinanceApp({ apiUrl }) {
 
         {/* History */}
         {activeTab === "history" && (
-          <section className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
+          <section className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
             <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История операций</h3>
             {transactions.length === 0 ? (
               <p className={`${textSecondary} text-center py-8`}>Нет операций</p>
@@ -446,36 +417,36 @@ export default function FinanceApp({ apiUrl }) {
         {/* Savings */}
         {activeTab === "savings" && (
           <section className="space-y-4">
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border flex flex-col items-center`}>
-              <div className="font-bold text-xl mb-2 text-gray-100">Копилка</div>
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border flex flex-col`}> 
+              <div className="flex items-center justify-between mb-4">
+                <div className="font-bold text-xl text-gray-100">Копилка</div>
+                <div className="text-sm text-gray-300">{formatCurrency(savings)} / {formatCurrency(goalSavings)}</div>
+              </div>
 
-              <div className="relative flex items-center justify-center mb-3" style={{ width: 160, height: 160 }}>
-                <svg width="160" height="160">
-                  <circle cx="80" cy="80" r="72" fill="none" stroke={isDark ? "#0f172a" : "#E5E7EB"} strokeWidth="14" />
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="72"
-                    fill="none"
-                    stroke="#3B82F6"
-                    strokeWidth="14"
-                    strokeDasharray={2 * Math.PI * 72}
-                    strokeDashoffset={2 * Math.PI * 72 * (1 - Math.min((savings || 0) / (goalSavings || 1), 1))}
-                    strokeLinecap="round"
-                    style={{ transition: "stroke-dashoffset 0.5s" }}
+              {/* Thick horizontal progress bar - IT style gradient */}
+              <div className="w-full mb-3">
+                <div className="w-full rounded-xl h-5 bg-[rgba(255,255,255,0.06)] overflow-hidden" style={{ boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.03)" : "inset 0 1px 0 rgba(0,0,0,0.04)"}}>
+                  <div
+                    className="h-full rounded-xl transition-all"
+                    style={{
+                      width: `${savingsPct}%`,
+                      background: isDark
+                        ? `linear-gradient(90deg, rgba(96,165,250,0.95), rgba(59,130,246,0.95))`
+                        : `linear-gradient(90deg, rgba(59,130,246,0.95), rgba(96,165,250,0.95))`,
+                      boxShadow: "0 6px 18px rgba(59,130,246,0.16)",
+                    }}
                   />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xl font-bold text-sky-300">{formatCurrency(savings)}</span>
-                  <span className="text-xs text-gray-400 mt-1">из {formatCurrency(goalSavings)}</span>
-                  <span className="text-xs text-gray-400 mt-1">{goalSavings ? Math.round((savings / goalSavings) * 100) : 0}%</span>
+                </div>
+                <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
+                  <div>{savingsPct}%</div>
+                  <div className="text-right">До цели</div>
                 </div>
               </div>
 
-              <div className="flex gap-3 w-full">
+              <div className="flex gap-3 w-full mt-2">
                 <button
                   onClick={() => { setShowGoalModal(true); vibrate(); }}
-                  className="flex-1 py-2 bg-slate-700/30 text-sky-200 rounded-xl hover:bg-slate-700/40 transition"
+                  className="flex-1 py-2 bg-slate-700/20 text-sky-200 rounded-xl hover:bg-slate-700/30 transition"
                 >Изменить цель</button>
                 <button
                   onClick={() => { setTransactionType("savings"); setShowAddModal(true); vibrate(); }}
@@ -486,7 +457,7 @@ export default function FinanceApp({ apiUrl }) {
               </div>
             </div>
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История пополнений</h3>
               {transactions.filter((t) => t.type === "savings").length === 0 ? (
                 <p className={`${textSecondary} text-center py-8`}>Начните копить!</p>
@@ -502,7 +473,7 @@ export default function FinanceApp({ apiUrl }) {
         {/* Settings */}
         {activeTab === "settings" && (
           <section className="space-y-4">
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Аккаунт</h3>
               {isAuthenticated ? (
                 <>
@@ -518,14 +489,14 @@ export default function FinanceApp({ apiUrl }) {
               )}
             </div>
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
               <button onClick={() => { setTheme((t) => (t === "dark" ? "light" : "dark")); }} className="underline text-sky-300">
                 Сменить тему на {isDark ? "светлую" : "тёмную"}
               </button>
             </div>
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
+            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
               <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
                 {currencies.map((c) => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
@@ -567,7 +538,7 @@ export default function FinanceApp({ apiUrl }) {
             <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Новая операция</h3>
 
             <div className="flex gap-2 mb-4">
-              {["expense", "income", "savings"].map((type) => (
+              { ["expense", "income", "savings"].map((type) => (
                 <button
                   key={type}
                   onClick={() => { setTransactionType(type); vibrateSelect(); }}
@@ -575,7 +546,7 @@ export default function FinanceApp({ apiUrl }) {
                 >
                   {type === "income" ? "Доход" : type === "expense" ? "Расход" : "Копилка"}
                 </button>
-              ))}
+              )) }
             </div>
 
             <input type="number" placeholder="Сумма" value={amount} onChange={(e) => setAmount(e.target.value.replace(/^0+/, ""))} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
@@ -612,37 +583,23 @@ export default function FinanceApp({ apiUrl }) {
         </div>
       )}
 
-      {/* BOTTOM CAPSULE + Floating Plus (right separate) */}
+      {/* BOTTOM CAPSULE + Floating Plus (right separate) - iOS style, compact, blue accent */}
       {!isKeyboardOpen && (
         <div className="fixed left-1/2 transform -translate-x-1/2 bottom-6 z-40" style={{ width: "min(680px, calc(100% - 40px))" }}>
           <div className="relative flex items-center justify-center">
-            {/* container reserves space for capsule + floating plus on the right */}
             <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-              {/* Capsule width is slightly reduced so we can place plus to the right inside container */}
               <div
-                className={`rounded-full py-3 px-4 backdrop-blur-lg ${isDark ? "bg-black/50 border border-white/5 shadow-[0_12px_40px_rgba(2,6,23,0.6)]" : "bg-white/60 border border-gray-100 shadow-[0_10px_30px_rgba(59,130,246,0.06)]"}`}
-                style={{ maxWidth: 520, width: "calc(100% - 84px)" }} // leave ~84px for plus
+                className={`rounded-full py-2 px-4 backdrop-blur-md ${isDark ? "bg-black/40 border border-white/6 shadow-[0_6px_20px_rgba(2,6,23,0.5)]" : "bg-white/70 border border-gray-100 shadow-[0_6px_20px_rgba(59,130,246,0.06)]"}`}
+                style={{ maxWidth: 520, width: "calc(100% - 84px)", borderRadius: 28, height: 56 }}
               >
-                <div className="flex items-center justify-between">
-                  <TabButton active={activeTab === "overview"} onClick={() => { setActiveTab("overview"); vibrate(); }}>
-                    <Wallet size={20} />
-                    <span>Главная</span>
-                  </TabButton>
+                <div className="flex items-center justify-between px-2">
+                  <NavButton compact active={activeTab === "overview"} onClick={() => { setActiveTab("overview"); vibrate(); }} icon={<Wallet size={18} />} label="Главная" />
 
-                  <TabButton active={activeTab === "history"} onClick={() => { setActiveTab("history"); vibrate(); }}>
-                    <History size={20} />
-                    <span>История</span>
-                  </TabButton>
+                  <NavButton compact active={activeTab === "history"} onClick={() => { setActiveTab("history"); vibrate(); }} icon={<History size={18} />} label="История" />
 
-                  <TabButton active={activeTab === "savings"} onClick={() => { setActiveTab("savings"); vibrate(); }}>
-                    <PiggyBank size={20} />
-                    <span>Копилка</span>
-                  </TabButton>
+                  <NavButton compact active={activeTab === "savings"} onClick={() => { setActiveTab("savings"); vibrate(); }} icon={<PiggyBank size={18} />} label="Копилка" />
 
-                  <TabButton active={activeTab === "settings"} onClick={() => { setActiveTab("settings"); vibrate(); }}>
-                    <Settings size={20} />
-                    <span>Настройки</span>
-                  </TabButton>
+                  <NavButton compact active={activeTab === "settings"} onClick={() => { setActiveTab("settings"); vibrate(); }} icon={<Settings size={18} />} label="Настройки" />
                 </div>
               </div>
 
@@ -650,13 +607,16 @@ export default function FinanceApp({ apiUrl }) {
               <div style={{ width: 84, display: "flex", justifyContent: "flex-end", marginLeft: 12 }}>
                 <button
                   onClick={() => { setShowAddModal(true); vibrate(); }}
-                  className={`relative w-14 h-14 rounded-full backdrop-blur-md ${isDark ? "bg-black/40 border border-white/10" : "bg-white/40 border border-gray-100"} flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95`}
+                  className={`relative w-14 h-14 rounded-full backdrop-blur-md ${isDark ? "bg-transparent border border-white/10" : "bg-transparent border border-gray-200"} flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95`}
                   aria-label="Добавить операцию"
                   title="Добавить"
+                  style={{
+                    background: "transparent",
+                  }}
                 >
-                  {/* inner colored circle matches capsule accent */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isDark ? "bg-[linear-gradient(135deg,#0ea5e9,#3b82f6)]" : "bg-blue-500"} text-white`} style={{ boxShadow: isDark ? "0 6px 18px rgba(59,130,246,0.28)" : "0 6px 18px rgba(59,130,246,0.18)" }}>
-                    <Plus size={18} />
+                  {/* circle with blue outline and blue + icon, transparent fill */}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center`} style={{ boxShadow: isDark ? "0 8px 24px rgba(59,130,246,0.12)" : "0 8px 24px rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.22)" }}>
+                    <Plus size={18} className="text-sky-500" />
                   </div>
                 </button>
               </div>
@@ -672,32 +632,20 @@ export default function FinanceApp({ apiUrl }) {
    Small reusable components
    -------------------- */
 
-function CardSmall({ title, value, onClick, icon, theme, color }) {
-  const isDark = theme === "dark";
+function NavButton({ icon, label, active, onClick, compact }) {
   return (
-    <div
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      className={`rounded-xl p-4 ${isDark ? "bg-zinc-900/70 border border-zinc-800/60" : "bg-white/90 border border-gray-100"} cursor-pointer transition transform hover:-translate-y-0.5`}
-    >
-      <div className="flex flex-col items-center gap-2">
-        <div className={`p-2 rounded-lg ${isDark ? "bg-zinc-800/60" : "bg-gray-100"}`}>
-          {icon}
-        </div>
-        <div className="text-sm font-semibold text-gray-400">{title}</div>
-        <div className={`text-lg font-bold ${isDark ? "text-gray-100" : "text-gray-900"}`}>{value}</div>
-      </div>
-    </div>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 px-3 py-1 transition-all ${compact ? "py-1" : "py-2"}`}>
+      <div className={active ? "text-sky-500" : "text-gray-400"}>{icon}</div>
+      <span className={`text-[12px] ${active ? "text-sky-500 font-semibold" : "text-gray-400"}`}>{label}</span>
+    </button>
   );
 }
 
 function TabButton({ children, active, onClick }) {
-  // children: icon (component) and label (span)
   return (
     <button onClick={onClick} className="flex flex-col items-center gap-1 px-3 py-1 transition-all">
       <div className={active ? "text-sky-300" : "text-gray-400"}>{children}</div>
-      <span className={`text-[11px] ${active ? "text-sky-300 font-semibold" : "text-gray-400"}`}>{/* label comes from children span if present */}</span>
+      <span className={`text-[11px] ${active ? "text-sky-300 font-semibold" : "text-gray-400"}`}></span>
     </button>
   );
 }
