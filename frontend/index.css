@@ -1,9 +1,7 @@
-/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Фикс для Telegram */
 html, body, #root {
   height: 100%;
   margin: 0;

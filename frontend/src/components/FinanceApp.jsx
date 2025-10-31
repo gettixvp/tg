@@ -1,4 +1,3 @@
-// src/components/FinanceApp.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Wallet,
@@ -37,7 +36,7 @@ const FinanceApp = ({ apiUrl }) => {
   const [category, setCategory] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [authCurrency, setAuthCurrency] = useState('('RUB');
+  const [authCurrency, setAuthCurrency] = useState('RUB');
 
   // =================== Telegram API (защита от undefined) ===================
   const tg = typeof window !== 'undefined' && window.Telegram?.WebApp;
@@ -61,6 +60,7 @@ const FinanceApp = ({ apiUrl }) => {
       const { email, token } = JSON.parse(session);
       autoLogin(email, token);
     }
+    // eslint-disable-next-line
   }, []);
 
   const autoLogin = async (email, token) => {
@@ -152,7 +152,7 @@ const FinanceApp = ({ apiUrl }) => {
     } catch (err) {}
   };
 
-  useEffect(() => { saveUserData(); }, [balance, income, expenses, savings, goalSavings]);
+  useEffect(() => { saveUserData(); }, [balance, income, expenses, savings, goalSavings]); // eslint-disable-line
 
   // =================== Транзакции ===================
   const addTransaction = async () => {
@@ -206,13 +206,13 @@ const FinanceApp = ({ apiUrl }) => {
       ? transactions.filter(t => t.type === 'income')
       : transactions.filter(t => t.type === 'expense');
 
-    const categories = {};
+    const categoriesData = {};
     data.forEach(t => {
-      categories[t.category] = (categories[t.category] || 0) + t.amount;
+      categoriesData[t.category] = (categoriesData[t.category] || 0) + t.amount;
     });
 
-    const labels = Object.keys(categories);
-    const values = Object.values(categories);
+    const labels = Object.keys(categoriesData);
+    const values = Object.values(categoriesData);
     const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
 
     window.financeChart = new window.Chart(ctx, {
@@ -229,6 +229,7 @@ const FinanceApp = ({ apiUrl }) => {
         plugins: { legend: { position: 'bottom' } }
       }
     });
+    // eslint-disable-next-line
   }, [showChart, chartType, transactions]);
 
   // =================== Вибро ===================
