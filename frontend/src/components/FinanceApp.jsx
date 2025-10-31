@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Wallet,
   TrendingUp,
@@ -14,13 +14,14 @@ import {
   BarChart3,
   Eye,
   EyeOff,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 const API_BASE = "https://walletback-aghp.onrender.com";
 const LS_KEY = "finance_settings_v2";
 const SESSION_KEY = "finance_session_v2";
 
-// Categories with emoji
 const categoriesMeta = {
   "Еда": { color: "from-orange-400 to-red-400", icon: "🍕", bgColor: "bg-orange-100", textColor: "text-orange-700" },
   "Транспорт": { color: "from-blue-400 to-cyan-400", icon: "🚗", bgColor: "bg-blue-100", textColor: "text-blue-700" },
@@ -57,21 +58,21 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate }) {
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"];
   return (
     <div className="group flex items-center justify-between p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-white/20 hover:bg-white/80 transition-all duration-300 hover:shadow-md hover:scale-[1.01] mb-2">
-      <div className="flex items-center gap-3">
-        <div className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md`}>
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}>
           <span className="text-lg">{categoryInfo.icon}</span>
         </div>
-        <div>
-          <p className="font-semibold text-gray-900 text-sm">{tx.description || "—"}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor}`}>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-gray-900 text-sm truncate">{tx.description || "—"}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} flex-shrink-0`}>
               {tx.category}
             </span>
             <span className="text-xs text-gray-500">{formatDate(tx.date)}</span>
           </div>
         </div>
       </div>
-      <div className="text-right">
+      <div className="text-right ml-2 flex-shrink-0">
         <p className={`font-bold text-sm ${
           tx.type === "income" ? "text-emerald-600" : 
           tx.type === "expense" ? "text-rose-600" : "text-blue-600"
@@ -95,6 +96,8 @@ function NavButton({ icon, active, onClick }) {
 }
 
 export default function FinanceApp() {
+  const mainContentRef = useRef(null);
+  
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -118,10 +121,13 @@ export default function FinanceApp() {
   const [password, setPassword] = useState("");
   const [authCurrency, setAuthCurrency] = useState("BYN");
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
+  const [contentSafeAreaInset, setContentSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalInput, setGoalInput] = useState("50000");
   const [balanceVisible, setBalanceVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp;
   const haptic = tg && tg.HapticFeedback;
@@ -132,11 +138,13 @@ export default function FinanceApp() {
 
   const displayName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || "Пользователь";
 
+  // Инициализация Telegram WebApp
   useEffect(() => {
     if (tg) {
       tg.ready && tg.ready();
       if (tg.expand) tg.expand();
       setTheme(tg.colorScheme || "light");
+      
       const updateSafeArea = () => {
         setSafeAreaInset({
           top: (tg.safeAreaInset && tg.safeAreaInset.top) || 0,
@@ -145,11 +153,41 @@ export default function FinanceApp() {
           right: (tg.safeAreaInset && tg.safeAreaInset.right) || 0,
         });
       };
-      updateSafeArea();
-      if (tg.onEvent) tg.onEvent("safeAreaChanged", updateSafeArea);
-      return () => {
-        if (tg.offEvent) tg.offEvent("safeAreaChanged", updateSafeArea);
+
+      const updateContentSafeArea = () => {
+        setContentSafeAreaInset({
+          top: (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0,
+          bottom: (tg.contentSafeAreaInset && tg.contentSafeAreaInset.bottom) || 0,
+          left: (tg.contentSafeAreaInset && tg.contentSafeAreaInset.left) || 0,
+          right: (tg.contentSafeAreaInset && tg.contentSafeAreaInset.right) || 0,
+        });
       };
+
+      const handleFullscreenChanged = () => {
+        setIsFullscreen(tg.isFullscreen || false);
+      };
+
+      updateSafeArea();
+      updateContentSafeArea();
+      handleFullscreenChanged();
+
+      if (tg.onEvent) {
+        tg.onEvent("safeAreaChanged", updateSafeArea);
+        tg.onEvent("contentSafeAreaChanged", updateContentSafeArea);
+        tg.onEvent("fullscreenChanged", handleFullscreenChanged);
+      }
+
+      setIsReady(true);
+
+      return () => {
+        if (tg.offEvent) {
+          tg.offEvent("safeAreaChanged", updateSafeArea);
+          tg.offEvent("contentSafeAreaChanged", updateContentSafeArea);
+          tg.offEvent("fullscreenChanged", handleFullscreenChanged);
+        }
+      };
+    } else {
+      setIsReady(true);
     }
   }, [tg]);
 
@@ -202,6 +240,20 @@ export default function FinanceApp() {
       document.activeElement.blur();
     }
   }
+
+  const toggleFullscreen = async () => {
+    if (tg && tg.requestFullscreen && tg.exitFullscreen) {
+      try {
+        if (isFullscreen) {
+          tg.exitFullscreen();
+        } else {
+          tg.requestFullscreen();
+        }
+      } catch (e) {
+        console.warn("Fullscreen toggle failed", e);
+      }
+    }
+  };
 
   const currentCurrency = currencies.find((c) => c.code === currency) || currencies[1];
   const formatCurrency = (value) => {
@@ -444,38 +496,66 @@ export default function FinanceApp() {
   const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1);
   const savingsPct = Math.round(savingsProgress * 100);
 
+  if (!isReady) {
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
-      className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 overflow-y-auto"
+      className="w-full bg-gradient-to-br from-indigo-50 via-white to-cyan-50"
       style={{
-        paddingTop: safeAreaInset.top || 0,
-        paddingBottom: safeAreaInset.bottom + (isKeyboardOpen ? 0 : 60) || 60,
-        paddingLeft: safeAreaInset.left || 0,
-        paddingRight: safeAreaInset.right || 0,
+        height: isFullscreen ? "100vh" : "auto",
+        minHeight: isFullscreen ? "100vh" : "100dvh",
+        overflow: isFullscreen ? "hidden" : "auto",
         WebkitOverflowScrolling: 'touch',
       }}
     >
       {/* Header */}
-      <header className="relative overflow-hidden">
+      <header 
+        className="relative overflow-hidden flex-shrink-0"
+        style={{
+          paddingTop: safeAreaInset.top || 0,
+          paddingLeft: safeAreaInset.left || 0,
+          paddingRight: safeAreaInset.right || 0,
+        }}
+      >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600"></div>
         <div className="absolute inset-0 opacity-20" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
         }}></div>
         
-        <div className="relative px-4 pt-8 pb-6">
+        <div className="relative px-4 pt-6 pb-6">
           <div className="flex items-center justify-between mb-6">
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-white mb-1">
                 Привет, {(user && user.first_name) || displayName}! 👋
               </h1>
               <p className="text-blue-100 text-sm">Добро пожаловать в ваш финансовый помощник</p>
             </div>
-            <button
-              onClick={() => setBalanceVisible(!balanceVisible)}
-              className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all"
-            >
-              {balanceVisible ? <Eye className="w-4 h-4 text-white" /> : <EyeOff className="w-4 h-4 text-white" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
+                <button
+                  onClick={toggleFullscreen}
+                  className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all"
+                  title="Полноэкранный режим"
+                >
+                  {isFullscreen ? <Minimize2 className="w-4 h-4 text-white" /> : <Maximize2 className="w-4 h-4 text-white" />}
+                </button>
+              )}
+              <button
+                onClick={() => setBalanceVisible(!balanceVisible)}
+                className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all"
+              >
+                {balanceVisible ? <Eye className="w-4 h-4 text-white" /> : <EyeOff className="w-4 h-4 text-white" />}
+              </button>
+            </div>
           </div>
 
           {/* Balance Card */}
@@ -520,45 +600,87 @@ export default function FinanceApp() {
       </header>
 
       {/* Main Content */}
-      <main className="px-4 -mt-3 relative z-10 pb-20" style={{ minHeight: 'calc(100vh - 200px)' }}>
-        {/* Overview */}
-        {activeTab === "overview" && (
-          <div className="space-y-4">
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-lg">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-blue-100">
-                    <PiggyBank className="w-4 h-4 text-blue-600" />
+      <main 
+        ref={mainContentRef}
+        className="relative z-10"
+        style={{
+          paddingLeft: contentSafeAreaInset.left || 0,
+          paddingRight: contentSafeAreaInset.right || 0,
+          overflow: isFullscreen ? "auto" : "visible",
+          maxHeight: isFullscreen ? "calc(100vh - 200px)" : "auto",
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <div className="px-4 pb-24" style={{
+          paddingTop: '1rem',
+        }}>
+          {/* Overview */}
+          {activeTab === "overview" && (
+            <div className="space-y-4">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-100">
+                      <PiggyBank className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-gray-600 text-xs">Копилка</p>
+                      <p className="text-gray-900 text-sm font-bold">{formatCurrency(savings)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-600 text-xs">Копилка</p>
-                    <p className="text-gray-900 text-sm font-bold">{formatCurrency(savings)}</p>
+                </div>
+                <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-purple-100">
+                      <Target className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-gray-600 text-xs">Цель</p>
+                      <p className="text-gray-900 text-sm font-bold">{savingsPct}%</p>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-white/20 shadow-lg">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-purple-100">
-                    <Target className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-gray-600 text-xs">Цель</p>
-                    <p className="text-gray-900 text-sm font-bold">{savingsPct}%</p>
-                  </div>
+
+              {/* Recent Transactions */}
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Последние операции</h3>
+                  <button 
+                    onClick={() => setActiveTab("history")}
+                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors"
+                  >
+                    Все →
+                  </button>
                 </div>
+                {transactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <History className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 text-sm">Пока нет операций</p>
+                    <p className="text-gray-400 text-xs mt-1">Добавьте первую трансакцию</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {transactions.slice(0, 4).map((tx) => <TxRow tx={tx} key={tx.id} categoriesMeta={categoriesMeta} formatCurrency={formatCurrency} formatDate={formatDate} />)}
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            {/* Recent Transactions */}
+          {/* History */}
+          {activeTab === "history" && (
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Последние операции</h3>
-                <button 
-                  onClick={() => setActiveTab("history")}
-                  className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors"
+                <h3 className="text-lg font-bold text-gray-900">История операций</h3>
+                <button
+                  onClick={() => { setShowChart(true); setChartType("expense"); }}
+                  className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors"
                 >
-                  Все →
+                  <BarChart3 className="w-4 h-4 text-blue-600" />
                 </button>
               </div>
               {transactions.length === 0 ? (
@@ -566,195 +688,167 @@ export default function FinanceApp() {
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <History className="w-6 h-6 text-gray-400" />
                   </div>
-                  <p className="text-gray-500 text-sm">Пока нет операций</p>
-                  <p className="text-gray-400 text-xs mt-1">Добавьте первую трансакцию</p>
+                  <p className="text-gray-500 text-sm">Нет операций</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {transactions.slice(0, 4).map((tx) => <TxRow tx={tx} key={tx.id} categoriesMeta={categoriesMeta} formatCurrency={formatCurrency} formatDate={formatDate} />)}
+                  {transactions.map((tx) => <TxRow tx={tx} key={tx.id} categoriesMeta={categoriesMeta} formatCurrency={formatCurrency} formatDate={formatDate} />)}
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* History */}
-        {activeTab === "history" && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">История операций</h3>
-              <button
-                onClick={() => { setShowChart(true); setChartType("expense"); }}
-                className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors"
-              >
-                <BarChart3 className="w-4 h-4 text-blue-600" />
-              </button>
-            </div>
-            {transactions.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <History className="w-6 h-6 text-gray-400" />
-                </div>
-                <p className="text-gray-500 text-sm">Нет операций</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {transactions.map((tx) => <TxRow tx={tx} key={tx.id} categoriesMeta={categoriesMeta} formatCurrency={formatCurrency} formatDate={formatDate} />)}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Savings */}
-        {activeTab === "savings" && (
-          <div className="space-y-4">
-            {/* Savings Goal Card */}
-            <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-4 text-white shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold mb-1">Копилка</h3>
-                  <p className="text-blue-100 text-sm">Ваша цель накопления</p>
-                </div>
-                <div className="p-2 rounded-xl bg-white/20">
-                  <PiggyBank className="w-6 h-6 text-white" />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-blue-100 text-sm">Прогресс</span>
-                  <span className="text-white font-bold">{savingsPct}%</span>
-                </div>
-                <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-500 shadow-lg"
-                    style={{ width: `${savingsPct}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-2 text-xs text-blue-100">
-                  <span>{formatCurrency(savings)}</span>
-                  <span>{formatCurrency(goalSavings)}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setShowGoalModal(true); vibrate(); }}
-                  className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-all text-sm"
-                >
-                  Изменить цель
-                </button>
-                <button
-                  onClick={() => { setTransactionType("savings"); setShowAddModal(true); vibrate(); }}
-                  className="flex items-center gap-1 px-4 py-2 bg-white text-blue-600 rounded-xl font-medium hover:bg-blue-50 transition-all shadow-lg text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  Пополнить
-                </button>
-              </div>
-            </div>
-
-            {/* Savings History */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">История пополнений</h3>
-              {transactions.filter((t) => t.type === "savings").length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <PiggyBank className="w-6 h-6 text-blue-600" />
+          {/* Savings */}
+          {activeTab === "savings" && (
+            <div className="space-y-4">
+              {/* Savings Goal Card */}
+              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-4 text-white shadow-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold mb-1">Копилка</h3>
+                    <p className="text-blue-100 text-sm">Ваша цель накопления</p>
                   </div>
-                  <p className="text-gray-500 text-sm">Начните копить!</p>
-                  <p className="text-gray-400 text-xs mt-1">Добавьте первое пополнение</p>
+                  <div className="p-2 rounded-xl bg-white/20">
+                    <PiggyBank className="w-6 h-6 text-white" />
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {transactions.filter((t) => t.type === "savings").map((tx) => <TxRow tx={tx} key={tx.id} categoriesMeta={categoriesMeta} formatCurrency={formatCurrency} formatDate={formatDate} />)}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Settings */}
-        {activeTab === "settings" && (
-          <div className="space-y-4">
-            {/* Account Section */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Аккаунт</h3>
-              
-              {isAuthenticated ? (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-blue-100 text-sm">Прогресс</span>
+                    <span className="text-white font-bold">{savingsPct}%</span>
+                  </div>
+                  <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-500 shadow-lg"
+                      style={{ width: `${savingsPct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-xs text-blue-100">
+                    <span>{formatCurrency(savings)}</span>
+                    <span>{formatCurrency(goalSavings)}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowGoalModal(true); vibrate(); }}
+                    className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-all text-sm"
+                  >
+                    Изменить цель
+                  </button>
+                  <button
+                    onClick={() => { setTransactionType("savings"); setShowAddModal(true); vibrate(); }}
+                    className="flex items-center gap-1 px-4 py-2 bg-white text-blue-600 rounded-xl font-medium hover:bg-blue-50 transition-all shadow-lg text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Пополнить
+                  </button>
+                </div>
+              </div>
+
+              {/* Savings History */}
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">История пополнений</h3>
+                {transactions.filter((t) => t.type === "savings").length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <PiggyBank className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <p className="text-gray-500 text-sm">Начните копить!</p>
+                    <p className="text-gray-400 text-xs mt-1">Добавьте первое пополнение</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {transactions.filter((t) => t.type === "savings").map((tx) => <TxRow tx={tx} key={tx.id} categoriesMeta={categoriesMeta} formatCurrency={formatCurrency} formatDate={formatDate} />)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Settings */}
+          {activeTab === "settings" && (
+            <div className="space-y-4">
+              {/* Account Section */}
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Аккаунт</h3>
+                
+                {isAuthenticated ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-green-600 font-bold text-sm">
+                          {((user && user.first_name) || (user && user.email) || "U")[0].toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm truncate">{(user && user.first_name) || "Пользователь"}</p>
+                        <p className="text-gray-600 text-xs truncate">{user && user.email}</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleLogout} 
+                      className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Выйти
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setShowAuthModal(true)} 
+                    className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Войти
+                  </button>
+                )}
+              </div>
+
+              {/* Settings Options */}
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Настройки</h3>
+                
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600 font-bold text-sm">
-                        {((user && user.first_name) || (user && user.email) || "U")[0].toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">{(user && user.first_name) || "Пользователь"}</p>
-                      <p className="text-gray-600 text-xs">{user && user.email}</p>
-                    </div>
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2 text-sm">Валюта</label>
+                    <select 
+                      value={currency} 
+                      onChange={(e) => setCurrency(e.target.value)} 
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                    >
+                      {currencies.map((c) => (
+                        <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
+                      ))}
+                    </select>
                   </div>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Выйти
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => setShowAuthModal(true)} 
-                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Войти
-                </button>
-              )}
-            </div>
 
-            {/* Settings Options */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Настройки</h3>
-              
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2 text-sm">Валюта</label>
-                  <select 
-                    value={currency} 
-                    onChange={(e) => setCurrency(e.target.value)} 
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
-                  >
-                    {currencies.map((c) => (
-                      <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2 text-sm">Тема</label>
-                  <button 
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 hover:bg-gray-100 transition-all text-left text-sm"
-                  >
-                    {theme === "dark" ? "🌙 Тёмная" : "☀️ Светлая"}
-                  </button>
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2 text-sm">Тема</label>
+                    <button 
+                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 hover:bg-gray-100 transition-all text-left text-sm"
+                    >
+                      {theme === "dark" ? "🌙 Тёмная" : "☀️ Светлая"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Danger Zone */}
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
-              <h3 className="text-lg font-bold text-red-900 mb-3">Опасная зона</h3>
-              <button 
-                onClick={handleResetAll} 
-                className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all shadow-lg text-sm"
-              >
-                Сбросить все данные
-              </button>
+              {/* Danger Zone */}
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                <h3 className="text-lg font-bold text-red-900 mb-3">Опасная зона</h3>
+                <button 
+                  onClick={handleResetAll} 
+                  className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all shadow-lg text-sm"
+                >
+                  Сбросить все данные
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
 
       {/* Modals */}
@@ -816,7 +910,7 @@ export default function FinanceApp() {
 
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
-          <div className="w-full max-w-md bg-white rounded-t-2xl p-4 shadow-2xl">
+          <div className="w-full max-w-md bg-white rounded-t-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Новая операция</h3>
 
             <div className="flex gap-2 mb-4">
@@ -884,7 +978,7 @@ export default function FinanceApp() {
 
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl">
+          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Вход / Регистрация</h3>
             <input 
               type="email" 
@@ -931,7 +1025,12 @@ export default function FinanceApp() {
 
       {/* Bottom Navigation */}
       {!isKeyboardOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+        <div 
+          className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
+          style={{
+            paddingBottom: safeAreaInset.bottom || 0,
+          }}
+        >
           <div className="flex items-center justify-center p-2">
             <div className="w-full max-w-md bg-white/90 backdrop-blur-md rounded-full p-1.5 border border-white/20 shadow-2xl flex items-center justify-around pointer-events-auto">
               <NavButton 
