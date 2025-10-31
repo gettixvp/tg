@@ -11,6 +11,8 @@ import {
   Sun,
   LogOut,
   LogIn,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 
 const FinanceApp = ({ apiUrl }) => {
@@ -37,8 +39,11 @@ const FinanceApp = ({ apiUrl }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authCurrency, setAuthCurrency] = useState('RUB');
+  const [fullscreen, setFullscreen] = useState(false);
+  const [safeAreaInset, setSafeAreaInset] = useState({});
+  const [contentSafeAreaInset, setContentSafeAreaInset] = useState({});
 
-  // =================== Telegram API (защита от undefined) ===================
+  // =================== Telegram API ===================
   const tg = typeof window !== 'undefined' && window.Telegram?.WebApp;
   const haptic = tg?.HapticFeedback;
 
@@ -46,12 +51,56 @@ const FinanceApp = ({ apiUrl }) => {
     if (tg) {
       tg.ready();
       tg.expand();
-      if (tg.requestFullscreen) tg.requestFullscreen();
       setTheme(tg.colorScheme || 'light');
+
+      // Слушаем события Telegram WebApp API
+      const onFullscreenChanged = () => setFullscreen(tg.isFullscreen ?? false);
+
+      tg.onEvent?.('fullscreenChanged', onFullscreenChanged);
+
+      // Safe area
+      const updateSafeArea = () => {
+        setSafeAreaInset(tg.safeAreaInset || {});
+        setContentSafeAreaInset(tg.contentSafeAreaInset || {});
+      };
+      tg.onEvent?.('safeAreaChanged', updateSafeArea);
+      tg.onEvent?.('contentSafeAreaChanged', updateSafeArea);
+
+      // Инициализация safeArea
+      updateSafeArea();
+
+      // Снимаем подписки при размонтировании
+      return () => {
+        tg.offEvent?.('fullscreenChanged', onFullscreenChanged);
+        tg.offEvent?.('safeAreaChanged', updateSafeArea);
+        tg.offEvent?.('contentSafeAreaChanged', updateSafeArea);
+      };
     }
   }, [tg]);
 
   const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
+
+  // =================== FullScreen ===================
+  const handleFullscreen = async () => {
+    if (tg?.requestFullscreen) {
+      try {
+        await tg.requestFullscreen();
+      } catch (e) {
+        // Можно показать сообщение или проигнорировать
+        if (haptic) haptic.notificationOccurred('error');
+      }
+    }
+  };
+
+  const handleExitFullscreen = async () => {
+    if (tg?.exitFullscreen) {
+      try {
+        await tg.exitFullscreen();
+      } catch (e) {
+        if (haptic) haptic.notificationOccurred('error');
+      }
+    }
+  };
 
   // =================== Сессия (localStorage) ===================
   useEffect(() => {
@@ -286,7 +335,34 @@ const FinanceApp = ({ apiUrl }) => {
 
   // =================== РЕНДЕР ===================
   return (
-    <div className={`min-h-screen ${bgColor} pb-20`}>
+    <div className={`min-h-screen ${bgColor} pb-20`} style={{
+      paddingTop: safeAreaInset.top || 0,
+      paddingBottom: safeAreaInset.bottom || 0,
+      paddingLeft: safeAreaInset.left || 0,
+      paddingRight: safeAreaInset.right || 0
+    }}>
+      {/* Кнопки полноэкранного режима */}
+      <div className="fixed top-2 right-2 z-50 flex gap-2">
+        {!fullscreen && tg?.requestFullscreen && (
+          <button
+            onClick={handleFullscreen}
+            className="p-2 rounded-full bg-blue-500 text-white shadow"
+            title="На весь экран"
+          >
+            <Maximize size={20} />
+          </button>
+        )}
+        {fullscreen && tg?.exitFullscreen && (
+          <button
+            onClick={handleExitFullscreen}
+            className="p-2 rounded-full bg-gray-700 text-white shadow"
+            title="Выйти из полноэкранного"
+          >
+            <Minimize size={20} />
+          </button>
+        )}
+      </div>
+
       {/* Header — только на Обзор */}
       {activeTab === 'overview' && (
         <div className={`${cardBg} ${textPrimary} p-6 rounded-b-3xl shadow-sm`}>
