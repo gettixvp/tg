@@ -362,10 +362,10 @@ export default function FinanceApp({ apiUrl }) {
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50"
+      className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 overflow-y-auto"
       style={{
         paddingTop: safeAreaInset.top || 0,
-        paddingBottom: safeAreaInset.bottom || 0,
+        paddingBottom: safeAreaInset.bottom + (isKeyboardOpen ? 0 : 80) || 0, // Увеличенный отступ снизу при открытой клавиатуре
         paddingLeft: safeAreaInset.left || 0,
         paddingRight: safeAreaInset.right || 0,
       }}
@@ -777,7 +777,7 @@ export default function FinanceApp({ apiUrl }) {
 
             <div className="flex gap-3">
               <button 
-                onClick={() => setShowAddModal(false)} 
+                onClick={()=> setShowAddModal(false)} 
                 className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-medium transition-all"
               >
                 Отмена
@@ -846,38 +846,34 @@ export default function FinanceApp({ apiUrl }) {
 
       {/* Bottom Navigation */}
       {!isKeyboardOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-40">
-          <div className="flex items-center justify-center p-6">
-            <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-3xl p-4 border border-white/20 shadow-2xl flex items-center justify-around">
+        <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+          <div className="flex items-center justify-center p-2">
+            <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-full p-2 border border-white/20 shadow-2xl flex items-center justify-around pointer-events-auto">
               <NavButton 
                 active={activeTab === "overview"} 
                 onClick={() => { setActiveTab("overview"); vibrate(); }} 
-                icon={<Wallet className="w-6 h-6" />} 
-                label="Главная" 
+                icon={<Wallet className="w-5 h-5" />} 
               />
               <NavButton 
                 active={activeTab === "history"} 
                 onClick={() => { setActiveTab("history"); vibrate(); }} 
-                icon={<History className="w-6 h-6" />} 
-                label="История" 
+                icon={<History className="w-5 h-5" />} 
               />
               <button
                 onClick={() => { setShowAddModal(true); vibrate(); }}
-                className="p-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95"
+                className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95"
               >
-                <Plus className="w-6 h-6" />
+                <Plus className="w-5 h-5" />
               </button>
               <NavButton 
                 active={activeTab === "savings"} 
                 onClick={() => { setActiveTab("savings"); vibrate(); }} 
-                icon={<PiggyBank className="w-6 h-6" />} 
-                label="Копилка" 
+                icon={<PiggyBank className="w-5 h-5" />} 
               />
               <NavButton 
                 active={activeTab === "settings"} 
                 onClick={() => { setActiveTab("settings"); vibrate(); }} 
-                icon={<Settings className="w-6 h-6" />} 
-                label="Настройки" 
+                icon={<Settings className="w-5 h-5" />} 
               />
             </div>
           </div>
@@ -887,14 +883,13 @@ export default function FinanceApp({ apiUrl }) {
   );
 }
 
-function NavButton({ icon, label, active, onClick }) {
+function NavButton({ icon, active, onClick }) {
   return (
     <button 
       onClick={onClick} 
-      className="flex flex-col items-center gap-1 px-3 py-2 transition-all"
+      className="p-3 transition-all"
     >
       <div className={active ? "text-blue-600" : "text-gray-400"}>{icon}</div>
-      <span className={`text-xs ${active ? "text-blue-600 font-semibold" : "text-gray-400"}`}>{label}</span>
     </button>
   );
 }
