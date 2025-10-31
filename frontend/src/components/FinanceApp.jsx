@@ -15,6 +15,8 @@ import {
   Minimize,
 } from 'lucide-react';
 
+const LS_KEY = 'finance_settings_v2';
+
 const FinanceApp = ({ apiUrl }) => {
   // =================== Состояния ===================
   const [user, setUser] = useState(null);
@@ -47,47 +49,13 @@ const FinanceApp = ({ apiUrl }) => {
   const haptic = tg?.HapticFeedback;
 
   // =================== Haptic Utils ===================
-  const vibrate = () => {
-    if (haptic?.impactOccurred) haptic.impactOccurred('light');
-  };
-  const vibrateSuccess = () => {
-    if (haptic?.notificationOccurred) haptic.notificationOccurred('success');
-  };
-  const vibrateError = () => {
-    if (haptic?.notificationOccurred) haptic.notificationOccurred('error');
-  };
-  const vibrateWarning = () => {
-    if (haptic?.notificationOccurred) haptic.notificationOccurred('warning');
-  };
-  const vibrateSelect = () => {
-    if (haptic?.selectionChanged) haptic.selectionChanged();
-  };
+  const vibrate = () => haptic?.impactOccurred && haptic.impactOccurred('light');
+  const vibrateSuccess = () => haptic?.notificationOccurred && haptic.notificationOccurred('success');
+  const vibrateError = () => haptic?.notificationOccurred && haptic.notificationOccurred('error');
+  const vibrateWarning = () => haptic?.notificationOccurred && haptic.notificationOccurred('warning');
+  const vibrateSelect = () => haptic?.selectionChanged && haptic.selectionChanged();
 
-  // =================== FullScreen ===================
-  const handleFullscreen = async () => {
-    if (tg?.requestFullscreen) {
-      try {
-        await tg.requestFullscreen();
-        setFullscreen(true);
-        vibrate();
-      } catch (e) {
-        vibrateError();
-      }
-    }
-  };
-  const handleExitFullscreen = async () => {
-    if (tg?.exitFullscreen) {
-      try {
-        await tg.exitFullscreen();
-        setFullscreen(false);
-        vibrate();
-      } catch (e) {
-        vibrateError();
-      }
-    }
-  };
-
-  // =================== Safe Area + Fullscreen при старте ===================
+  // =================== Safe Area + Fullscreen Events ===================
   useEffect(() => {
     if (tg) {
       tg.ready();
@@ -110,11 +78,6 @@ const FinanceApp = ({ apiUrl }) => {
       const onFullscreenChanged = () => setFullscreen(tg.isFullscreen ?? false);
       tg.onEvent?.('fullscreenChanged', onFullscreenChanged);
 
-      // Попробовать сразу открыть fullscreen если доступно
-      if (typeof tg.requestFullscreen === 'function') {
-        tg.requestFullscreen().catch(() => {});
-      }
-
       // cleanup
       return () => {
         tg.offEvent?.('safeAreaChanged', updateSafeArea);
@@ -126,7 +89,23 @@ const FinanceApp = ({ apiUrl }) => {
   const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
 
   // =================== Сессия (localStorage) ===================
+  // Сохраняем все настройки, вход и тему в localStorage
   useEffect(() => {
+    // При старте подтянуть настройки и сессию
+    const ls = localStorage.getItem(LS_KEY);
+    if (ls) {
+      try {
+        const data = JSON.parse(ls);
+        setCurrency(data.currency || 'RUB');
+        setGoalSavings(data.goalSavings || 50000);
+        setTheme(data.theme || 'light');
+        setEmail(data.email || '');
+        setPassword(data.password || '');
+        setAuthCurrency(data.authCurrency || 'RUB');
+        setIsAuthenticated(data.isAuthenticated || false);
+        if (data.user) setUser(data.user);
+      } catch { }
+    }
     const session = localStorage.getItem('finance_session');
     if (session) {
       const { email, token } = JSON.parse(session);
@@ -134,6 +113,13 @@ const FinanceApp = ({ apiUrl }) => {
     }
     // eslint-disable-next-line
   }, []);
+
+  useEffect(() => {
+    // Сохранять все настройки и вход при изменении
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      currency, goalSavings, theme, email, password, authCurrency, isAuthenticated, user
+    }));
+  }, [currency, goalSavings, theme, email, password, authCurrency, isAuthenticated, user]);
 
   const autoLogin = async (email, token) => {
     try {
@@ -240,11 +226,16 @@ const FinanceApp = ({ apiUrl }) => {
       vibrateError();
       return;
     }
+    // Если имя Telegram отличается от основного, добавляем имя Telegram к описанию
+    let txDesc = description;
+    if (displayName && user && displayName !== user.first_name) {
+      txDesc = (description ? `${displayName}: ${description}` : displayName);
+    }
     const newTx = {
       id: Date.now(),
       type: transactionType,
       amount: parseFloat(amount),
-      description: description || '', // Описание не обязательно
+      description: txDesc || '', // Описание не обязательно
       category: category || 'Другое',
       date: new Date().toISOString(),
     };
@@ -345,6 +336,11 @@ const FinanceApp = ({ apiUrl }) => {
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   };
 
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
+
   const categoriesList = {
     expense: ['Еда', 'Транспорт', 'Развлечения', 'Счета', 'Покупки', 'Здоровье', 'Другое'],
     income: ['Зарплата', 'Фриланс', 'Подарки', 'Инвестиции', 'Другое'],
@@ -370,28 +366,6 @@ const FinanceApp = ({ apiUrl }) => {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      {/* Кнопки полноэкранного режима */}
-      <div className="fixed top-2 right-2 z-50 flex gap-2">
-        {!fullscreen && tg?.requestFullscreen && (
-          <button
-            onClick={handleFullscreen}
-            className="p-2 rounded-full bg-blue-500 text-white shadow"
-            title="На весь экран"
-          >
-            <Maximize size={20} />
-          </button>
-        )}
-        {fullscreen && tg?.exitFullscreen && (
-          <button
-            onClick={handleExitFullscreen}
-            className="p-2 rounded-full bg-gray-700 text-white shadow"
-            title="Выйти из полноэкранного"
-          >
-            <Minimize size={20} />
-          </button>
-        )}
-      </div>
-
       {/* Header — только на Обзор, без иконки настроек */}
       {activeTab === 'overview' && (
         <div className={`${cardBg} ${textPrimary} p-6 rounded-b-3xl shadow-sm`}>
@@ -453,9 +427,12 @@ const FinanceApp = ({ apiUrl }) => {
                           <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
                         </div>
                       </div>
-                      <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
-                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </p>
+                      <div className="flex flex-col items-end gap-0">
+                        <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
+                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        </p>
+                        <span className="text-xs text-gray-400">{formatTime(tx.date)}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -485,9 +462,12 @@ const FinanceApp = ({ apiUrl }) => {
                         <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
                       </div>
                     </div>
-                    <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
-                      {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                    </p>
+                    <div className="flex flex-col items-end gap-0">
+                      <p className={`font-bold ${tx.type === 'income' ? 'text-green-600' : tx.type === 'expense' ? 'text-red-600' : 'text-blue-600'}`}>
+                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                      </p>
+                      <span className="text-xs text-gray-400">{formatTime(tx.date)}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -529,7 +509,10 @@ const FinanceApp = ({ apiUrl }) => {
                           <p className={`text-xs ${textSecondary}`}>{tx.category} • {formatDate(tx.date)}</p>
                         </div>
                       </div>
-                      <p className="font-bold text-blue-600">+{formatCurrency(tx.amount)}</p>
+                      <div className="flex flex-col items-end gap-0">
+                        <p className="font-bold text-blue-600">+{formatCurrency(tx.amount)}</p>
+                        <span className="text-xs text-gray-400">{formatTime(tx.date)}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -541,26 +524,7 @@ const FinanceApp = ({ apiUrl }) => {
         {/* Настройки */}
         {activeTab === 'settings' && (
           <div className="space-y-4">
-            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
-              <button
-                onClick={() => { handleThemeChange(); vibrate(); }}
-                className={`p-3 rounded-full ${themeToggleBg} flex items-center justify-center`}
-                aria-label="Сменить тему"
-              >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-            </div>
-            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
-              <select value={currency} onChange={e => { handleCurrencyChange(e.target.value); vibrateSelect(); }} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
-                {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
-              </select>
-            </div>
-            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Цель копилки</h3>
-              <input type="number" value={goalSavings} onChange={e => setGoalSavings(parseFloat(e.target.value) || 0)} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`} placeholder="Цель" />
-            </div>
+            {/* 1. Вход / Регистрация */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Аккаунт</h3>
               {!isAuthenticated ? (
@@ -572,6 +536,51 @@ const FinanceApp = ({ apiUrl }) => {
                   <LogOut size={18} /> Выйти
                 </button>
               )}
+            </div>
+            {/* 2. Fullscreen */}
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border flex items-center justify-between`}>
+              <h3 className={`text-lg font-bold ${textPrimary}`}>Полноэкранный режим</h3>
+              {!fullscreen && tg?.requestFullscreen && (
+                <button
+                  onClick={handleFullscreen}
+                  className="p-3 rounded-full bg-blue-500 text-white ml-3"
+                  title="На весь экран"
+                >
+                  <Maximize size={20} />
+                </button>
+              )}
+              {fullscreen && tg?.exitFullscreen && (
+                <button
+                  onClick={handleExitFullscreen}
+                  className="p-3 rounded-full bg-gray-700 text-white ml-3"
+                  title="Выйти из полноэкранного"
+                >
+                  <Minimize size={20} />
+                </button>
+              )}
+            </div>
+            {/* 3. Тема */}
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
+              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
+              <button
+                onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); vibrate(); }}
+                className={`p-3 rounded-full ${themeToggleBg} flex items-center justify-center`}
+                aria-label="Сменить тему"
+              >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+            </div>
+            {/* 4. Валюта */}
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
+              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
+              <select value={currency} onChange={e => { setCurrency(e.target.value); vibrateSelect(); }} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
+                {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
+              </select>
+            </div>
+            {/* 5. Цель копилки */}
+            <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
+              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Цель копилки</h3>
+              <input type="number" value={goalSavings} onChange={e => setGoalSavings(parseFloat(e.target.value) || 0)} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`} placeholder="Цель" />
             </div>
           </div>
         )}
@@ -638,11 +647,11 @@ const FinanceApp = ({ apiUrl }) => {
       {/* Нижняя навигация */}
       <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t`}>
         <div className="flex justify-around items-center p-4 max-w-md mx-auto">
-          <button onClick={() => { handleTabChange('overview'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
-          <button onClick={() => { handleTabChange('history'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}><History size={24} /><span className="text-xs mt-1">История</span></button>
+          <button onClick={() => { setActiveTab('overview'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
+          <button onClick={() => { setActiveTab('history'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}><History size={24} /><span className="text-xs mt-1">История</span></button>
           <button onClick={() => { setShowAddModal(true); vibrate(); }} className="flex flex-col items-center -mt-6"><div className="bg-blue-500 text-white p-4 rounded-full shadow-lg"><Plus size={28} /></div></button>
-          <button onClick={() => { handleTabChange('savings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}><PiggyBank size={24} /><span className="text-xs mt-1">Копилка</span></button>
-          <button onClick={() => { handleTabChange('settings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}><Settings size={24} /><span className="text-xs mt-1">Настройки</span></button>
+          <button onClick={() => { setActiveTab('savings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}><PiggyBank size={24} /><span className="text-xs mt-1">Копилка</span></button>
+          <button onClick={() => { setActiveTab('settings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}><Settings size={24} /><span className="text-xs mt-1">Настройки</span></button>
         </div>
       </div>
     </div>
