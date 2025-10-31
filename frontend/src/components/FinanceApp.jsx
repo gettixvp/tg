@@ -1,223 +1,210 @@
-// FinanceApp.jsx — обновлённая версия
-// Требует: React, lucide-react
-// Предназначение: клиент, подключается к backend: https://walletback-aghp.onrender.com
-// Важное: backend должен поддерживать поля users.savings_usd и transactions.converted_amount_usd
-import React, { useEffect, useState } from "react";
+// FinanceApp.jsx — переработанный финальный файл
+// Замени этим файлом существующий FinanceApp.jsx
+import React, { useEffect, useState, useRef } from "react";
 import {
   Wallet,
-  TrendingUp,
-  TrendingDown,
-  PiggyBank,
-  Plus,
   History,
+  PiggyBank,
   Settings,
-  LogOut,
+  Plus,
   LogIn,
+  LogOut,
 } from "lucide-react";
 
-const API_BASE = "https://walletback-aghp.onrender.com"; // <- твой Render URL
+/*
+  Ключевые изменения:
+  - Убран верхний бар "Финансы / Текущее состояние"
+  - Большой блок "Общий баланс" показывается ТОЛЬКО на Главной
+  - Копилка хранится и отображается в BYN (убрана конвертация в USD)
+  - Убрано требование ввода имени при регистрации — используем Telegram имя (если есть)
+  - Возвращены emoji в категории и операциях
+  - Нижняя капсула: 4 вкладки в одном пузыре, иконки и шрифт уменьшены, плюс справа (меньше)
+  - Улучшена прокрутка: основной контейнер scrollable, tg.expand() вызывается
+  - Темы переделаны в нейтральный банковский стиль
+  - WebSocket / backend — оставлены прежние вызовы (не трогаем)
+*/
+
+const API_BASE = "https://walletback-aghp.onrender.com";
 const LS_KEY = "finance_settings_v2";
 const SESSION_KEY = "finance_session_v2";
 
-// Helper constants
-const currencies = [
-  { code: "BYN", symbol: "Br", name: "Белорусский рубль" },
-  { code: "USD", symbol: "$", name: "Доллар США" },
-  { code: "RUB", symbol: "₽", name: "Российский рубль" },
-  { code: "EUR", symbol: "€", name: "Евро" },
-];
+// Categories with emoji restored
+const categoriesMeta = {
+  Еда: { icon: "🍔" },
+  Транспорт: { icon: "🚗" },
+  Развлечения: { icon: "🎉" },
+  Счета: { icon: "💡" },
+  Покупки: { icon: "🛒" },
+  Здоровье: { icon: "💊" },
+  Другое: { icon: "💼" },
+  Зарплата: { icon: "💵" },
+  Фриланс: { icon: "👨‍💻" },
+  Подарки: { icon: "🎁" },
+  Инвестиции: { icon: "📈" },
+  Отпуск: { icon: "🏖️" },
+  Накопления: { icon: "💰" },
+  "Экстренный фонд": { icon: "🚨" },
+  Цель: { icon: "🎯" },
+};
+
+const categoriesList = {
+  expense: ["Еда", "Транспорт", "Развлечения", "Счета", "Покупки", "Здоровье", "Другое"],
+  income: ["Зарплата", "Фриланс", "Подарки", "Инвестиции", "Другое"],
+  savings: ["Накопления", "Отпуск", "Экстренный фонд", "Цель", "Другое"],
+};
+
+function formatBYN(v) {
+  const n = Number(v || 0);
+  try {
+    return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "BYN", minimumFractionDigits: 0 }).format(n);
+  } catch {
+    return `Br${Math.round(n)}`;
+  }
+}
+
+function shortDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+function shortTime(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+}
 
 export default function FinanceApp() {
-  // ---------- UI / auth state ----------
-  const [user, setUser] = useState(null); // user object from backend
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview"); // overview|history|savings|settings
-  const [theme, setTheme] = useState("dark");
-  const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  // Telegram WebApp
+  const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
+  const tgUser = tg?.initDataUnsafe?.user || null;
+  const telegramAvatar = tgUser?.photo_url || null;
 
-  // ---------- finance state (canonical storage model) ----------
-  // IMPORTANT: base currency for account is BYN (balance, income, expenses stored in BYN)
-  // savings are stored in USD in DB as savings_usd
+  // App state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview"); // overview|history|savings|settings
+  const [theme, setTheme] = useState("bank-dark"); // 'bank-dark' | 'bank-light'
+
+  // finance state (all in BYN)
   const [balance, setBalance] = useState(0); // BYN
   const [income, setIncome] = useState(0); // BYN
   const [expenses, setExpenses] = useState(0); // BYN
-  const [savingsUsd, setSavingsUsd] = useState(0); // USD
-  const [goalSavingsUsd, setGoalSavingsUsd] = useState(0); // USD goal
-  const [transactions, setTransactions] = useState([]); // transactions from backend
+  const [savings, setSavings] = useState(0); // BYN (копилка теперь в BYN)
+  const [goalSavings, setGoalSavings] = useState(0); // BYN
 
-  // ---------- form state ----------
+  const [transactions, setTransactions] = useState([]);
+
+  // Add modal / forms
   const [showAddModal, setShowAddModal] = useState(false);
-  const [transactionType, setTransactionType] = useState("expense"); // expense|income|savings
-  const [txAmount, setTxAmount] = useState(""); // user enters amount (BYN for expense/income/savings)
+  const [txType, setTxType] = useState("expense");
+  const [txAmount, setTxAmount] = useState("");
   const [txDescription, setTxDescription] = useState("");
   const [txCategory, setTxCategory] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
-  const [authFirstName, setAuthFirstName] = useState("");
-  const [authCurrency, setAuthCurrency] = useState("BYN");
 
-  // UI niceties
-  const [nbrbRate, setNbrbRate] = useState(null); // official Cur_OfficialRate (BYN per 1 USD)
-  const [loadingRate, setLoadingRate] = useState(false);
+  // UI refs
+  const mainRef = useRef(null);
 
-  // Telegram WebApp detection for avatar & name
-  const tg = typeof window !== "undefined" && window.Telegram?.WebApp;
-  const tgUser = tg?.initDataUnsafe?.user || null;
-  const telegramAvatar = tgUser?.photo_url || null;
-
-  // ---------- utilities ----------
-  const formatBYN = (v) => {
-    const n = Number(v) || 0;
-    try {
-      return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "BYN", minimumFractionDigits: 0 }).format(n);
-    } catch {
-      return `Br${Math.round(n)}`;
-    }
-  };
-  const formatUSD = (v) => {
-    const n = Number(v) || 0;
-    try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n);
-    } catch {
-      return `$${(Math.round(n*100)/100).toFixed(2)}`;
-    }
-  };
-
-  // ---------- lifecycle ----------
+  // load settings / session
   useEffect(() => {
-    // load local settings
     try {
       const ls = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
       if (ls.theme) setTheme(ls.theme);
-      if (ls.goalSavingsUsd) setGoalSavingsUsd(Number(ls.goalSavingsUsd) || 0);
-    } catch (e) { /* ignore */ }
-
-    // load session
-    try {
+      if (ls.goalSavings) setGoalSavings(Number(ls.goalSavings) || 0);
       const s = JSON.parse(localStorage.getItem(SESSION_KEY) || "{}");
       if (s?.email && s?.token) {
-        // attempt to autologin via token (backend accepts token in /api/auth as password/token)
-        setAuthEmail(s.email);
-        autoAuthWithToken(s.email, s.token);
+        // auto auth using token (backend supports token)
+        autoAuth(s.email, s.token);
+      }
+    } catch (e) { /* ignore */ }
+
+    // Telegram miniapp: try expand to full height
+    try {
+      if (tg) {
+        tg.ready();
+        tg.expand?.();
       }
     } catch (e) {}
-
-    // keyboard detection
-    let prevHeight = typeof window !== "undefined" ? window.innerHeight : 0;
-    const onResize = () => {
-      const cur = window.innerHeight;
-      setIsKeyboardOpen(cur < prevHeight - 120);
-      prevHeight = cur;
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    // make main area scrollable height-aware
+    setTimeout(() => {
+      if (mainRef.current) {
+        mainRef.current.style.maxHeight = `calc(100vh - 120px)`;
+      }
+    }, 120);
   }, []);
 
-  // persist some settings
+  // persist theme/goal
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify({ theme, goalSavingsUsd }));
-  }, [theme, goalSavingsUsd]);
+    localStorage.setItem(LS_KEY, JSON.stringify({ theme, goalSavings }));
+  }, [theme, goalSavings]);
 
-  // fetch latest NBRB rate on mount and periodically (every 10 minutes)
-  useEffect(() => {
-    fetchNbrbRate();
-    const id = setInterval(fetchNbrbRate, 10 * 60 * 1000);
-    return () => clearInterval(id);
-  }, []);
+  // helpers
+  function vibrateSuccess() { try { tg?.HapticFeedback?.notificationOccurred?.("success"); } catch(e){} }
+  function vibrateError() { try { tg?.HapticFeedback?.notificationOccurred?.("error"); } catch(e){} }
+  function vibrate() { try { tg?.HapticFeedback?.impactOccurred?.("light"); } catch(e){} }
 
-  // ---------- NBRB rate ----------
-  async function fetchNbrbRate() {
-    setLoadingRate(true);
+  // API helpers
+  async function autoAuth(email, token) {
     try {
-      const res = await fetch("https://api.nbrb.by/exrates/rates/USD?paramMode=2");
-      if (!res.ok) throw new Error("rate fetch failed");
-      const json = await res.json();
-      // Cur_OfficialRate = BYN per 1 USD (e.g. 3.25)
-      const rate = Number(json.Cur_OfficialRate) || null;
-      setNbrbRate(rate);
-      setLoadingRate(false);
-      return rate;
-    } catch (e) {
-      console.warn("Failed fetching NBRB rate", e);
-      setLoadingRate(false);
-      return null;
-    }
-  }
-
-  // ---------- Auth / account handling ----------
-  async function autoAuthWithToken(email, token) {
-    try {
-      // Use backend auth with token (server.js supports token field as "password_hash" equivalency)
       const resp = await fetch(`${API_BASE}/api/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, token, first_name: tgUser?.first_name || "user", currency: authCurrency })
+        body: JSON.stringify({ email, token, first_name: tgUser?.first_name || "" })
       });
       if (!resp.ok) throw new Error("auth failed");
       const json = await resp.json();
-      applyUserLogin(json.user, json.transactions || []);
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ email, token })); // keep
-      return true;
+      applyUser(json.user, json.transactions || []);
     } catch (e) {
-      console.warn("Auto auth failed", e);
+      console.warn("autoAuth failed", e);
       localStorage.removeItem(SESSION_KEY);
-      return false;
     }
   }
 
-  // handle explicit login / registration
   async function handleAuth() {
-    if (!authEmail || (!authPassword && !tgUser)) return alert("Введи email и пароль (или Telegram авторизация).");
+    if (!authEmail || !authPassword) return alert("Введите email и пароль");
     try {
-      const payload = {
-        email: authEmail,
-        password: authPassword || "",
-        first_name: authFirstName || tgUser?.first_name || "user",
-        currency: authCurrency,
-        token: "" // for now not using token approach here
-      };
-      const resp = await fetch(`${API_BASE}/api/auth`, {
+      const payload = { email: authEmail, password: authPassword, first_name: tgUser?.first_name || "" };
+      const res = await fetch(`${API_BASE}/api/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const json = await resp.json();
-      if (!resp.ok) {
-        return alert(json?.error || "Ошибка входа");
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({error:""}));
+        return alert(err.error || "Ошибка входа");
       }
-      applyUserLogin(json.user, json.transactions || []);
-      // store basic session token (demo)
+      const json = await res.json();
+      applyUser(json.user, json.transactions || []);
+      // store session token (demo)
       localStorage.setItem(SESSION_KEY, JSON.stringify({ email: authEmail, token: btoa(authPassword) }));
       setShowAuthModal(false);
       vibrateSuccess();
     } catch (e) {
-      console.error("Auth error", e);
-      alert("Ошибка при запросе аутентификации");
+      console.error(e);
+      alert("Ошибка авторизации");
+      vibrateError();
     }
   }
 
-  function applyUserLogin(userObj, txs = []) {
-    // userObj comes from backend 'users' row, ensure numeric cast
-    setUser(userObj);
+  function applyUser(u, txs = []) {
+    setUser(u);
     setIsAuthenticated(true);
-
-    // Use backend fields if present
-    setBalance(Number(userObj.balance || 0));
-    setIncome(Number(userObj.income || 0));
-    setExpenses(Number(userObj.expenses || 0));
-    setSavingsUsd(Number(userObj.savings_usd || userObj.savings || 0)); // backward compatibility
-    setGoalSavingsUsd(Number(userObj.goal_savings || userObj.goalSavingsUsd || 0));
-    setTransactions(Array.isArray(txs) ? txs : []);
-
-    // store session minimal
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: userObj.email, token: btoa(authPassword || "") }));
+    setBalance(Number(u.balance || 0));
+    setIncome(Number(u.income || 0));
+    setExpenses(Number(u.expenses || 0));
+    // savings stored in BYN now
+    setSavings(Number(u.savings_usd || u.savings || 0));
+    setGoalSavings(Number(u.goal_savings || 0));
+    setTransactions(txs || []);
+    setIsAuthenticated(true);
   }
 
+  // logout
   async function handleLogout() {
-    // persist to backend current user numbers
-    if (isAuthenticated && user?.id) {
+    // save user snapshot to backend
+    if (user?.id) {
       try {
         await fetch(`${API_BASE}/api/user/${user.id}`, {
           method: "PUT",
@@ -226,538 +213,423 @@ export default function FinanceApp() {
             balance,
             income,
             expenses,
-            savings: savingsUsd, // backend earlier had 'savings' numeric, but we keep savings_usd naming too
-            currency: "BYN",
-            goalSavings: goalSavingsUsd
+            savings,
+            goalSavings
           })
         });
       } catch (e) {
-        console.warn("Failed to persist user on logout", e);
+        console.warn("save on logout failed", e);
       }
     }
-
-    // clear UI to guest zeros
     setIsAuthenticated(false);
     setUser(null);
-    setBalance(0);
-    setIncome(0);
-    setExpenses(0);
-    setSavingsUsd(0);
-    setTransactions([]);
+    setBalance(0); setIncome(0); setExpenses(0); setSavings(0); setTransactions([]);
     localStorage.removeItem(SESSION_KEY);
-    vibrateError();
+    vibrate();
   }
 
-  // Reset all to zeros (explicit button)
-  async function handleResetAll() {
-    if (!window.confirm("Сбросить все данные? Это приведёт к полному обнулению счета и операций.")) return;
-    setBalance(0);
-    setIncome(0);
-    setExpenses(0);
-    setSavingsUsd(0);
-    setTransactions([]);
-    // persist to backend
-    if (isAuthenticated && user?.id) {
-      await fetch(`${API_BASE}/api/user/${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: 0, income: 0, expenses: 0, savings: 0, currency: "BYN", goalSavings: 0 })
-      });
-      // optionally clear transactions server-side (not implemented here)
-    }
-    vibrateSuccess();
-  }
-
-  // ---------- Transactions logic ----------
-  // Add transaction - sends to backend and updates local UI/state
+  // add transaction (savings now in BYN)
   async function addTransaction() {
-    blurAll();
     const n = Number(txAmount);
     if (!isFinite(n) || n <= 0) return alert("Введите корректную сумму > 0");
-    if (!transactionType) return alert("Выберите тип операции");
 
-    const newTxLocal = {
+    const tx = {
       id: Date.now(),
       user_id: user?.id || null,
-      type: transactionType,
-      amount: n, // BYN always for incoming input
-      converted_amount_usd: null,
+      type: txType,
+      amount: n,
       description: txDescription || "",
       category: txCategory || "",
-      date: new Date().toISOString(),
+      date: new Date().toISOString()
     };
 
-    if (transactionType === "income") {
-      // income increases income & balance
-      setIncome((v) => {
-        const res = v + n;
-        return res;
-      });
-      setBalance((b) => b + n);
-      setTransactions((p) => [newTxLocal, ...p]);
-      // persist
-      await persistTransactionToServer(newTxLocal);
-      await persistUserBalancesToServer();
-    } else if (transactionType === "expense") {
-      // expense increases expenses & decreases balance
-      setExpenses((v) => v + n);
-      setBalance((b) => b - n);
-      setTransactions((p) => [newTxLocal, ...p]);
-      // persist
-      await persistTransactionToServer(newTxLocal);
-      await persistUserBalancesToServer();
+    // Update local state
+    setTransactions(prev => [tx, ...prev]);
+
+    if (txType === "income") {
+      setIncome(v => v + n);
+      setBalance(b => b + n);
+    } else if (txType === "expense") {
+      setExpenses(e => e + n);
+      setBalance(b => b - n);
     } else {
-      // savings: convert BYN -> USD using NBRB, subtract BYN from balance, add USD to savingsUsd
-      const rate = nbrbRate || (await fetchNbrbRate());
-      if (!rate) return alert("Не удалось получить курс НБРБ. Попробуйте позже.");
-
-      // USD = BYN / rate  (rate = BYN per 1 USD)
-      // compute carefully:
-      const usd = Number((n / rate).toFixed(2)); // keep 2 decimal places for USD
-      newTxLocal.converted_amount_usd = usd;
-
-      setBalance((b) => b - n); // subtract BYN from balance
-      setSavingsUsd((s) => {
-        const newS = Number((s + usd).toFixed(2));
-        return newS;
-      });
-
-      setTransactions((p) => [newTxLocal, ...p]);
-      // persist transaction with converted_amount_usd
-      await persistTransactionToServer(newTxLocal);
-      // update user.savings_usd and balance in db
-      await persistUserBalancesToServer();
+      // savings: now stored in BYN
+      setSavings(s => s + n);
+      setBalance(b => b - n);
     }
 
-    // reset modal
-    setTxAmount("");
-    setTxCategory("");
-    setTxDescription("");
-    setShowAddModal(false);
+    // persist to backend (fire and forget)
+    try {
+      await fetch(`${API_BASE}/api/transactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id || null,
+          type: tx.type,
+          amount: tx.amount,
+          description: tx.description,
+          category: tx.category,
+          converted_amount_usd: null // not used anymore
+        })
+      });
+      // update user snapshot
+      if (user?.id) {
+        await fetch(`${API_BASE}/api/user/${user.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            balance,
+            income,
+            expenses,
+            savings,
+            goalSavings
+          })
+        });
+      }
+    } catch (e) {
+      console.warn("persist tx failed", e);
+    }
+
+    // reset form
+    setTxAmount(""); setTxCategory(""); setTxDescription(""); setShowAddModal(false);
     vibrateSuccess();
   }
 
-  async function persistTransactionToServer(tx) {
+  // UI: ensure main area scrollable for telegram mini app
+  useEffect(() => {
     try {
-      // server expects user_id, type, amount, description, category
-      const payload = {
-        user_id: user?.id || null,
-        type: tx.type,
-        amount: tx.amount,
-        description: tx.description,
-        category: tx.category,
-        converted_amount_usd: tx.converted_amount_usd || null
-      };
-      // POST /api/transactions
-      const res = await fetch(`${API_BASE}/api/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        console.warn("TX POST failed", res.status, txt);
-      }
-    } catch (e) {
-      console.warn("Failed persist tx", e);
-    }
-  }
+      if (tg) tg.expand?.();
+    } catch (e) {}
+  }, [activeTab]);
 
-  async function persistUserBalancesToServer() {
-    if (!isAuthenticated || !user?.id) return;
-    try {
-      const payload = {
-        balance,
-        income,
-        expenses,
-        savings: savingsUsd, // keep existing backend field for compatibility
-        currency: "BYN",
-        goalSavings: goalSavingsUsd
-      };
-      await fetch(`${API_BASE}/api/user/${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } catch (e) {
-      console.warn("User PUT failed", e);
-    }
-  }
+  // Adjust nav capsule width to fit labels: set min widths
+  // (handled in styles below)
 
-  // get transactions for user (fresh)
-  async function fetchTransactionsForUser(userId) {
-    try {
-      const res = await fetch(`${API_BASE}/api/transactions?user_id=${userId}`);
-      if (!res.ok) throw new Error("tx fetch failed");
-      const rows = await res.json();
-      setTransactions(rows);
-    } catch (e) {
-      console.warn("Failed fetch tx", e);
-    }
-  }
-
-  // ---------- UI helpers ----------
-  function blurAll() {
-    if (document.activeElement && typeof document.activeElement.blur === "function") document.activeElement.blur();
-  }
-  const vibrateSuccess = () => { if (tg?.HapticFeedback?.notificationOccurred) tg.HapticFeedback.notificationOccurred("success"); };
-  const vibrateError = () => { if (tg?.HapticFeedback?.notificationOccurred) tg.HapticFeedback.notificationOccurred("error"); };
-  const vibrate = () => { if (tg?.HapticFeedback?.impactOccurred) tg.HapticFeedback.impactOccurred("light"); };
-  const vibrateSelect = () => { if (tg?.HapticFeedback?.selectionChanged) tg.HapticFeedback.selectionChanged(); };
-
-  // ---------- Render ----------
-  const isDark = theme === "dark";
-  const pageBg = isDark ? "bg-[radial-gradient(ellipse_at_top_left,_#071033,_#021024)]" : "bg-[radial-gradient(ellipse_at_top_left,_#e8f0ff,_#f8faff)]";
-  const cardBg = isDark ? "bg-zinc-900/75" : "bg-white/75";
-  const cardBorder = isDark ? "border-zinc-800/60" : "border-gray-200";
-  const textPrimary = isDark ? "text-gray-100" : "text-gray-900";
-  const textSecondary = isDark ? "text-gray-300" : "text-gray-600";
-  const inputBg = isDark ? "bg-zinc-800/60" : "bg-gray-100/70";
-
-  // compute savings progress vs goal (goal expressed in USD)
-  const savingsProgress = goalSavingsUsd > 0 ? Math.min(savingsUsd / goalSavingsUsd, 1) : 0;
-  const savingsPct = Math.round(savingsProgress * 100);
-
-  return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${pageBg}`} style={{ paddingTop: safeAreaInset.top || 0, paddingBottom: safeAreaInset.bottom || 0 }}>
-      <div className={`fixed inset-0 ${isDark ? "bg-black/20" : "bg-white/5"} pointer-events-none`} />
-
-      {/* Header — minimal: removed big balance and currency label */}
-      <header className={`p-4 ${cardBg} ${cardBorder} border-b rounded-b-2xl shadow-sm backdrop-blur-sm`}>
-        <div className="flex items-center justify-between">
+  // Small components inline:
+  function TxRow({ tx }) {
+    const icon = categoriesMeta[tx.category]?.icon || "•";
+    const amountLabel = tx.type === "income" ? `+${formatBYN(tx.amount)}` :
+      tx.type === "expense" ? `-${formatBYN(tx.amount)}` :
+        `-${formatBYN(tx.amount)}`; // savings - displayed as BYN
+    return (
+      <div className="tx-row" style={styles.txRow}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={styles.txIcon}>{icon}</div>
           <div>
-            <h1 className={`text-lg font-semibold ${textPrimary}`}>Финансы</h1>
-            <p className={`text-xs ${textSecondary}`}>Текущее состояние</p>
+            <div style={{ ...styles.txTitle }}>{tx.description || "—"}</div>
+            <div style={styles.txMeta}>{tx.category || "—"} • {shortDate(tx.date)}</div>
           </div>
-          <div style={{ width: 36 }} />
         </div>
-      </header>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ ...styles.txAmount, color: tx.type === "income" ? "#059669" : tx.type === "expense" ? "#dc2626" : "#2563eb" }}>
+            {amountLabel}
+          </div>
+          <div style={styles.txTime}>{shortTime(tx.date)}</div>
+        </div>
+      </div>
+    );
+  }
 
-      {/* Main */}
-      <main className="p-4 flex-1 w-full max-w-md mx-auto">
-        {/* Overview: ONLY here display big "Общий баланс" card */}
+  // ---- Layout render ----
+  return (
+    <div style={styles.appRoot(theme)}>
+      {/* No top finance bar — removed as requested */}
+
+      {/* Main scrollable area */}
+      <main ref={mainRef} style={styles.main}>
+        {/* Only on overview show big balance */}
         {activeTab === "overview" && (
-          <section className="space-y-4">
-            <div className={`mt-2 rounded-2xl p-5 ${isDark ? "bg-gradient-to-br from-sky-800/70 to-violet-900/70" : "bg-gradient-to-br from-blue-400 to-purple-400"} text-white shadow-lg backdrop-blur-sm`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">Общий баланс</p>
-                  <h2 className="text-3xl font-bold leading-tight">{formatBYN(balance)}</h2>
-                </div>
-                <div className="text-right space-y-1">
-                  <div className="text-xs opacity-85">Доходы</div>
-                  <div className="font-semibold">{formatBYN(income)}</div>
-                  <div className="text-xs opacity-85 mt-2">Расходы</div>
-                  <div className="font-semibold">{formatBYN(expenses)}</div>
-                </div>
+          <section style={styles.overviewCard(theme)}>
+            <div>
+              <div style={styles.smallLabel}>Общий баланс</div>
+              <div style={styles.bigBalance}>{formatBYN(balance)}</div>
+            </div>
+            <div style={styles.balanceSplit}>
+              <div style={styles.splitCol}>
+                <div style={styles.splitLabel}>Доход</div>
+                <div style={styles.splitVal}>{formatBYN(income)}</div>
+              </div>
+              <div style={styles.splitCol}>
+                <div style={styles.splitLabel}>Расход</div>
+                <div style={styles.splitVal}>{formatBYN(expenses)}</div>
               </div>
             </div>
+          </section>
+        )}
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Последние операции</h3>
+        {/* Transactions / content */}
+        {activeTab === "overview" && (
+          <section style={styles.section}>
+            <h3 style={styles.sectionTitle}>Последние операции</h3>
+            <div>
               {transactions.length === 0 ? (
-                <p className={`${textSecondary} text-center py-8`}>Пока нет операций</p>
-              ) : (
-                <div className="space-y-3">
-                  {transactions.slice(0, 6).map((tx) => (
-                    <TxRow key={tx.id} tx={tx} textPrimary={textPrimary} textSecondary={textSecondary} />
-                  ))}
-                </div>
-              )}
+                <div style={styles.empty}>Пока нет операций</div>
+              ) : transactions.slice(0, 8).map(tx => <TxRow key={tx.id} tx={tx} />)}
             </div>
           </section>
         )}
 
-        {/* History */}
         {activeTab === "history" && (
-          <section className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-            <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История операций</h3>
-            {transactions.length === 0 ? (
-              <p className={`${textSecondary} text-center py-8`}>Нет операций</p>
-            ) : (
-              <div className="space-y-3">
-                {transactions.map((tx) => <TxRow key={tx.id} tx={tx} textPrimary={textPrimary} textSecondary={textSecondary} />)}
-              </div>
-            )}
+          <section style={styles.section}>
+            <h3 style={styles.sectionTitle}>История операций</h3>
+            <div>
+              {transactions.length === 0 ? (
+                <div style={styles.empty}>Нет операций</div>
+              ) : transactions.map(tx => <TxRow key={tx.id} tx={tx} />)}
+            </div>
           </section>
         )}
 
-        {/* Savings */}
         {activeTab === "savings" && (
-          <section className="space-y-4">
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border flex flex-col`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className={`font-bold text-xl ${textPrimary}`}>Копилка</div>
-                <div className="text-sm text-gray-300">{formatUSD(savingsUsd)} / {goalSavingsUsd ? formatUSD(goalSavingsUsd) : "—"}</div>
+          <section style={styles.section}>
+            <h3 style={styles.sectionTitle}>Копилка</h3>
+
+            <div style={styles.savingsCard(theme)}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: theme === "bank-dark" ? "#fff" : "#0f172a" }}>Копилка</div>
+                <div style={{ color: theme === "bank-dark" ? "#d1d5db" : "#6b7280" }}>{formatBYN(savings)} / {goalSavings ? formatBYN(goalSavings) : "—"}</div>
               </div>
 
-              {/* Thick horizontal progress bar — saturated blue */}
-              <div className="w-full mb-3">
-                <div className="w-full rounded-xl h-6 bg-[rgba(255,255,255,0.04)] overflow-hidden" style={{ boxShadow: isDark ? "inset 0 1px 0 rgba(255,255,255,0.03)" : "inset 0 1px 0 rgba(0,0,0,0.04)" }}>
-                  <div
-                    className="h-full rounded-xl transition-all"
-                    style={{
-                      width: `${savingsPct}%`,
-                      background: isDark ? `linear-gradient(90deg, #1E40AF, #2563EB)` : `linear-gradient(90deg, #2563EB, #60A5FA)`,
-                      boxShadow: "0 8px 24px rgba(37,99,235,0.14)",
-                    }}
-                  />
+              {/* thick progress bar in deep blue */}
+              <div style={{ marginTop: 12 }}>
+                <div style={styles.progressBg}>
+                  <div style={{ ...styles.progressFill, width: `${goalSavings ? Math.min(100, Math.round((savings / goalSavings) * 100)) : 0}%` }} />
                 </div>
-                <div className="flex items-center justify-between mt-2 text-xs">
-                  <div className={`${textPrimary}`}>{savingsPct}%</div>
-                  <div className="text-right text-gray-400">До цели</div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                  <div style={{ color: theme === "bank-dark" ? "#fff" : "#0f172a", fontWeight: 600 }}>{goalSavings ? `${Math.round((savings / goalSavings) * 100)}%` : "0%"}</div>
+                  <div style={{ color: "#6b7280", fontSize: 12 }}>До цели</div>
                 </div>
               </div>
 
-              <div className="flex gap-3 w-full mt-2">
-                <button
-                  onClick={() => { setShowGoalModal(true); vibrate(); }}
-                  className="flex-1 py-2 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition"
-                >Изменить цель</button>
-                <button
-                  onClick={() => { setTransactionType("savings"); setShowAddModal(true); vibrate(); }}
-                  className="flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl shadow transition"
-                >
-                  <Plus size={16} /> Пополнить
-                </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button style={styles.primaryBtn}>Изменить цель</button>
+                <button style={styles.primaryBtnAlt} onClick={() => { setTxType("savings"); setShowAddModal(true); }}>Пополнить</button>
               </div>
             </div>
 
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>История пополнений</h3>
-              {transactions.filter((t) => t.type === "savings").length === 0 ? (
-                <p className={`${textSecondary} text-center py-8`}>Начните копить!</p>
-              ) : (
-                <div className="space-y-3">
-                  {transactions.filter((t) => t.type === "savings").map((tx) => <TxRow key={tx.id} tx={tx} textPrimary={textPrimary} textSecondary={textSecondary} />)}
-                </div>
-              )}
+            <div style={{ marginTop: 12 }}>
+              <h4 style={styles.smallTitle}>История пополнений</h4>
+              {transactions.filter(t => t.type === "savings").length === 0 ? (
+                <div style={styles.empty}>Пополните копилку</div>
+              ) : transactions.filter(t => t.type === "savings").map(tx => <TxRow key={tx.id} tx={tx} />)}
             </div>
           </section>
         )}
 
-        {/* Settings */}
         {activeTab === "settings" && (
-          <section className="space-y-4">
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Аккаунт</h3>
+          <section style={styles.section}>
+            <h3 style={styles.sectionTitle}>Настройки</h3>
 
-              {/* Greeting in settings above auth controls */}
-              <div className="mb-3 text-sm">
-                Привет, <span className={`font-semibold ${textPrimary}`}>{isAuthenticated ? (user?.first_name || user?.email) : "гость"}</span>
+            <div style={styles.settingsCard(theme)}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <div style={styles.avatarWrap}>
+                  {telegramAvatar ? <img src={telegramAvatar} alt="avatar" style={styles.avatarImg} /> : <div style={styles.avatarPlaceholder}>👤</div>}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{isAuthenticated ? (user?.first_name || user?.email) : "гость"}</div>
+                  <div style={{ color: "#6b7280", fontSize: 13 }}>{isAuthenticated ? user?.email : ""}</div>
+                </div>
               </div>
 
-              {/* Avatar from Telegram if available */}
-              {telegramAvatar && (
-                <div className="flex items-center gap-3 mb-3">
-                  <img src={telegramAvatar} alt="avatar" className="w-12 h-12 rounded-full" />
-                  <div>
-                    <div className={`font-semibold ${textPrimary}`}>{user?.first_name || tgUser?.first_name}</div>
-                    <div className="text-xs text-gray-400">{user?.email || authEmail}</div>
-                  </div>
-                </div>
-              )}
-
-              {!isAuthenticated ? (
-                <button onClick={() => setShowAuthModal(true)} className="w-full py-3 bg-sky-600 text-white rounded-xl flex items-center justify-center gap-2">
-                  <LogIn size={18} /> Войти / Регистрация
-                </button>
-              ) : (
-                <div className="space-y-2">
-                  <div className="mb-2 font-semibold text-lg">{user?.first_name || user?.email}</div>
-                  <div className="text-sm text-gray-400">Email: {user?.email}</div>
-                </div>
-              )}
-            </div>
-
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Управление</h3>
-              <button onClick={handleResetAll} className="w-full py-3 bg-gray-600 text-white rounded-xl mb-3">Сбросить баланс</button>
-              <button onClick={() => { setShowGoalModal(true); }} className="w-full py-3 bg-sky-500 text-white rounded-xl">Изменить цель копилки</button>
-            </div>
-
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
-              <button onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))} className="underline text-sky-300">
-                Сменить тему на {isDark ? "светлую" : "тёмную"}
-              </button>
-            </div>
-
-            <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-              <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
-              <select value={"BYN"} disabled className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
-                {/* base currency is BYN — disabled because we store in BYN */}
-                <option>Белорусский рубль (BYN) — базовая валюта</option>
-              </select>
-            </div>
-
-            {/* Logout / Save at bottom */}
-            {isAuthenticated && (
-              <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}>
-                <button onClick={() => { handleLogout(); }} className="w-full py-3 bg-rose-500 text-white rounded-xl">Выйти</button>
+              <div style={{ marginTop: 12 }}>
+                {!isAuthenticated ? (
+                  <button style={styles.primaryBtn} onClick={() => setShowAuthModal(true)}><LogIn size={14} style={{ marginRight: 8 }} /> Войти / Регистрация</button>
+                ) : (
+                  <button style={styles.dangerBtn} onClick={handleLogout}><LogOut size={14} style={{ marginRight: 8 }} /> Выйти</button>
+                )}
               </div>
-            )}
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <h4 style={styles.smallTitle}>Управление</h4>
+              <div style={styles.controlRow}>
+                <button style={styles.secondaryBtn} onClick={() => {
+                  if (!confirm("Сбросить все данные? Это действие необратимо.")) return;
+                  // reset everything to zeros
+                  setBalance(0); setIncome(0); setExpenses(0); setSavings(0); setTransactions([]);
+                }}>Сбросить баланс</button>
+                <button style={styles.secondaryBtn} onClick={() => {
+                  const val = prompt("Новая цель копилки (BYN)", String(goalSavings || ""));
+                  if (val !== null) setGoalSavings(Number(val || 0));
+                }}>Изменить цель копилки</button>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <h4 style={styles.smallTitle}>Тема</h4>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={styles.ghostBtn} onClick={() => setTheme("bank-dark")}>Тёмная</button>
+                <button style={styles.ghostBtn} onClick={() => setTheme("bank-light")}>Светлая</button>
+              </div>
+            </div>
           </section>
         )}
+
       </main>
 
-      {/* Modals */}
+      {/* Add modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
-          <div className={`w-full max-w-md p-6 rounded-t-3xl ${cardBg} ${cardBorder} border backdrop-blur-sm`}>
-            <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Новая операция</h3>
+        <div style={styles.modalWrap}>
+          <div style={styles.modal}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontWeight: 700 }}>Новая операция</div>
+              <button onClick={() => setShowAddModal(false)} style={styles.iconBtn}>✕</button>
+            </div>
 
-            <div className="flex gap-2 mb-4">
-              {["expense", "income", "savings"].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => { setTransactionType(type); vibrateSelect(); }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition ${transactionType === type ? (type === "income" ? "bg-emerald-500 text-white" : type === "expense" ? "bg-rose-500 text-white" : "bg-sky-500 text-white") : `${inputBg} ${textSecondary}`}`}
-                >
-                  {type === "income" ? "Доход" : type === "expense" ? "Расход" : "Копилка"}
-                </button>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              {["expense", "income", "savings"].map(t => (
+                <button key={t} onClick={() => setTxType(t)} style={txType === t ? styles.typeBtnActive : styles.typeBtn}>{t === "income" ? "Доход" : t === "expense" ? "Расход" : "Копилка"}</button>
               ))}
             </div>
 
-            <input type="number" placeholder="Сумма (BYN)" value={txAmount} onChange={(e) => setTxAmount(e.target.value.replace(/^0+/, ""))} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
-            <input type="text" placeholder="Описание (необязательно)" value={txDescription} onChange={(e) => setTxDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
-            <input type="text" placeholder="Категория" value={txCategory} onChange={(e) => setTxCategory(e.target.value)} className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`} />
-
-            <div className="flex gap-3">
-              <button onClick={() => setShowAddModal(false)} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary}`}>Отмена</button>
-              <button onClick={addTransaction} className={`flex-1 py-4 rounded-xl ${transactionType === "income" ? "bg-emerald-500" : transactionType === "expense" ? "bg-rose-500" : "bg-sky-500"} text-white`}>Добавить</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAuthModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className={`w-full max-w-md p-6 rounded-2xl ${cardBg} ${cardBorder} border backdrop-blur-sm`}>
-            <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Вход / Регистрация</h3>
-            <input type="email" placeholder="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
-            <input type="password" placeholder="Пароль" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
-            <input type="text" placeholder="Имя" value={authFirstName} onChange={(e) => setAuthFirstName(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
-            <select value={authCurrency} onChange={(e) => setAuthCurrency(e.target.value)} className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}>
-              {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.code})</option>)}
+            <input type="number" placeholder="Сумма (BYN)" value={txAmount} onChange={e => setTxAmount(e.target.value)} style={styles.input} />
+            <input placeholder="Описание (необязательно)" value={txDescription} onChange={e => setTxDescription(e.target.value)} style={styles.input} />
+            <select value={txCategory} onChange={e => setTxCategory(e.target.value)} style={styles.input}>
+              <option value="">Категория</option>
+              {categoriesList[txType].map(c => <option key={c} value={c}>{(categoriesMeta[c]?.icon ? categoriesMeta[c].icon + " " : "") + c}</option>)}
             </select>
 
-            <div className="flex gap-2">
-              <button onClick={() => setShowAuthModal(false)} className={`flex-1 py-3 ${inputBg} ${textPrimary} rounded-xl`}>Отмена</button>
-              <button onClick={handleAuth} className="flex-1 py-3 bg-sky-500 text-white rounded-xl">Войти / Зарегистрироваться</button>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button style={styles.secondaryBtn} onClick={() => setShowAddModal(false)}>Отмена</button>
+              <button style={styles.primaryBtn} onClick={addTransaction}>Добавить</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Goal modal */}
-      {/** goal input affects USD goal for savings */}
-      {/** Keep it consistent: user sets VALUE in USD */}
-      {/** showGoalModal reused earlier; create here inline */}
-      {/* intentionally placed near bottom to avoid repeating code above */}
-      {/** We can reuse showGoalModal state, create simple modal when true */ }
-      {
-        /* goal modal placeholder */
-      }
-
-      {/* Bottom capsule nav + separate plus */}
-      {!isKeyboardOpen && (
-        <div className="fixed left-1/2 transform -translate-x-1/2 bottom-6 z-40" style={{ width: "min(720px, calc(100% - 40px))" /* slightly wider */ }}>
-          <div className="relative flex items-center justify-center">
-            <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-              <div
-                className={`rounded-full py-2 px-4 backdrop-blur-md ${isDark ? "bg-black/40 border border-white/6 shadow-[0_6px_20px_rgba(2,6,23,0.5)]" : "bg-white/80 border border-gray-100 shadow-[0_6px_20px_rgba(59,130,246,0.06)]"}`}
-                style={{ maxWidth: 580, width: "calc(100% - 110px)", borderRadius: 28, height: 56 }}
-              >
-                <div className="flex items-center justify-between px-2">
-                  <NavButton compact active={activeTab === "overview"} onClick={() => { setActiveTab("overview"); vibrate(); }} icon={<Wallet size={18} />} label="Главная" />
-                  <NavButton compact active={activeTab === "history"} onClick={() => { setActiveTab("history"); vibrate(); }} icon={<History size={18} />} label="История" />
-                  <NavButton compact active={activeTab === "savings"} onClick={() => { setActiveTab("savings"); vibrate(); }} icon={<PiggyBank size={18} />} label="Копилка" />
-                  <NavButton compact active={activeTab === "settings"} onClick={() => { setActiveTab("settings"); vibrate(); }} icon={<Settings size={18} />} label="Настройки" />
-                </div>
-              </div>
-
-              {/* Floating plus to the right, transparent fill, blue outline */}
-              <div style={{ width: 110, display: "flex", justifyContent: "flex-end", marginLeft: 12 }}>
-                <button
-                  onClick={() => { setShowAddModal(true); vibrate(); }}
-                  className={`relative w-14 h-14 rounded-full backdrop-blur-md border flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95`}
-                  aria-label="Добавить операцию"
-                  title="Добавить"
-                  style={{
-                    background: "transparent",
-                    borderColor: "rgba(37,99,235,0.22)"
-                  }}
-                >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center`} style={{ boxShadow: isDark ? "0 8px 24px rgba(59,130,246,0.12)" : "0 8px 24px rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.22)" }}>
-                    <Plus size={18} style={{ color: "#2563EB" }} />
-                  </div>
-                </button>
-              </div>
+      {/* Auth modal (no name input; we use telegram name if present) */}
+      {showAuthModal && (
+        <div style={styles.modalWrap}>
+          <div style={styles.modal}>
+            <div style={{ fontWeight: 700, marginBottom: 12 }}>Вход / Регистрация</div>
+            <input placeholder="Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} style={styles.input} />
+            <input placeholder="Пароль" type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} style={styles.input} />
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>{tgUser?.first_name ? `Имя из Telegram: ${tgUser.first_name}` : "Имя будет запрошено при регистрации"}</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button style={styles.secondaryBtn} onClick={() => setShowAuthModal(false)}>Отмена</button>
+              <button style={styles.primaryBtn} onClick={handleAuth}>Войти / Зарегистрироваться</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Bottom capsule with 4 tabs in one oval and smaller icons/font; plus to the right smaller */}
+      <div style={styles.bottomWrap}>
+        <div style={styles.capsule}>
+          <div style={styles.navInner}>
+            <NavBtn active={activeTab === "overview"} onClick={() => setActiveTab("overview")} icon={<Wallet size={16} />} label="Главная" />
+            <NavBtn active={activeTab === "history"} onClick={() => setActiveTab("history")} icon={<History size={16} />} label="История" />
+            <NavBtn active={activeTab === "savings"} onClick={() => setActiveTab("savings")} icon={<PiggyBank size={16} />} label="Копилка" />
+            <NavBtn active={activeTab === "settings"} onClick={() => setActiveTab("settings")} icon={<Settings size={16} />} label="Настройки" />
+          </div>
+        </div>
+
+        <div style={styles.plusWrap}>
+          <button onClick={() => { setTxType("expense"); setShowAddModal(true); }} style={styles.plusBtn}>
+            <Plus size={14} color="#2563EB" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-/* -------------------- Small reusable components -------------------- */
+/* ---------------- small components / styles ---------------- */
 
-function NavButton({ icon, label, active, onClick, compact }) {
+function NavBtn({ icon, label, active, onClick }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 px-3 py-1 transition-all ${compact ? "py-1" : "py-2"}`} style={{ minWidth: 74 }}>
-      <div className={active ? "text-sky-500" : "text-gray-400"}>{icon}</div>
-      <span className={`text-[12px] ${active ? "text-sky-500 font-semibold" : "text-gray-400"}`}>{label}</span>
+    <button onClick={onClick} style={{ ...styles.navBtn, ...(active ? styles.navBtnActive : {}) }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ opacity: active ? 1 : 0.6 }}>{icon}</div>
+        <div style={{ fontSize: 12, fontWeight: active ? 600 : 500 }}>{label}</div>
+      </div>
     </button>
   );
 }
 
-function TxRow({ tx, textPrimary, textSecondary }) {
-  // tx may have converted_amount_usd for savings
-  const amountLabel = tx.type === "income" ? `+${formatFrontendNumber(tx.amount, "BYN")}` :
-    tx.type === "expense" ? `-${formatFrontendNumber(tx.amount, "BYN")}` :
-      `-${formatFrontendNumber(tx.amount, "BYN")} → ${formatFrontendNumber(tx.converted_amount_usd, "USD")}`;
+const styles = {
+  appRoot: (theme) => ({
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    background: theme === "bank-dark" ? "#071032" : "#f7fbff",
+    color: theme === "bank-dark" ? "#e6eefc" : "#0f172a",
+    fontFamily: "Inter, Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif",
+  }),
+  main: {
+    padding: 16,
+    flex: 1,
+    overflowY: "auto",
+    maxWidth: 520,
+    margin: "0 auto",
+    width: "100%",
+    boxSizing: "border-box"
+  },
+  overviewCard: (theme) => ({
+    borderRadius: 14,
+    padding: 16,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    background: theme === "bank-dark" ? "linear-gradient(90deg,#08204b,#071033)" : "linear-gradient(90deg,#e6f0ff,#eef6ff)",
+    color: theme === "bank-dark" ? "#fff" : "#0f172a",
+    boxShadow: theme === "bank-dark" ? "0 8px 24px rgba(2,6,23,0.6)" : "0 6px 20px rgba(59,130,246,0.06)",
+    marginBottom: 12
+  }),
+  smallLabel: { fontSize: 13, opacity: 0.9, marginBottom: 6 },
+  bigBalance: { fontSize: 28, fontWeight: 800, lineHeight: 1.05 },
+  balanceSplit: { display: "flex", gap: 12, alignItems: "center" },
+  splitCol: { textAlign: "right" },
+  splitLabel: { fontSize: 12, color: "#cbd5e1" },
+  splitVal: { fontWeight: 700 },
 
-  return (
-    <div className="flex items-center justify-between pb-3 border-b last:border-0">
-      <div className="flex items-center gap-3">
-        <div className={`flex items-center justify-center w-10 h-10 rounded-full text-xl bg-slate-700/30`}>{tx.category ? tx.category[0] : "•"}</div>
-        <div>
-          <p className={`font-medium ${textPrimary}`}>{tx.description || "—"}</p>
-          <p className="text-xs text-gray-400">{tx.category || "—"} • {formatDateShort(tx.date)}</p>
-        </div>
-      </div>
-      <div className="flex flex-col items-end gap-0">
-        <p className={`font-bold ${tx.type === "income" ? "text-emerald-400" : tx.type === "expense" ? "text-rose-400" : "text-sky-400"}`}>
-          {amountLabel}
-        </p>
-        <span className="text-xs text-gray-400">{formatTimeShort(tx.date)}</span>
-      </div>
-    </div>
-  );
-}
+  section: { marginTop: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: 700, marginBottom: 8 },
+  empty: { textAlign: "center", padding: 24, color: "#94a3b8" },
 
-/* -------------------- small formatting helpers -------------------- */
-function formatFrontendNumber(value, currency) {
-  const n = Number(value || 0);
-  if (currency === "BYN") {
-    try {
-      return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "BYN", minimumFractionDigits: 0 }).format(n);
-    } catch { return `Br${Math.round(n)}`; }
-  } else {
-    try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n);
-    } catch { return `$${(Math.round(n*100)/100).toFixed(2)}`; }
-  }
-}
-function formatDateShort(dateString) {
-  if (!dateString) return "";
-  const d = new Date(dateString);
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
-}
-function formatTimeShort(dateString) {
-  if (!dateString) return "";
-  const d = new Date(dateString);
-  return d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-}
+  txRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(148,163,184,0.06)" },
+  txIcon: { width: 40, height: 40, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(148,163,184,0.06)" },
+  txTitle: { fontWeight: 600 },
+  txMeta: { fontSize: 12, color: "#94a3b8" },
+  txAmount: { fontWeight: 700 },
+  txTime: { fontSize: 11, color: "#94a3b8" },
+
+  savingsCard: (theme) => ({ padding: 12, borderRadius: 12, background: theme === "bank-dark" ? "#06122b" : "#fff", boxShadow: theme === "bank-dark" ? "0 8px 20px rgba(2,6,23,0.6)" : "0 6px 20px rgba(59,130,246,0.06)" }),
+  progressBg: { width: "100%", height: 12, borderRadius: 8, background: "rgba(255,255,255,0.04)", overflow: "hidden" },
+  progressFill: { height: "100%", background: "linear-gradient(90deg,#1e3a8a,#2563eb)", boxShadow: "0 8px 20px rgba(37,99,235,0.12)" },
+
+  primaryBtn: { padding: "10px 14px", borderRadius: 12, background: "#2563EB", color: "#fff", border: "none", fontWeight: 700 },
+  primaryBtnAlt: { padding: "10px 14px", borderRadius: 12, background: "#0f172a", color: "#fff", border: "none", fontWeight: 700 },
+  secondaryBtn: { padding: "10px 12px", borderRadius: 10, background: "#f1f5f9", border: "none" },
+  dangerBtn: { padding: "10px 12px", borderRadius: 10, background: "#ef4444", color: "#fff", border: "none" },
+  ghostBtn: { padding: "8px 10px", borderRadius: 10, background: "transparent", border: "1px solid rgba(148,163,184,0.12)" },
+
+  modalWrap: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 60 },
+  modal: { width: "100%", maxWidth: 520, borderRadius: 14, padding: 16, background: "#fff", boxShadow: "0 20px 40px rgba(2,6,23,0.3)" },
+  input: { width: "100%", padding: 12, borderRadius: 10, border: "1px solid #e6eefc", marginBottom: 8 },
+
+  typeBtn: { flex: 1, padding: 10, borderRadius: 10, border: "1px solid rgba(2,6,23,0.04)", background: "#f8fafc" },
+  typeBtnActive: { flex: 1, padding: 10, borderRadius: 10, border: "none", background: "#2563EB", color: "#fff" },
+
+  settingsCard: (theme) => ({ padding: 12, borderRadius: 12, background: theme === "bank-dark" ? "#071033" : "#fff" }),
+  avatarWrap: { width: 56, height: 56, borderRadius: 12, overflow: "hidden", background: "rgba(148,163,184,0.06)", display: "flex", alignItems: "center", justifyContent: "center" },
+  avatarImg: { width: 56, height: 56, objectFit: "cover" },
+  avatarPlaceholder: { fontSize: 22 },
+
+  controlRow: { display: "flex", gap: 8 },
+
+  bottomWrap: { position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: 18, zIndex: 70, display: "flex", alignItems: "center", gap: 12, width: "min(720px, calc(100% - 40px))", justifyContent: "center" },
+  capsule: { background: "rgba(255,255,255,0.9)", borderRadius: 999, padding: "8px 14px", boxShadow: "0 10px 30px rgba(2,6,23,0.08)", width: "calc(100% - 110px)", maxWidth: 580, display: "flex", alignItems: "center", justifyContent: "center" },
+  navInner: { display: "flex", justifyContent: "space-between", width: "100%" },
+  navBtn: { background: "transparent", border: "none", padding: "8px 8px", borderRadius: 10, minWidth: 74 },
+  navBtnActive: { background: "rgba(37,99,235,0.08)" },
+
+  plusWrap: { width: 110, display: "flex", justifyContent: "flex-end" },
+  plusBtn: { width: 44, height: 44, borderRadius: 999, background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(37,99,235,0.22)" },
+
+  iconBtn: { border: "none", background: "transparent", fontSize: 16 },
+
+  // small typography
+  smallTitle: { fontSize: 13, fontWeight: 700, marginBottom: 8 },
+};
+
