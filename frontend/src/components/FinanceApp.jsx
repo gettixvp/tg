@@ -279,6 +279,15 @@ export default function FinanceApp({ apiUrl }) {
     vibrateSuccess();
   };
 
+  const handleResetAll = () => {
+    if (!window.confirm("Сбросить данные? Это удалит баланс, доходы, расходы, копилку и операции.")) return;
+    setBalance(0);
+    setIncome(0);
+    setExpenses(0);
+    setSavings(0);
+    setTransactions([]);
+  };
+
   const handleLogout = () => {
     blurAll();
     localStorage.removeItem("finance_session");
@@ -475,6 +484,10 @@ export default function FinanceApp({ apiUrl }) {
           <section className="space-y-4">
             <div className={`rounded-xl p-4 ${cardBg} ${cardBorder} border`}> 
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Аккаунт</h3>
+
+            <button onClick={handleResetAll} className="w-full py-3 mb-3 bg-gray-600 text-white rounded-xl flex items-center justify-center gap-2">
+              Сбросить баланс
+            </button>
               {isAuthenticated ? (
                 <>
                   <div className="mb-2 font-semibold text-lg">{user?.first_name || user?.email}</div>
