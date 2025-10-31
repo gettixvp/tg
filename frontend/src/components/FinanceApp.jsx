@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Wallet,
   TrendingUp,
@@ -15,7 +15,7 @@ import {
 
 const LS_KEY = 'finance_settings_v2';
 
-// Цвет и иконка для категорий
+// Категории с цветом и иконкой
 const categoriesMeta = {
   'Еда': { color: 'bg-orange-400', icon: '🍔' },
   'Транспорт': { color: 'bg-blue-400', icon: '🚗' },
@@ -65,6 +65,11 @@ const FinanceApp = ({ apiUrl }) => {
   const [password, setPassword] = useState('');
   const [authCurrency, setAuthCurrency] = useState('RUB');
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  // refs для автофокуса и снятия фокуса
+  const amountInputRef = useRef(null);
+  const descInputRef = useRef(null);
 
   // =================== Telegram API ===================
   const tg = typeof window !== 'undefined' && window.Telegram?.WebApp;
@@ -103,6 +108,24 @@ const FinanceApp = ({ apiUrl }) => {
   }, [tg]);
 
   const displayName = tg?.initDataUnsafe?.user?.first_name || 'Гость';
+
+  // =================== Keyboard адаптивность ===================
+  useEffect(() => {
+    let prevHeight = window.innerHeight;
+    const onResize = () => {
+      // 120px — средняя высота клавиатуры на мобильных
+      setIsKeyboardOpen(window.innerHeight < prevHeight - 120);
+      prevHeight = window.innerHeight;
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  function blurAll() {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+  }
 
   // =================== Сессия (localStorage) ===================
   useEffect(() => {
@@ -163,6 +186,7 @@ const FinanceApp = ({ apiUrl }) => {
 
   // =================== Аутентификация ===================
   const handleAuth = async () => {
+    blurAll();
     if (!email || !password) {
       vibrateError();
       return alert('Введите email и пароль');
@@ -218,6 +242,7 @@ const FinanceApp = ({ apiUrl }) => {
   };
 
   const handleLogout = () => {
+    blurAll();
     localStorage.removeItem('finance_session');
     setIsAuthenticated(false);
     setUser(null);
@@ -242,11 +267,11 @@ const FinanceApp = ({ apiUrl }) => {
 
   // =================== Транзакции ===================
   const addTransaction = async () => {
+    blurAll();
     if (!amount) {
       vibrateError();
       return;
     }
-    // Если имя Telegram отличается от основного, добавляем имя Telegram к описанию
     let txDesc = description;
     if (displayName && user && displayName !== user.first_name) {
       txDesc = (description ? `${displayName}: ${description}` : displayName);
@@ -418,12 +443,12 @@ const FinanceApp = ({ apiUrl }) => {
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border cursor-pointer`} onClick={() => { setChartType('income'); setShowChart(true); vibrate(); }}>
+              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border cursor-pointer`} onClick={() => { setChartType('income'); setShowChart(true); vibrate(); blurAll(); }}>
                 <div className="bg-green-100 p-2 rounded-lg w-fit mb-2"><TrendingUp size={16} className="text-green-600" /></div>
                 <p className={`text-xs ${textSecondary}`}>Доход</p>
                 <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(income)}</p>
               </div>
-              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border cursor-pointer`} onClick={() => { setChartType('expense'); setShowChart(true); vibrate(); }}>
+              <div className={`${cardBg} rounded-xl p-4 ${borderColor} border cursor-pointer`} onClick={() => { setChartType('expense'); setShowChart(true); vibrate(); blurAll(); }}>
                 <div className="bg-red-100 p-2 rounded-lg w-fit mb-2"><TrendingDown size={16} className="text-red-600" /></div>
                 <p className={`text-xs ${textSecondary}`}>Расход</p>
                 <p className={`text-lg font-bold ${textPrimary}`}>{formatCurrency(expenses)}</p>
@@ -477,13 +502,16 @@ const FinanceApp = ({ apiUrl }) => {
                   value={goalSavings}
                   onChange={e => setGoalSavings(parseFloat(e.target.value) || 0)}
                   placeholder="Цель"
+                  onFocus={() => setIsKeyboardOpen(true)}
+                  onBlur={() => setIsKeyboardOpen(false)}
+                  onKeyDown={e => { if (e.key === 'Enter') blurAll(); }}
                 />
                 <div className="w-full bg-white/20 rounded-full h-3 mt-2">
                   <div className="bg-white h-3 rounded-full transition-all" style={{ width: `${Math.min((savings / goalSavings) * 100, 100)}%` }}></div>
                 </div>
                 <p className="text-sm mt-2">{Math.round((savings / goalSavings) * 100)}% достигнуто</p>
               </div>
-              <button onClick={() => { setTransactionType('savings'); setShowAddModal(true); vibrate(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl">
+              <button onClick={() => { setTransactionType('savings'); setShowAddModal(true); vibrate(); blurAll(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl">
                 Пополнить копилку
               </button>
             </div>
@@ -512,12 +540,12 @@ const FinanceApp = ({ apiUrl }) => {
                   <div className="mb-2 font-semibold text-lg">
                     Привет, {user?.first_name || user?.email}!
                   </div>
-                  <button onClick={handleLogout} className="w-full py-3 bg-red-500 text-white rounded-xl flex items-center justify-center gap-2">
+                  <button onClick={() => { blurAll(); handleLogout(); }} className="w-full py-3 bg-red-500 text-white rounded-xl flex items-center justify-center gap-2">
                     <LogOut size={18} /> Выйти
                   </button>
                 </div>
               ) : (
-                <button onClick={() => { setShowAuthModal(true); vibrate(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2">
+                <button onClick={() => { setShowAuthModal(true); vibrate(); blurAll(); }} className="w-full py-3 bg-blue-500 text-white rounded-xl flex items-center justify-center gap-2">
                   <LogIn size={18} /> Войти
                 </button>
               )}
@@ -526,7 +554,7 @@ const FinanceApp = ({ apiUrl }) => {
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Тема</h3>
               <span
-                onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); vibrate(); }}
+                onClick={() => { setTheme(t => t === 'dark' ? 'light' : 'dark'); vibrate(); blurAll(); }}
                 className="cursor-pointer underline text-blue-500"
                 style={{ userSelect: 'none' }}
               >
@@ -536,7 +564,7 @@ const FinanceApp = ({ apiUrl }) => {
             {/* 3. Валюта */}
             <div className={`${cardBg} rounded-xl p-4 ${borderColor} border`}>
               <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Валюта</h3>
-              <select value={currency} onChange={e => { setCurrency(e.target.value); vibrateSelect(); }} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
+              <select value={currency} onChange={e => { setCurrency(e.target.value); vibrateSelect(); blurAll(); }} className={`w-full p-3 rounded-xl ${inputBg} ${textPrimary}`}>
                 {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
               </select>
             </div>
@@ -552,7 +580,7 @@ const FinanceApp = ({ apiUrl }) => {
             <div className="relative h-64">
               <canvas id="financeChart"></canvas>
             </div>
-            <button onClick={() => { setShowChart(false); vibrate(); }} className="mt-4 w-full py-3 bg-gray-500 text-white rounded-xl">Закрыть</button>
+            <button onClick={() => { setShowChart(false); vibrate(); blurAll(); }} className="mt-4 w-full py-3 bg-gray-500 text-white rounded-xl">Закрыть</button>
           </div>
         </div>
       )}
@@ -564,14 +592,40 @@ const FinanceApp = ({ apiUrl }) => {
             <h3 className={`text-xl font-bold ${textPrimary} mb-4`}>Новая операция</h3>
             <div className="flex gap-2 mb-4">
               {['expense', 'income', 'savings'].map(type => (
-                <button key={type} onClick={() => { setTransactionType(type); vibrateSelect(); }} className={`flex-1 py-3 rounded-xl font-medium ${transactionType === type ? type === 'income' ? 'bg-green-500 text-white' : type === 'expense' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white' : `${inputBg} ${textSecondary}`}`}>
+                <button key={type} onClick={() => { setTransactionType(type); vibrateSelect(); blurAll(); }} className={`flex-1 py-3 rounded-xl font-medium ${transactionType === type ? type === 'income' ? 'bg-green-500 text-white' : type === 'expense' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white' : `${inputBg} ${textSecondary}`}`}>
                   {type === 'income' ? 'Доход' : type === 'expense' ? 'Расход' : 'Копилка'}
                 </button>
               ))}
             </div>
-            <input type="number" placeholder="Сумма" value={amount} onChange={e => setAmount(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary} text-lg font-bold`} />
-            <input type="text" placeholder="Описание (необязательно)" value={description} onChange={e => setDescription(e.target.value)} className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`} />
-            <select value={category} onChange={e => setCategory(e.target.value)} className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}>
+            <input
+              ref={amountInputRef}
+              type="number"
+              placeholder="Сумма"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              onFocus={() => setIsKeyboardOpen(true)}
+              onBlur={() => setIsKeyboardOpen(false)}
+              onKeyDown={e => { if (e.key === 'Enter') blurAll(); }}
+              className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary} text-lg font-bold`}
+            />
+            <input
+              ref={descInputRef}
+              type="text"
+              placeholder="Описание (необязательно)"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              onFocus={() => setIsKeyboardOpen(true)}
+              onBlur={() => setIsKeyboardOpen(false)}
+              onKeyDown={e => { if (e.key === 'Enter') blurAll(); }}
+              className={`w-full p-4 rounded-xl mb-3 ${inputBg} ${textPrimary}`}
+            />
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className={`w-full p-4 rounded-xl mb-4 ${inputBg} ${textPrimary}`}
+              onFocus={() => setIsKeyboardOpen(true)}
+              onBlur={() => setIsKeyboardOpen(false)}
+            >
               <option value="">Категория</option>
               {categoriesList[transactionType].map(cat => (
                 <option key={cat} value={cat}>
@@ -580,7 +634,7 @@ const FinanceApp = ({ apiUrl }) => {
               ))}
             </select>
             <div className="flex gap-3">
-              <button onClick={() => { setShowAddModal(false); vibrate(); }} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}>Отмена</button>
+              <button onClick={() => { setShowAddModal(false); vibrate(); blurAll(); }} className={`flex-1 py-4 rounded-xl ${inputBg} ${textPrimary} font-medium`}>Отмена</button>
               <button onClick={addTransaction} className={`flex-1 py-4 rounded-xl ${transactionType === 'income' ? 'bg-green-500' : transactionType === 'expense' ? 'bg-red-500' : 'bg-blue-500'} text-white font-medium`}>Добавить</button>
             </div>
           </div>
@@ -599,23 +653,25 @@ const FinanceApp = ({ apiUrl }) => {
               {currencies.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
             </select>
             <div className="flex gap-2">
-              <button onClick={() => { setShowAuthModal(false); vibrate(); }} className={`flex-1 py-3 ${inputBg} ${textPrimary} rounded-xl`}>Отмена</button>
+              <button onClick={() => { setShowAuthModal(false); vibrate(); blurAll(); }} className={`flex-1 py-3 ${inputBg} ${textPrimary} rounded-xl`}>Отмена</button>
               <button onClick={handleAuth} className="flex-1 py-3 bg-blue-500 text-white rounded-xl">Войти</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Нижняя навигация */}
-      <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t`}>
-        <div className="flex justify-around items-center p-4 max-w-md mx-auto">
-          <button onClick={() => { setActiveTab('overview'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
-          <button onClick={() => { setActiveTab('history'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}><History size={24} /><span className="text-xs mt-1">История</span></button>
-          <button onClick={() => { setShowAddModal(true); vibrate(); }} className="flex flex-col items-center -mt-6"><div className="bg-blue-500 text-white p-4 rounded-full shadow-lg"><Plus size={28} /></div></button>
-          <button onClick={() => { setActiveTab('savings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}><PiggyBank size={24} /><span className="text-xs mt-1">Копилка</span></button>
-          <button onClick={() => { setActiveTab('settings'); vibrate(); }} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}><Settings size={24} /><span className="text-xs mt-1">Настройки</span></button>
+      {/* Нижняя навигация — скрывать при открытой клавиатуре */}
+      {!isKeyboardOpen && (
+        <div className={`fixed bottom-0 left-0 right-0 ${cardBg} ${borderColor} border-t transition-all duration-200`}>
+          <div className="flex justify-around items-center p-4 max-w-md mx-auto">
+            <button onClick={() => { setActiveTab('overview'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'overview' ? 'text-blue-500' : textSecondary}`}><Wallet size={24} /><span className="text-xs mt-1">Обзор</span></button>
+            <button onClick={() => { setActiveTab('history'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'history' ? 'text-blue-500' : textSecondary}`}><History size={24} /><span className="text-xs mt-1">История</span></button>
+            <button onClick={() => { setShowAddModal(true); vibrate(); blurAll(); }} className="flex flex-col items-center -mt-6"><div className="bg-blue-500 text-white p-4 rounded-full shadow-lg"><Plus size={28} /></div></button>
+            <button onClick={() => { setActiveTab('savings'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'savings' ? 'text-blue-500' : textSecondary}`}><PiggyBank size={24} /><span className="text-xs mt-1">Копилка</span></button>
+            <button onClick={() => { setActiveTab('settings'); vibrate(); blurAll(); }} className={`flex flex-col items-center ${activeTab === 'settings' ? 'text-blue-500' : textSecondary}`}><Settings size={24} /><span className="text-xs mt-1">Настройки</span></button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
