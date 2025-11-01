@@ -491,9 +491,9 @@ export default function FinanceApp() {
   }
 
   const saveToServer = async (newBalance, newIncome, newExpenses, newSavings) => {
-    if (isAuthenticated && user && user.id) {
+    if (isAuthenticated && user && user.email) {
       try {
-        await fetch(`${API_BASE}/api/user/${user.id}`, {
+        await fetch(`${API_BASE}/api/user/${user.email}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -566,13 +566,13 @@ export default function FinanceApp() {
     setShowAddModal(false);
     vibrateSuccess();
 
-    if (isAuthenticated && user && user.id) {
+    if (isAuthenticated && user && user.email) {
       try {
         await fetch(`${API_BASE}/api/transactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id: user.id,
+            user_id: user.email,
             type: newTx.type,
             amount: newTx.amount,
             description: newTx.description,
@@ -621,7 +621,7 @@ export default function FinanceApp() {
 
     vibrateSuccess();
 
-    if (isAuthenticated && user && user.id) {
+    if (isAuthenticated && user && user.email) {
       try {
         await fetch(`${API_BASE}/api/transactions/${txId}`, {
           method: "DELETE",
@@ -690,9 +690,9 @@ export default function FinanceApp() {
     setSavings(0);
     setTransactions([]);
 
-    if (isAuthenticated && user && user.id) {
+    if (isAuthenticated && user && user.email) {
       try {
-        await fetch(`${API_BASE}/api/user/${user.id}/reset`, {
+        await fetch(`${API_BASE}/api/user/${user.email}/reset`, {
           method: "POST",
         });
         vibrateSuccess();
