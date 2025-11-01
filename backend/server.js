@@ -27,8 +27,8 @@ app.post("/api/auth", async (req, res) => {
       // Регистрация
       const password_hash = password ? await bcrypt.hash(password, 10) : null;
       const userResult = await pool.query(
-        `INSERT INTO users (email, password_hash, first_name)
-         VALUES ($1, $2, $3) RETURNING *`,
+        `INSERT INTO users (email, password_hash, first_name, balance, income, expenses, savings_usd, goal_savings)
+         VALUES ($1, $2, $3, 0, 0, 0, 0, 50000) RETURNING *`,
         [email, password_hash, first_name || email.split("@")[0]]
       );
       const user = userResult.rows[0];
@@ -50,13 +50,14 @@ app.post("/api/auth", async (req, res) => {
     res.json({ user: convertUser(user), transactions: tx.rows });
   } catch (e) {
     console.error("Auth error:", e);
-    res.status(500).json({ error: "Ошибка сервера" });
+    res.status(500).json({ error: "Ошибка сервера: " + e.message });
   }
 });
 
-// --- Обновить пользователя ---
-app.put("/api/user", async (req, res) => {
-  const { email, balance, income, expenses, savings, goalSavings } = req.body;
+// --- Обновить пользователя (исправлен роут) ---
+app.put("/api/user/:email", async (req, res) => {
+  const { email } = req.params;
+  const { balance, income, expenses, savings, goalSavings } = req.body;
 
   if (!email) return res.status(400).json({ error: "Email обязателен" });
 
@@ -65,18 +66,18 @@ app.put("/api/user", async (req, res) => {
       `UPDATE users
        SET balance=$1, income=$2, expenses=$3, savings_usd=$4, goal_savings=$5
        WHERE email=$6`,
-      [balance, income, expenses, savings, goalSavings, email]
+      [balance || 0, income || 0, expenses || 0, savings || 0, goalSavings || 50000, email]
     );
     res.json({ success: true });
   } catch (e) {
     console.error("User update error:", e);
-    res.status(500).json({ error: "Не удалось сохранить" });
+    res.status(500).json({ error: "Не удалось сохранить: " + e.message });
   }
 });
 
-// --- Сброс данных ---
-app.post("/api/user/reset", async (req, res) => {
-  const { email } = req.body;
+// --- Сброс данных (исправлен роут) ---
+app.post("/api/user/:email/reset", async (req, res) => {
+  const { email } = req.params;
   if (!email) return res.status(400).json({ error: "Email обязателен" });
 
   try {
@@ -88,24 +89,31 @@ app.post("/api/user/reset", async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     console.error("Reset error:", e);
-    res.status(500).json({ error: "Не удалось сбросить" });
+    res.status(500).json({ error: "Не удалось сбросить: " + e.message });
   }
 });
 
 // --- Новая транзакция ---
 app.post("/api/transactions", async (req, res) => {
-  const { user_email, type, amount, description, category, converted_amount_usd } = req.body;
+  const { user_id, type, amount, description, category, converted_amount_usd } = req.body;
+
+  // user_id в запросе от клиента это на самом деле email
+  const user_email = user_id;
+
+  if (!user_email) {
+    return res.status(400).json({ error: "Email пользователя обязателен" });
+  }
 
   try {
     const r = await pool.query(
       `INSERT INTO transactions (user_email, type, amount, converted_amount_usd, description, category)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [user_email, type, amount, converted_amount_usd, description, category]
+      [user_email, type, amount || 0, converted_amount_usd, description, category]
     );
     res.json(r.rows[0]);
   } catch (e) {
     console.error("TX insert error:", e);
-    res.status(500).json({ error: "Ошибка добавления" });
+    res.status(500).json({ error: "Ошибка добавления: " + e.message });
   }
 });
 
@@ -122,7 +130,7 @@ app.delete("/api/transactions/:id", async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     console.error("TX delete error:", e);
-    res.status(500).json({ error: "Ошибка удаления" });
+    res.status(500).json({ error: "Ошибка удаления: " + e.message });
   }
 });
 
@@ -138,7 +146,8 @@ app.get("/api/transactions", async (req, res) => {
     );
     res.json(r.rows);
   } catch (e) {
-    res.status(500).json({ error: "Ошибка получения" });
+    console.error("TX get error:", e);
+    res.status(500).json({ error: "Ошибка получения: " + e.message });
   }
 });
 
@@ -147,11 +156,11 @@ function convertUser(u) {
   return {
     email: u.email,
     first_name: u.first_name,
-    balance: Number(u.balance),
-    income: Number(u.income),
-    expenses: Number(u.expenses),
-    savings_usd: Number(u.savings_usd),
-    goal_savings: Number(u.goal_savings),
+    balance: Number(u.balance || 0),
+    income: Number(u.income || 0),
+    expenses: Number(u.expenses || 0),
+    savings_usd: Number(u.savings_usd || 0),
+    goal_savings: Number(u.goal_savings || 50000),
   };
 }
 
