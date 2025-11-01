@@ -59,6 +59,26 @@ const currencies = [
   { code: "EUR", symbol: "€", name: "Евро" },
 ];
 
+function NavButton({ active, onClick, icon }) {
+  const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  return (
+    <button
+      onClick={onClick}
+      className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
+        active
+          ? theme === "dark"
+            ? "bg-gray-700 text-blue-400"
+            : "bg-blue-100 text-blue-600"
+          : theme === "dark"
+          ? "text-gray-400 hover:text-gray-300"
+          : "text-gray-600 hover:text-gray-900"
+      }`}
+    >
+      {icon}
+    </button>
+  );
+}
+
 function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete }) {
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -86,7 +106,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
   return (
     <div className="relative mb-2 overflow-hidden rounded-xl">
-      {/* Красный фон — появляется только при свайпе */}
       <div
         className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center transition-opacity duration-300 ${
           swipeX <= -80 ? "opacity-100" : "opacity-0"
@@ -96,7 +115,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
         <Trash2 className="w-5 h-5 text-white" />
       </div>
 
-      {/* Карточка транзакции */}
       <div
         style={{
           transform: `translateX(${swipeX}px)`,
@@ -111,7 +129,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
             : "bg-white/90 border-gray-200/50 hover:bg-white shadow-sm"
         }`}
       >
-        {/* Левая часть: иконка + описание */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div
             className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
@@ -144,7 +161,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
           </div>
         </div>
 
-        {/* Правая часть: сумма */}
         <div className="text-right ml-2 flex-shrink-0">
           <p
             className={`font-bold text-sm ${
@@ -160,7 +176,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
         </div>
       </div>
 
-      {/* Кнопка "Удалить" — только одна, при полном свайпе */}
       {swipeX === -80 && (
         <button
           onClick={() => onDelete(tx.id)}
@@ -251,7 +266,6 @@ export default function FinanceApp() {
   const displayName = (tgUser && tgUser.first_name) || "Пользователь";
   const tgPhotoUrl = tgUser && tgUser.photo_url;
 
-  // Fetch exchange rate
   useEffect(() => {
     const fetchRate = async () => {
       try {
@@ -315,6 +329,8 @@ export default function FinanceApp() {
 
       const handleFullscreenChanged = () => {
         setIsFullscreen(tg.isFullscreen || false);
+        updateSafeArea();
+        updateContentSafeArea();
       };
 
       updateSafeArea();
@@ -778,7 +794,6 @@ export default function FinanceApp() {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      {/* Header - только на главной */}
       {activeTab === "overview" && (
         <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-8 pb-4">
           <div className="flex items-center justify-between mb-4">
@@ -823,7 +838,6 @@ export default function FinanceApp() {
             </div>
           </div>
 
-          {/* Balance Card - Капсульный дизайн */}
           <div className={`relative overflow-hidden rounded-3xl p-4 shadow-2xl ${
             theme === "dark"
               ? "bg-gradient-to-br from-gray-800/90 to-gray-700/90 border border-gray-700/50"
@@ -845,7 +859,6 @@ export default function FinanceApp() {
               </div>
             </div>
 
-            {/* Income/Expense Row */}
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className={`rounded-2xl p-3 border ${
                 theme === "dark"
@@ -878,7 +891,6 @@ export default function FinanceApp() {
         </header>
       )}
 
-      {/* Main Content - Scrollable */}
       <main 
         ref={mainContentRef}
         className="flex-1 overflow-y-auto overflow-x-hidden"
@@ -897,10 +909,8 @@ export default function FinanceApp() {
             touchAction: 'pan-y',
           }}
         >
-          {/* Overview */}
           {activeTab === "overview" && (
             <div className="space-y-4 animate-fadeIn">
-              {/* Quick Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className={`backdrop-blur-sm rounded-xl p-3 border shadow-lg ${
                   theme === "dark" 
@@ -919,7 +929,6 @@ export default function FinanceApp() {
                 </div>
               </div>
 
-              {/* Recent Transactions */}
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
@@ -963,7 +972,6 @@ export default function FinanceApp() {
             </div>
           )}
 
-          {/* History */}
           {activeTab === "history" && (
             <div className="animate-fadeIn">
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
@@ -1011,10 +1019,8 @@ export default function FinanceApp() {
             </div>
           )}
 
-          {/* Savings */}
           {activeTab === "savings" && (
             <div className="space-y-4 animate-fadeIn">
-              {/* Savings Goal Card */}
               <div className={`rounded-2xl p-4 text-white shadow-2xl ${
                 theme === "dark"
                   ? "bg-gradient-to-br from-gray-800 to-gray-700"
@@ -1067,7 +1073,6 @@ export default function FinanceApp() {
                 </div>
               </div>
 
-              {/* Savings History */}
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
@@ -1103,10 +1108,8 @@ export default function FinanceApp() {
             </div>
           )}
 
-          {/* Settings */}
           {activeTab === "settings" && (
             <div className="space-y-4 animate-fadeIn">
-              {/* Account Section */}
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
@@ -1179,7 +1182,6 @@ export default function FinanceApp() {
                 )}
               </div>
 
-              {/* Settings Options */}
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
@@ -1221,7 +1223,6 @@ export default function FinanceApp() {
                 </div>
               </div>
 
-              {/* Danger Zone */}
               <div className={`rounded-2xl p-4 border ${
                 theme === "dark"
                   ? "bg-red-900/30 border-red-700/30"
@@ -1243,7 +1244,6 @@ export default function FinanceApp() {
         </div>
       </main>
 
-      {/* Modals */}
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${
@@ -1523,12 +1523,11 @@ export default function FinanceApp() {
         </div>
       )}
 
-      {/* Bottom Navigation */}
       {!isKeyboardOpen && (
         <div 
           className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
-            paddingBottom: safeAreaInset.bottom || 0,
+            paddingBottom: Math.max(safeAreaInset.bottom, 8),
             paddingLeft: safeAreaInset.left || 0,
             paddingRight: safeAreaInset.right || 0,
           }}
