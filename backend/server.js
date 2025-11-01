@@ -9,6 +9,11 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// --- Health check для keep-alive ---
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // --- Регистрация / Вход ---
 app.post("/api/auth", async (req, res) => {
   const { email, password, first_name } = req.body;
