@@ -54,7 +54,7 @@ app.post("/api/auth", async (req, res) => {
   }
 });
 
-// --- Обновить пользователя (исправлен роут) ---
+// --- Обновить пользователя ---
 app.put("/api/user/:email", async (req, res) => {
   const { email } = req.params;
   const { balance, income, expenses, savings, goalSavings } = req.body;
@@ -75,7 +75,7 @@ app.put("/api/user/:email", async (req, res) => {
   }
 });
 
-// --- Сброс данных (исправлен роут) ---
+// --- Сброс данных ---
 app.post("/api/user/:email/reset", async (req, res) => {
   const { email } = req.params;
   if (!email) return res.status(400).json({ error: "Email обязателен" });
@@ -97,7 +97,6 @@ app.post("/api/user/:email/reset", async (req, res) => {
 app.post("/api/transactions", async (req, res) => {
   const { user_id, type, amount, description, category, converted_amount_usd } = req.body;
 
-  // user_id в запросе от клиента это на самом деле email
   const user_email = user_id;
 
   if (!user_email) {
