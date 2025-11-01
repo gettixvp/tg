@@ -69,6 +69,27 @@ app.put("/api/user/:id", async (req, res) => {
   }
 });
 
+// --- Сброс всех данных пользователя ---
+app.post("/api/user/:id/reset", async (req, res) => {
+  try {
+    // Удаляем все транзакции
+    await pool.query("DELETE FROM transactions WHERE user_id=$1", [req.params.id]);
+    
+    // Обнуляем балансы
+    await pool.query(
+      `UPDATE users
+       SET balance=0, income=0, expenses=0, savings_usd=0
+       WHERE id=$1`,
+      [req.params.id]
+    );
+    
+    res.json({ success: true });
+  } catch (e) {
+    console.error("Reset error:", e);
+    res.status(500).json({ error: "Не удалось сбросить данные" });
+  }
+});
+
 // --- Новая транзакция ---
 app.post("/api/transactions", async (req, res) => {
   const { user_id, type, amount, description, category, converted_amount_usd } = req.body;
@@ -84,6 +105,17 @@ app.post("/api/transactions", async (req, res) => {
   } catch (e) {
     console.error("TX insert error:", e);
     res.status(500).json({ error: "Ошибка сохранения транзакции" });
+  }
+});
+
+// --- Удалить транзакцию ---
+app.delete("/api/transactions/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM transactions WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (e) {
+    console.error("TX delete error:", e);
+    res.status(500).json({ error: "Ошибка удаления транзакции" });
   }
 });
 
