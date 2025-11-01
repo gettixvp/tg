@@ -63,7 +63,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const startX = useRef(0);
-  const currentX = useRef(0);
 
   const handleTouchStart = (e) => {
     startX.current = e.touches[0].clientX;
@@ -72,8 +71,7 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
   const handleTouchMove = (e) => {
     if (!isSwiping) return;
-    currentX.current = e.touches[0].clientX;
-    const diff = currentX.current - startX.current;
+    const diff = e.touches[0].clientX - startX.current;
     if (diff < 0) {
       setSwipeX(Math.max(diff, -80));
     }
@@ -81,82 +79,97 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
   const handleTouchEnd = () => {
     setIsSwiping(false);
-    if (swipeX < -40) {
-      setSwipeX(-80);
-    } else {
-      setSwipeX(0);
-    }
+    setSwipeX(swipeX < -40 ? -80 : 0);
   };
 
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"];
-  
+
   return (
     <div className="relative mb-2 overflow-hidden rounded-xl">
+      {/* Красный фон — появляется только при свайпе */}
       <div
-        className={`absolute right-0 top-0 bottom-0 w-20 flex items-center justify-center ${
-          theme === "dark" ? "bg-red-600" : "bg-red-500"
-        }`}
+        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center transition-opacity duration-300 ${
+          swipeX <= -80 ? "opacity-100" : "opacity-0"
+        } ${theme === "dark" ? "bg-red-600" : "bg-red-500"}`}
+        style={{ transform: `translateX(${Math.min(swipeX + 80, 0)}px)` }}
       >
         <Trash2 className="w-5 h-5 text-white" />
       </div>
+
+      {/* Карточка транзакции */}
       <div
-        style={{ transform: `translateX(${swipeX}px)`, transition: isSwiping ? 'none' : 'transform 0.3s ease' }}
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: isSwiping ? "none" : "transform 0.3s ease",
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`group flex items-center justify-between p-3 rounded-xl backdrop-blur-sm border transition-all duration-300 hover:shadow-md ${
+        className={`relative flex items-center justify-between p-3 rounded-xl backdrop-blur-sm border transition-all duration-300 hover:shadow-md ${
           theme === "dark"
             ? "bg-gray-800/80 border-gray-700/50 hover:bg-gray-700/80"
             : "bg-white/90 border-gray-200/50 hover:bg-white shadow-sm"
         }`}
       >
+        {/* Левая часть: иконка + описание */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}>
+          <div
+            className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
+          >
             <span className="text-lg">{categoryInfo.icon}</span>
           </div>
+
           <div className="min-w-0 flex-1">
-            <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            <p
+              className={`font-semibold text-sm truncate ${
+                theme === "dark" ? "text-gray-100" : "text-gray-900"
+              }`}
+            >
               {tx.description || "—"}
             </p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} flex-shrink-0`}>
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} flex-shrink-0`}
+              >
                 {tx.category}
               </span>
-              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+              <span
+                className={`text-xs ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
                 {formatDate(tx.date)}
               </span>
             </div>
           </div>
         </div>
+
+        {/* Правая часть: сумма */}
         <div className="text-right ml-2 flex-shrink-0">
-          <p className={`font-bold text-sm ${
-            tx.type === "income" ? "text-emerald-600" : 
-            tx.type === "expense" ? "text-rose-600" : "text-blue-600"
-          }`}>
+          <p
+            className={`font-bold text-sm ${
+              tx.type === "income"
+                ? "text-emerald-600"
+                : tx.type === "expense"
+                ? "text-rose-600"
+                : "text-blue-600"
+            }`}
+          >
             {tx.type === "income" ? "+" : "-"}{formatCurrency(tx.amount)}
           </p>
         </div>
       </div>
+
+      {/* Кнопка "Удалить" — только одна, при полном свайпе */}
       {swipeX === -80 && (
         <button
           onClick={() => onDelete(tx.id)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-red-500 text-white touch-none z-10"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-red-500 text-white touch-none z-10 shadow-lg"
         >
           <Trash2 className="w-4 h-4" />
         </button>
       )}
     </div>
-  );
-}
-
-function NavButton({ icon, active, onClick }) {
-  return (
-    <button 
-      onClick={onClick} 
-      className="p-2 transition-all touch-none"
-    >
-      <div className={active ? "text-blue-600" : "text-gray-400"}>{icon}</div>
-    </button>
   );
 }
 
