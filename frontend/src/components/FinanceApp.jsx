@@ -1,3 +1,8 @@
+К сожалению, я не могу создавать или отправлять файлы напрямую. Но я могу дать вам весь код одним блоком, который вы сможете легко скопировать целиком.
+
+Вот полный код React-компонента:
+
+```jsx
 import React, { useEffect, useState, useRef } from "react";
 import {
   Wallet,
@@ -18,6 +23,7 @@ import {
   User,
   Trash2,
   X,
+  UserPlus,
 } from "lucide-react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
@@ -59,8 +65,7 @@ const currencies = [
   { code: "EUR", symbol: "€", name: "Евро" },
 ];
 
-function NavButton({ active, onClick, icon }) {
-  const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+function NavButton({ active, onClick, icon, theme }) {
   return (
     <button
       onClick={onClick}
@@ -94,12 +99,18 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
     const diff = e.touches[0].clientX - startX.current;
     if (diff < 0) {
       setSwipeX(Math.max(diff, -80));
+    } else if (swipeX < 0) {
+      setSwipeX(Math.min(0, swipeX + diff / 2));
     }
   };
 
   const handleTouchEnd = () => {
     setIsSwiping(false);
-    setSwipeX(swipeX < -40 ? -80 : 0);
+    if (swipeX < -40) {
+      setSwipeX(-80);
+    } else {
+      setSwipeX(0);
+    }
   };
 
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"];
@@ -107,10 +118,9 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
   return (
     <div className="relative mb-2 overflow-hidden rounded-xl">
       <div
-        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center transition-opacity duration-300 ${
-          swipeX <= -80 ? "opacity-100" : "opacity-0"
-        } ${theme === "dark" ? "bg-red-600" : "bg-red-500"}`}
-        style={{ transform: `translateX(${Math.min(swipeX + 80, 0)}px)` }}
+        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center ${
+          theme === "dark" ? "bg-red-600" : "bg-red-500"
+        }`}
       >
         <Trash2 className="w-5 h-5 text-white" />
       </div>
@@ -137,13 +147,15 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
           </div>
 
           <div className="min-w-0 flex-1">
-            <p
-              className={`font-semibold text-sm truncate ${
-                theme === "dark" ? "text-gray-100" : "text-gray-900"
-              }`}
-            >
-              {tx.description || "—"}
-            </p>
+            {tx.description && (
+              <p
+                className={`font-semibold text-sm truncate ${
+                  theme === "dark" ? "text-gray-100" : "text-gray-900"
+                }`}
+              >
+                {tx.description}
+              </p>
+            )}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} flex-shrink-0`}
@@ -178,7 +190,10 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
       {swipeX === -80 && (
         <button
-          onClick={() => onDelete(tx.id)}
+          onClick={() => {
+            onDelete(tx.id);
+            setSwipeX(0);
+          }}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-red-500 text-white touch-none z-10 shadow-lg"
         >
           <Trash2 className="w-4 h-4" />
@@ -235,6 +250,7 @@ export default function FinanceApp() {
   const [transactions, setTransactions] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
   const [showChart, setShowChart] = useState(false);
   const [chartType, setChartType] = useState("");
   const [transactionType, setTransactionType] = useState("expense");
@@ -263,6 +279,7 @@ export default function FinanceApp() {
   const vibrateSelect = () => haptic && haptic.selectionChanged && haptic.selectionChanged();
 
   const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  const tgUserId = tgUser && tgUser.id;
   const displayName = (tgUser && tgUser.first_name) || "Пользователь";
   const tgPhotoUrl = tgUser && tgUser.photo_url;
 
@@ -296,11 +313,6 @@ export default function FinanceApp() {
                 tg.requestFullscreen();
               }
             }, 300);
-            setTimeout(() => {
-              if (!tg.isFullscreen && tg.requestFullscreen) {
-                tg.requestFullscreen();
-              }
-            }, 800);
           }
         } catch (e) {
           console.warn("Auto fullscreen failed", e);
@@ -391,11 +403,13 @@ export default function FinanceApp() {
         if (sessionData?.email && sessionData?.token) {
           autoAuth(sessionData.email, sessionData.token);
         }
+      } else if (tgUserId) {
+        autoAuthTelegram(tgUserId);
       }
     } catch (e) {
       console.warn("Failed to parse settings", e);
     }
-  }, []);
+  }, [tgUserId]);
 
   useEffect(() => {
     localStorage.setItem(LS_KEY, JSON.stringify({
@@ -473,6 +487,27 @@ export default function FinanceApp() {
     return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
   };
 
+  async function autoAuthTelegram(telegramId) {
+    try {
+      const tgEmail = `tg_${telegramId}@telegram.user`;
+      const resp = await fetch(`${API_BASE}/api/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email: tgEmail,
+          password: `tg_${telegramId}`,
+          first_name: displayName
+        })
+      });
+      
+      if (!resp.ok) throw new Error("auth failed");
+      const json = await resp.json();
+      applyUser(json.user, json.transactions || [], false);
+    } catch (e) {
+      console.warn("autoAuthTelegram failed", e);
+    }
+  }
+
   async function autoAuth(email, token) {
     try {
       const resp = await fetch(`${API_BASE}/api/auth`, {
@@ -487,16 +522,16 @@ export default function FinanceApp() {
       
       if (!resp.ok) throw new Error("auth failed");
       const json = await resp.json();
-      applyUser(json.user, json.transactions || []);
+      applyUser(json.user, json.transactions || [], true);
     } catch (e) {
       console.warn("autoAuth failed", e);
       localStorage.removeItem(SESSION_KEY);
     }
   }
 
-  function applyUser(u, txs = []) {
+  function applyUser(u, txs = [], isEmailAuth = false) {
     setUser(u);
-    setIsAuthenticated(true);
+    setIsAuthenticated(isEmailAuth);
     setBalance(Number(u.balance || 0));
     setIncome(Number(u.income || 0));
     setExpenses(Number(u.expenses || 0));
@@ -507,7 +542,7 @@ export default function FinanceApp() {
   }
 
   const saveToServer = async (newBalance, newIncome, newExpenses, newSavings) => {
-    if (isAuthenticated && user && user.email) {
+    if (user && user.email) {
       try {
         await fetch(`${API_BASE}/api/user/${user.email}`, {
           method: "PUT",
@@ -582,7 +617,7 @@ export default function FinanceApp() {
     setShowAddModal(false);
     vibrateSuccess();
 
-    if (isAuthenticated && user && user.email) {
+    if (user && user.email) {
       try {
         await fetch(`${API_BASE}/api/transactions`, {
           method: "POST",
@@ -637,7 +672,7 @@ export default function FinanceApp() {
 
     vibrateSuccess();
 
-    if (isAuthenticated && user && user.email) {
+    if (user && user.email) {
       try {
         await fetch(`${API_BASE}/api/transactions/${txId}`, {
           method: "DELETE",
@@ -673,12 +708,13 @@ export default function FinanceApp() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({error: "Ошибка сервера"}));
         alert(err.error || "Ошибка входа");
-        vibrateError();
+        vibrateError();​​​​​​​​​​​​​​​​
+
         return;
       }
       
       const json = await res.json();
-      applyUser(json.user, json.transactions || []);
+      applyUser(json.user, json.transactions || [], true);
       
       localStorage.setItem(SESSION_KEY, JSON.stringify({ 
         email, 
@@ -706,7 +742,7 @@ export default function FinanceApp() {
     setSavings(0);
     setTransactions([]);
 
-    if (isAuthenticated && user && user.email) {
+    if (user && user.email) {
       try {
         await fetch(`${API_BASE}/api/user/${user.email}/reset`, {
           method: "POST",
@@ -731,12 +767,17 @@ export default function FinanceApp() {
     
     localStorage.removeItem(SESSION_KEY);
     setIsAuthenticated(false);
-    setUser(null);
-    setBalance(0); 
-    setIncome(0); 
-    setExpenses(0); 
-    setSavings(0); 
-    setTransactions([]);
+    
+    if (tgUserId) {
+      autoAuthTelegram(tgUserId);
+    } else {
+      setUser(null);
+      setBalance(0); 
+      setIncome(0); 
+      setExpenses(0); 
+      setSavings(0); 
+      setTransactions([]);
+    }
     vibrateError();
   };
 
@@ -771,7 +812,7 @@ export default function FinanceApp() {
       <div className={`w-full h-screen flex items-center justify-center ${
         theme === "dark" 
           ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900" 
-          : "bg-gradient-to-br from-indigo-50 via-white to-cyan-50"
+          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
       }`}>
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
@@ -786,7 +827,7 @@ export default function FinanceApp() {
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark" 
           ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900" 
-          : "bg-gradient-to-br from-indigo-50 via-white to-cyan-50"
+          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
       }`}
       style={{
         paddingTop: safeAreaInset.top || 0,
@@ -812,7 +853,7 @@ export default function FinanceApp() {
                   className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
                     theme === "dark"
                       ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                      : "bg-white/50 border-white/20 hover:bg-white/80"
+                      : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
                   }`}
                   title="Полноэкранный режим"
                 >
@@ -827,7 +868,7 @@ export default function FinanceApp() {
                 className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
                   theme === "dark"
                     ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                    : "bg-white/50 border-white/20 hover:bg-white/80"
+                    : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
                 }`}
               >
                 {balanceVisible ? 
@@ -838,21 +879,19 @@ export default function FinanceApp() {
             </div>
           </div>
 
-          <div className={`relative overflow-hidden rounded-3xl p-4 shadow-2xl ${
+          <div className={`relative overflow-hidden rounded-3xl p-5 shadow-2xl ${
             theme === "dark"
-              ? "bg-gradient-to-br from-gray-800/90 to-gray-700/90 border border-gray-700/50"
-              : "bg-gradient-to-br from-white/90 to-blue-50/50 border border-white/50"
-          } backdrop-blur-xl`}>
+              ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
+              : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
+          }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 flex-1">
-                <div className={`p-3 rounded-2xl ${
-                  theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"
-                }`}>
-                  <CreditCard className={`w-6 h-6 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm">
+                  <CreditCard className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Общий баланс</p>
-                  <p className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  <p className="text-xs text-white/80">Общий баланс</p>
+                  <p className="text-3xl font-bold text-white">
                     {balanceVisible ? formatCurrency(balance) : "••••••"}
                   </p>
                 </div>
@@ -860,29 +899,21 @@ export default function FinanceApp() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className={`rounded-2xl p-3 border ${
-                theme === "dark"
-                  ? "bg-emerald-900/30 border-emerald-800/30"
-                  : "bg-emerald-50 border-emerald-200/50"
-              }`}>
+              <div className="rounded-2xl p-3 bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center gap-1 mb-1">
-                  <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
-                  <span className={`text-xs ${theme === "dark" ? "text-emerald-400" : "text-emerald-700"}`}>Доходы</span>
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  <span className="text-xs text-white/90">Доходы</span>
                 </div>
-                <p className={`text-lg font-bold ${theme === "dark" ? "text-emerald-300" : "text-emerald-700"}`}>
+                <p className="text-lg font-bold text-white">
                   {balanceVisible ? formatCurrency(income) : "••••••"}
                 </p>
               </div>
-              <div className={`rounded-2xl p-3 border ${
-                theme === "dark"
-                  ? "bg-rose-900/30 border-rose-800/30"
-                  : "bg-rose-50 border-rose-200/50"
-              }`}>
+              <div className="rounded-2xl p-3 bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center gap-1 mb-1">
-                  <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
-                  <span className={`text-xs ${theme === "dark" ? "text-rose-400" : "text-rose-700"}`}>Расходы</span>
+                  <TrendingDown className="w-3 h-3 text-rose-300" />
+                  <span className="text-xs text-white/90">Расходы</span>
                 </div>
-                <p className={`text-lg font-bold ${theme === "dark" ? "text-rose-300" : "text-rose-700"}`}>
+                <p className="text-lg font-bold text-white">
                   {balanceVisible ? formatCurrency(expenses) : "••••••"}
                 </p>
               </div>
@@ -915,7 +946,7 @@ export default function FinanceApp() {
                 <div className={`backdrop-blur-sm rounded-xl p-3 border shadow-lg ${
                   theme === "dark" 
                     ? "bg-gray-800/70 border-gray-700/20" 
-                    : "bg-white/70 border-white/20"
+                    : "bg-white/80 border-white/50"
                 }`}>
                   <div className="flex items-center gap-2">
                     <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
@@ -932,7 +963,7 @@ export default function FinanceApp() {
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
-                  : "bg-white/70 border-white/20"
+                  : "bg-white/80 border-white/50"
               }`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Последние операции</h3>
@@ -977,7 +1008,7 @@ export default function FinanceApp() {
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
-                  : "bg-white/70 border-white/20"
+                  : "bg-white/80 border-white/50"
               }`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>История операций</h3>
@@ -1076,7 +1107,7 @@ export default function FinanceApp() {
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
-                  : "bg-white/70 border-white/20"
+                  : "bg-white/80 border-white/50"
               }`}>
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>История пополнений</h3>
                 {transactions.filter((t) => t.type === "savings").length === 0 ? (
@@ -1113,7 +1144,7 @@ export default function FinanceApp() {
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
-                  : "bg-white/70 border-white/20"
+                  : "bg-white/80 border-white/50"
               }`}>
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Аккаунт</h3>
                 
@@ -1165,18 +1196,18 @@ export default function FinanceApp() {
                         : "bg-blue-50 border-blue-200"
                     }`}>
                       <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        Войдите в учетную запись, чтобы синхронизировать данные на всех устройствах и не потерять их при переустановке приложения.
+                        Войдите в учетную запись через email, чтобы синхронизировать данные на всех устройствах.
                       </p>
                     </div>
                     <button 
-                      onClick={() => setShowAuthModal(true)} 
+                      onClick={() => { setShowAuthModal(true); setAuthMode("login"); }} 
                       className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
                         theme === "dark"
                           ? "bg-blue-700 hover:bg-blue-600 text-white"
                           : "bg-blue-500 hover:bg-blue-600 text-white"
                       }`}>
                       <LogIn className="w-4 h-4" />
-                      Войти
+                      Войти через Email
                     </button>
                   </div>
                 )}
@@ -1185,7 +1216,7 @@ export default function FinanceApp() {
               <div className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                 theme === "dark" 
                   ? "bg-gray-800/70 border-gray-700/20" 
-                  : "bg-white/70 border-white/20"
+                  : "bg-white/80 border-white/50"
               }`}>
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Настройки</h3>
                 
@@ -1275,8 +1306,7 @@ export default function FinanceApp() {
                 }`}>
                 Отмена
               </button>
-              <button 
-                onClick={() => { 
+              <button onClick={() => { 
                   const n = parseInt(goalInput, 10); 
                   if (!Number.isNaN(n) && n >= 0) setGoalSavings(n); 
                   setShowGoalModal(false); 
@@ -1377,17 +1407,16 @@ export default function FinanceApp() {
                   </p>
                 )}
                 <input 
-                  type="number" 
+                  type="text" 
                   placeholder="Сумма" 
                   value={amount} 
                   onFocus={() => setShowNumKeyboard(true)}
-                  onChange={(e) => setAmount(e.target.value.replace(/^0+/, ""))} 
+                  readOnly
                   className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
                     theme === "dark"
                       ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                       : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   }`}
-                  readOnly
                 />
               </div>
               
@@ -1395,6 +1424,7 @@ export default function FinanceApp() {
                 type="text" 
                 placeholder="Описание (необязательно)" 
                 value={description} 
+                onFocus={() => setShowNumKeyboard(false)}
                 onChange={(e) => setDescription(e.target.value)} 
                 className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
                   theme === "dark"
@@ -1405,6 +1435,7 @@ export default function FinanceApp() {
               <select 
                 value={category} 
                 onChange={(e) => setCategory(e.target.value)} 
+                onFocus={() => setShowNumKeyboard(false)}
                 className={`w-full p-3 border rounded-xl mb-4 transition-all text-sm ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -1419,7 +1450,7 @@ export default function FinanceApp() {
 
               <div className="flex gap-2">
                 <button 
-                  onClick={() => { setShowAddModal(false); setShowNumKeyboard(false); }} 
+                  onClick={() => { setShowAddModal(false); setShowNumKeyboard(false); blurAll(); }} 
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                     theme === "dark"
                       ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
@@ -1459,7 +1490,37 @@ export default function FinanceApp() {
           <div className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
             theme === "dark" ? "bg-gray-800" : "bg-white"
           }`} style={{ WebkitOverflowScrolling: 'touch' }}>
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Вход / Регистрация</h3>
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              {authMode === "login" ? "Вход через Email" : "Регистрация"}
+            </h3>
+            
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setAuthMode("login")}
+                className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                  authMode === "login"
+                    ? "bg-blue-500 text-white"
+                    : theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Вход
+              </button>
+              <button
+                onClick={() => setAuthMode("register")}
+                className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                  authMode === "register"
+                    ? "bg-blue-500 text-white"
+                    : theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Регистрация
+              </button>
+            </div>
+
             <input 
               type="email" 
               placeholder="Email" 
@@ -1499,7 +1560,7 @@ export default function FinanceApp() {
 
             <div className="flex gap-2">
               <button 
-                onClick={() => setShowAuthModal(false)} 
+                onClick={() => { setShowAuthModal(false); setEmail(""); setPassword(""); }} 
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                   theme === "dark"
                     ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
@@ -1516,7 +1577,7 @@ export default function FinanceApp() {
                     : "bg-blue-500 hover:bg-blue-600 text-white"
                 }`}
               >
-                Войти
+                {authMode === "login" ? "Войти" : "Зарегистрироваться"}
               </button>
             </div>
           </div>
@@ -1536,17 +1597,19 @@ export default function FinanceApp() {
             <div className={`w-full max-w-md backdrop-blur-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto ${
               theme === "dark"
                 ? "bg-gray-800/90 border-gray-700/20"
-                : "bg-white/90 border-white/20"
+                : "bg-white/90 border-white/50"
             }`}>
               <NavButton 
                 active={activeTab === "overview"} 
                 onClick={() => { setActiveTab("overview"); vibrate(); }} 
-                icon={<Wallet className="w-4 h-4" />} 
+                icon={<Wallet className="w-4 h-4" />}
+                theme={theme}
               />
               <NavButton 
                 active={activeTab === "history"} 
                 onClick={() => { setActiveTab("history"); vibrate(); }} 
-                icon={<History className="w-4 h-4" />} 
+                icon={<History className="w-4 h-4" />}
+                theme={theme}
               />
               <button
                 onClick={() => { setShowAddModal(true); vibrate(); }}
@@ -1557,12 +1620,14 @@ export default function FinanceApp() {
               <NavButton 
                 active={activeTab === "savings"} 
                 onClick={() => { setActiveTab("savings"); vibrate(); }} 
-                icon={<PiggyBank className="w-4 h-4" />} 
+                icon={<PiggyBank className="w-4 h-4" />}
+                theme={theme}
               />
               <NavButton 
                 active={activeTab === "settings"} 
                 onClick={() => { setActiveTab("settings"); vibrate(); }} 
-                icon={<Settings className="w-4 h-4" />} 
+                icon={<Settings className="w-4 h-4" />}
+                theme={theme}
               />
             </div>
           </div>
