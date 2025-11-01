@@ -9,13 +9,13 @@ import {
   Settings,
   LogOut,
   LogIn,
-  Target,
   CreditCard,
   BarChart3,
   Eye,
   EyeOff,
   Maximize2,
   Minimize2,
+  User,
 } from "lucide-react";
 
 const API_BASE = "https://walletback-aghp.onrender.com";
@@ -51,7 +51,6 @@ const currencies = [
   { code: "BYN", symbol: "Br", name: "Белорусский рубль" },
   { code: "USD", symbol: "$", name: "Доллар США" },
   { code: "EUR", symbol: "€", name: "Евро" },
-  { code: "UAH", symbol: "₴", name: "Гривна" },
 ];
 
 function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme }) {
@@ -59,8 +58,8 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme }) {
   return (
     <div className={`group flex items-center justify-between p-3 rounded-xl backdrop-blur-sm border transition-all duration-300 hover:shadow-md hover:scale-[1.01] mb-2 ${
       theme === "dark"
-        ? "bg-gray-800/60 border-gray-700/30 hover:bg-gray-700/80"
-        : "bg-white/60 border-white/20 hover:bg-white/80"
+        ? "bg-gray-800/80 border-gray-700/50 hover:bg-gray-700/80"
+        : "bg-white/90 border-gray-200/50 hover:bg-white shadow-sm"
     }`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}>
@@ -140,7 +139,9 @@ export default function FinanceApp() {
   const vibrateError = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("error");
   const vibrateSelect = () => haptic && haptic.selectionChanged && haptic.selectionChanged();
 
-  const displayName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || "Пользователь";
+  const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  const displayName = (tgUser && tgUser.first_name) || "Пользователь";
+  const tgPhotoUrl = tgUser && tgUser.photo_url;
 
   // Инициализация Telegram WebApp и автозапуск полноэкрана
   useEffect(() => {
@@ -149,21 +150,18 @@ export default function FinanceApp() {
       if (tg.expand) tg.expand();
       setTheme(tg.colorScheme || "light");
       
-      // Автоматически запускаем полноэкранный режим несколько раз для надежности
+      // Автоматически запускаем полноэкранный режим
       const startFullscreen = async () => {
         try {
           if (tg.requestFullscreen) {
-            // Первая попытка сразу
             if (!tg.isFullscreen) {
               tg.requestFullscreen();
             }
-            // Вторая попытка через 300ms
             setTimeout(() => {
               if (!tg.isFullscreen && tg.requestFullscreen) {
                 tg.requestFullscreen();
               }
             }, 300);
-            // Третья попытка через 800ms
             setTimeout(() => {
               if (!tg.isFullscreen && tg.requestFullscreen) {
                 tg.requestFullscreen();
@@ -267,6 +265,20 @@ export default function FinanceApp() {
     }));
   }, [currency, goalSavings, theme]);
 
+  // Keep-alive запрос для Render
+  useEffect(() => {
+    const keepAlive = async () => {
+      try {
+        await fetch(`${API_BASE}/api/health`).catch(() => {});
+      } catch (e) {}
+    };
+    
+    keepAlive();
+    const interval = setInterval(keepAlive, 5 * 60 * 1000); // каждые 5 минут
+    
+    return () => clearInterval(interval);
+  }, []);
+
   function blurAll() {
     if (document.activeElement && typeof document.activeElement.blur === "function") {
       document.activeElement.blur();
@@ -351,7 +363,8 @@ export default function FinanceApp() {
     setIncome(Number(u.income || 0));
     setExpenses(Number(u.expenses || 0));
     setSavings(Number(u.savings_usd || 0));
-    setGoalSavings(Number(u.goal_savings || 0));
+    setGoalSavings(Number(u.goal_savings || 50000));
+    setGoalInput(String(Number(u.goal_savings || 50000)));
     setTransactions(txs || []);
   }
 
@@ -530,10 +543,14 @@ export default function FinanceApp() {
 
   if (!isReady) {
     return (
-      <div className="w-full h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
+      <div className={`w-full h-screen flex items-center justify-center ${
+        theme === "dark" 
+          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900" 
+          : "bg-gradient-to-br from-indigo-50 via-white to-cyan-50"
+      }`}>
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+          <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>Загрузка...</p>
         </div>
       </div>
     );
@@ -552,80 +569,94 @@ export default function FinanceApp() {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      {/* Header */}
-      <header className="relative overflow-hidden flex-shrink-0 z-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600"></div>
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }}></div>
-        
-        <div className="relative px-4 pt-6 pb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white mb-1">
-                Привет, {(user && user.first_name) || displayName}! 👋
-              </h1>
-              <p className="text-blue-100 text-sm">Добро пожаловать в ваш финансовый помощник</p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
+      {/* Header - только на главной */}
+      {activeTab === "overview" && (
+        <header className="relative overflow-hidden flex-shrink-0 z-20">
+          <div className={`absolute inset-0 ${
+            theme === "dark"
+              ? "bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800"
+              : "bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600"
+          }`}></div>
+          <div className="absolute inset-0 opacity-20" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }}></div>
+          
+          <div className="relative px-4 pt-6 pb-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-white mb-1">
+                  Привет, {(user && user.first_name) || displayName}! 👋
+                </h1>
+                <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Добро пожаловать в ваш финансовый помощник</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
+                  <button
+                    onClick={toggleFullscreen}
+                    className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all touch-none"
+                    title="Полноэкранный режим"
+                  >
+                    {isFullscreen ? <Minimize2 className="w-4 h-4 text-white" /> : <Maximize2 className="w-4 h-4 text-white" />}
+                  </button>
+                )}
                 <button
-                  onClick={toggleFullscreen}
+                  onClick={() => setBalanceVisible(!balanceVisible)}
                   className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all touch-none"
-                  title="Полноэкранный режим"
                 >
-                  {isFullscreen ? <Minimize2 className="w-4 h-4 text-white" /> : <Maximize2 className="w-4 h-4 text-white" />}
+                  {balanceVisible ? <Eye className="w-4 h-4 text-white" /> : <EyeOff className="w-4 h-4 text-white" />}
                 </button>
-              )}
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className="p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all touch-none"
-              >
-                {balanceVisible ? <Eye className="w-4 h-4 text-white" /> : <EyeOff className="w-4 h-4 text-white" />}
-              </button>
+              </div>
             </div>
-          </div>
 
-          {/* Balance Card */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-white/20">
-                  <CreditCard className="w-4 h-4 text-white" />
+            {/* Balance Card */}
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-white/20">
+                    <CreditCard className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className={`text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Общий баланс</p>
+                    <p className="text-white text-2xl font-bold">
+                      {balanceVisible ? formatCurrency(balance) : "••••••"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-blue-100 text-xs">Общий баланс</p>
-                  <p className="text-white text-2xl font-bold">
-                    {balanceVisible ? formatCurrency(balance) : "••••••"}
+              </div>
+
+              {/* Income/Expense Row */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className={`rounded-xl p-3 border ${
+                  theme === "dark"
+                    ? "bg-emerald-900/40 border-emerald-700/40"
+                    : "bg-emerald-500/20 border-emerald-400/30"
+                }`}>
+                  <div className="flex items-center gap-1 mb-1">
+                    <TrendingUp className="w-3 h-3 text-emerald-300" />
+                    <span className="text-emerald-100 text-xs">Доходы</span>
+                  </div>
+                  <p className="text-emerald-200 text-lg font-bold">
+                    {balanceVisible ? formatCurrency(income) : "••••••"}
+                  </p>
+                </div>
+                <div className={`rounded-xl p-3 border ${
+                  theme === "dark"
+                    ? "bg-rose-900/40 border-rose-700/40"
+                    : "bg-rose-500/20 border-rose-400/30"
+                }`}>
+                  <div className="flex items-center gap-1 mb-1">
+                    <TrendingDown className="w-3 h-3 text-rose-300" />
+                    <span className="text-rose-100 text-xs">Расходы</span>
+                  </div>
+                  <p className="text-rose-200 text-lg font-bold">
+                    {balanceVisible ? formatCurrency(expenses) : "••••••"}
                   </p>
                 </div>
               </div>
             </div>
-
-            {/* Income/Expense Row */}
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className="bg-emerald-500/20 rounded-xl p-3 border border-emerald-400/30">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingUp className="w-3 h-3 text-emerald-300" />
-                  <span className="text-emerald-100 text-xs">Доходы</span>
-                </div>
-                <p className="text-emerald-200 text-lg font-bold">
-                  {balanceVisible ? formatCurrency(income) : "••••••"}
-                </p>
-              </div>
-              <div className="bg-rose-500/20 rounded-xl p-3 border border-rose-400/30">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingDown className="w-3 h-3 text-rose-300" />
-                  <span className="text-rose-100 text-xs">Расходы</span>
-                </div>
-                <p className="text-rose-200 text-lg font-bold">
-                  {balanceVisible ? formatCurrency(expenses) : "••••••"}
-                </p>
-              </div>
-            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content - Scrollable */}
       <main 
@@ -640,7 +671,7 @@ export default function FinanceApp() {
           height: '100%',
         }}
       >
-        <div className="px-4 pb-28 pt-4"
+        <div className={`px-4 pb-28 ${activeTab === "overview" ? "pt-4" : "pt-6"}`}
           style={{
             minHeight: '100%',
             touchAction: 'pan-y',
@@ -685,11 +716,13 @@ export default function FinanceApp() {
                 </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <History className="w-6 h-6 text-gray-400" />
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                      theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                    }`}>
+                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
                     </div>
-                    <p className="text-gray-500 text-sm">Пока нет операций</p>
-                    <p className="text-gray-400 text-xs mt-1">Добавьте первую транзакцию</p>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Пока нет операций</p>
+                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>Добавьте первую транзакцию</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -712,17 +745,22 @@ export default function FinanceApp() {
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>История операций</h3>
                   <button
                     onClick={() => { setShowChart(true); setChartType("expense"); }}
-                    className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors touch-none"
-                  >
-                    <BarChart3 className="w-4 h-4 text-blue-600" />
+                    className={`p-2 rounded-lg transition-colors touch-none ${
+                      theme === "dark" 
+                        ? "bg-gray-700 hover:bg-gray-600" 
+                        : "bg-blue-100 hover:bg-blue-200"
+                    }`}>
+                    <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                   </button>
                 </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <History className="w-6 h-6 text-gray-400" />
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                      theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                    }`}>
+                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
                     </div>
-                    <p className="text-gray-500 text-sm">Нет операций</p>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -737,11 +775,15 @@ export default function FinanceApp() {
           {activeTab === "savings" && (
             <div className="space-y-4 animate-fadeIn">
               {/* Savings Goal Card */}
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-4 text-white shadow-2xl">
+              <div className={`rounded-2xl p-4 text-white shadow-2xl ${
+                theme === "dark"
+                  ? "bg-gradient-to-br from-gray-800 to-gray-700"
+                  : "bg-gradient-to-br from-blue-500 to-purple-600"
+              }`}>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-xl font-bold mb-1">Копилка</h3>
-                    <p className="text-blue-100 text-sm">Ваша цель накопления</p>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Ваша цель накопления</p>
                   </div>
                   <div className="p-2 rounded-xl bg-white/20 flex-shrink-0">
                     <PiggyBank className="w-6 h-6 text-white" />
@@ -750,7 +792,7 @@ export default function FinanceApp() {
 
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-blue-100 text-sm">Прогресс</span>
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Прогресс</span>
                     <span className="text-white font-bold">{savingsPct}%</span>
                   </div>
                   <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
@@ -759,7 +801,7 @@ export default function FinanceApp() {
                       style={{ width: `${savingsPct}%` }}
                     />
                   </div>
-                  <div className="flex items-center justify-between mt-2 text-xs text-blue-100">
+                  <div className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
                     <span>{formatCurrency(savings)}</span>
                     <span>{formatCurrency(goalSavings)}</span>
                   </div>
@@ -774,8 +816,11 @@ export default function FinanceApp() {
                   </button>
                   <button
                     onClick={() => { setTransactionType("savings"); setShowAddModal(true); vibrate(); }}
-                    className="flex items-center gap-1 px-4 py-2 bg-white text-blue-600 rounded-xl font-medium hover:bg-blue-50 transition-all shadow-lg text-sm touch-none"
-                  >
+                    className={`flex items-center gap-1 px-4 py-2 rounded-xl font-medium transition-all shadow-lg text-sm touch-none ${
+                      theme === "dark"
+                        ? "bg-gray-700 text-white hover:bg-gray-600"
+                        : "bg-white text-blue-600 hover:bg-blue-50"
+                    }`}>
                     <Plus className="w-4 h-4" />
                     Пополнить
                   </button>
@@ -791,11 +836,13 @@ export default function FinanceApp() {
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>История пополнений</h3>
                 {transactions.filter((t) => t.type === "savings").length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <PiggyBank className="w-6 h-6 text-blue-600" />
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                      theme === "dark" ? "bg-gray-700" : "bg-blue-100"
+                    }`}>
+                      <PiggyBank className={`w-6 h-6 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                     </div>
-                    <p className="text-gray-500 text-sm">Начните копить!</p>
-                    <p className="text-gray-400 text-xs mt-1">Добавьте первое пополнение</p>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Начните копить!</p>
+                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>Добавьте первое пополнение</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -819,33 +866,66 @@ export default function FinanceApp() {
                 
                 {isAuthenticated ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-green-600 font-bold text-sm">
-                          {((user && user.first_name) || (user && user.email) || "U")[0].toUpperCase()}
-                        </span>
-                      </div>
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      theme === "dark"
+                        ? "bg-green-900/30 border-green-700/30"
+                        : "bg-green-50 border-green-200"
+                    }`}>
+                      {tgPhotoUrl ? (
+                        <img 
+                          src={tgPhotoUrl} 
+                          alt="Avatar" 
+                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+                        />
+                      ) : (
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          theme === "dark" ? "bg-green-700" : "bg-green-100"
+                        }`}>
+                          <User className={`w-5 h-5 ${theme === "dark" ? "text-green-300" : "text-green-600"}`} />
+                        </div>
+                      )}
                       <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm truncate">{(user && user.first_name) || "Пользователь"}</p>
-                        <p className="text-gray-600 text-xs truncate">{user && user.email}</p>
+                        <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                          {(user && user.first_name) || displayName}
+                        </p>
+                        <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                          {user && user.email}
+                        </p>
                       </div>
                     </div>
                     <button 
                       onClick={handleLogout} 
-                      className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95"
-                    >
+                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-rose-700 hover:bg-rose-600 text-white"
+                          : "bg-rose-500 hover:bg-rose-600 text-white"
+                      }`}>
                       <LogOut className="w-4 h-4" />
                       Выйти
                     </button>
                   </div>
                 ) : (
-                  <button 
-                    onClick={() => setShowAuthModal(true)} 
-                    className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    Войти
-                  </button>
+                  <div className="space-y-3">
+                    <div className={`p-3 rounded-xl border ${
+                      theme === "dark"
+                        ? "bg-blue-900/30 border-blue-700/30"
+                        : "bg-blue-50 border-blue-200"
+                    }`}>
+                      <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                        Войдите в учетную запись, чтобы синхронизировать данные на всех устройствах и не потерять их при переустановке приложения.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setShowAuthModal(true)} 
+                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-blue-700 hover:bg-blue-600 text-white"
+                          : "bg-blue-500 hover:bg-blue-600 text-white"
+                      }`}>
+                      <LogIn className="w-4 h-4" />
+                      Войти
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -892,12 +972,19 @@ export default function FinanceApp() {
               </div>
 
               {/* Danger Zone */}
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
-                <h3 className="text-lg font-bold text-red-900 mb-3">Опасная зона</h3>
+              <div className={`rounded-2xl p-4 border ${
+                theme === "dark"
+                  ? "bg-red-900/30 border-red-700/30"
+                  : "bg-red-50 border-red-200"
+              }`}>
+                <h3 className={`text-lg font-bold mb-3 ${theme === "dark" ? "text-red-300" : "text-red-900"}`}>Опасная зона</h3>
                 <button 
                   onClick={handleResetAll} 
-                  className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all shadow-lg text-sm touch-none active:scale-95"
-                >
+                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-red-700 hover:bg-red-600 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
+                  }`}>
                   Сбросить все данные
                 </button>
               </div>
@@ -909,24 +996,33 @@ export default function FinanceApp() {
       {/* Modals */}
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Цель накопления</h3>
+          <div className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${
+            theme === "dark" ? "bg-gray-800" : "bg-white"
+          }`}>
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Цель накопления</h3>
             <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2 text-sm">Сумма цели</label>
+              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>Сумма цели</label>
               <input 
                 type="number" 
                 value={goalInput} 
                 min={0} 
                 onChange={(e) => setGoalInput(e.target.value.replace(/^0+/, ""))} 
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-lg font-bold"
+                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
                 placeholder="Введите сумму"
               />
             </div>
             <div className="flex gap-2">
               <button 
                 onClick={() => setShowGoalModal(false)} 
-                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all text-sm touch-none active:scale-95"
-              >
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}>
                 Отмена
               </button>
               <button 
@@ -935,8 +1031,11 @@ export default function FinanceApp() {
                   if (!Number.isNaN(n) && n >= 0) setGoalSavings(n); 
                   setShowGoalModal(false); 
                 }} 
-                className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all text-sm touch-none active:scale-95"
-              >
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}>
                 Сохранить
               </button>
             </div>
@@ -946,17 +1045,22 @@ export default function FinanceApp() {
 
       {showChart && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
+          <div className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${
+            theme === "dark" ? "bg-gray-800" : "bg-white"
+          }`}>
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               {chartType === "income" ? "Доходы" : chartType === "expense" ? "Расходы" : "Копилка"} по категориям
             </h3>
-            <div className="text-center py-8 text-gray-500">
+            <div className={`text-center py-8 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
               График доступен при подключении Chart.js
             </div>
             <button 
               onClick={() => setShowChart(false)} 
-              className="mt-4 w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all text-sm touch-none active:scale-95"
-            >
+              className={`mt-4 w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                theme === "dark"
+                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+              }`}>
               Закрыть
             </button>
           </div>
@@ -964,9 +1068,11 @@ export default function FinanceApp() {
       )}
 
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
-          <div className="w-full max-w-md bg-white rounded-t-2xl p-4 shadow-2xl max-h-[85vh] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Новая операция</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" style={{ touchAction: 'none' }}>
+          <div className={`w-full max-w-md rounded-t-2xl p-4 shadow-2xl max-h-[85vh] overflow-y-auto ${
+            theme === "dark" ? "bg-gray-800" : "bg-white"
+          }`} style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Новая операция</h3>
 
             <div className="flex gap-2 mb-4">
               {["expense", "income", "savings"].map((type) => (
@@ -976,6 +1082,8 @@ export default function FinanceApp() {
                   className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
                     transactionType === type 
                       ? (type === "income" ? "bg-emerald-500 text-white" : type === "expense" ? "bg-rose-500 text-white" : "bg-blue-500 text-white") 
+                      : theme === "dark"
+                      ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
@@ -989,19 +1097,31 @@ export default function FinanceApp() {
               placeholder="Сумма" 
               value={amount} 
               onChange={(e) => setAmount(e.target.value.replace(/^0+/, ""))} 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
             />
             <input 
               type="text" 
               placeholder="Описание (необязательно)" 
               value={description} 
               onChange={(e) => setDescription(e.target.value)} 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
             />
             <select 
               value={category} 
               onChange={(e) => setCategory(e.target.value)} 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className={`w-full p-3 border rounded-xl mb-4 transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
             >
               <option value="">Категория</option>
               {categoriesList[transactionType].map((cat) => (
@@ -1012,8 +1132,11 @@ export default function FinanceApp() {
             <div className="flex gap-2">
               <button 
                 onClick={()=> setShowAddModal(false)} 
-                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all text-sm touch-none active:scale-95"
-              >
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}>
                 Отмена
               </button>
               <button 
@@ -1022,8 +1145,7 @@ export default function FinanceApp() {
                   transactionType === "income" ? "bg-emerald-500 hover:bg-emerald-600" : 
                   transactionType === "expense" ? "bg-rose-500 hover:bg-rose-600" : 
                   "bg-blue-500 hover:bg-blue-600"
-                }`}
-              >
+                }`}>
                 Добавить
               </button>
             </div>
@@ -1033,27 +1155,41 @@ export default function FinanceApp() {
 
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Вход / Регистрация</h3>
+          <div className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
+            theme === "dark" ? "bg-gray-800" : "bg-white"
+          }`} style={{ WebkitOverflowScrolling: 'touch' }}>
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Вход / Регистрация</h3>
             <input 
               type="email" 
               placeholder="Email" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
             />
             <input 
               type="password" 
               placeholder="Пароль" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl mb-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
             />
-            <p className="text-xs text-gray-600 mb-3">Имя: {displayName}</p>
+            <p className={`text-xs mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Имя: {displayName}</p>
             <select 
               value={authCurrency} 
               onChange={(e) => setAuthCurrency(e.target.value)} 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl mb-4 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              className={`w-full p-3 border rounded-xl mb-4 transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
             >
               {currencies.map((c) => (
                 <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>
@@ -1063,13 +1199,21 @@ export default function FinanceApp() {
             <div className="flex gap-2">
               <button 
                 onClick={() => setShowAuthModal(false)} 
-                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all text-sm touch-none active:scale-95"
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
               >
                 Отмена
               </button>
               <button 
                 onClick={handleAuth} 
-                className="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all text-sm touch-none active:scale-95"
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
               >
                 Войти
               </button>
@@ -1089,7 +1233,11 @@ export default function FinanceApp() {
           }}
         >
           <div className="flex items-center justify-center p-2">
-            <div className="w-full max-w-md bg-white/90 backdrop-blur-md rounded-full p-1.5 border border-white/20 shadow-2xl flex items-center justify-around pointer-events-auto">
+            <div className={`w-full max-w-md backdrop-blur-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto ${
+              theme === "dark"
+                ? "bg-gray-800/90 border-gray-700/20"
+                : "bg-white/90 border-white/20"
+            }`}>
               <NavButton 
                 active={activeTab === "overview"} 
                 onClick={() => { setActiveTab("overview"); vibrate(); }} 
@@ -1145,6 +1293,22 @@ export default function FinanceApp() {
         main::-webkit-scrollbar {
           width: 0px;
           background: transparent;
+        }
+        
+        /* Отключить зум на инпутах */
+        input[type="text"],
+        input[type="number"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+          font-size: 16px !important;
+          touch-action: manipulation;
+        }
+        
+        /* Быстрый отклик клавиатуры */
+        input, select, textarea {
+          transition: none !important;
         }
       `}</style>
     </div>
