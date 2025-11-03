@@ -43,7 +43,7 @@ async function initDB() {
 
         await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_email TEXT;`)
 
-        // Удаляем старый FK (если был)
+        // Удаляем старый FK (если б��л)
         await pool.query(
           `DO $$ BEGIN ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_user_id_fkey; EXCEPTION WHEN undefined_object THEN NULL; END $$;`,
         )
