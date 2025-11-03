@@ -1,25 +1,25 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import '../index.css'; // <-- Исправленный путь
+import React from "react"
+import ReactDOM from "react-dom/client"
+import App from "./App"
+import "./index.css"
 
 // === Chart.js ===
-import Chart from 'chart.js/auto';
-window.Chart = Chart;
+import Chart from "chart.js/auto"
+window.Chart = Chart
 
 // === Ждём Telegram WebApp ===
 const initApp = () => {
-  const root = ReactDOM.createRoot(document.getElementById('root'));
+  const root = ReactDOM.createRoot(document.getElementById("root"))
   root.render(
     <React.StrictMode>
       <App />
-    </React.StrictMode>
-  );
-};
+    </React.StrictMode>,
+  )
+}
 
 if (window.Telegram?.WebApp) {
-  window.Telegram.WebApp.ready();
-  initApp();
+  window.Telegram.WebApp.ready()
+  initApp()
 } else {
-  setTimeout(initApp, 1000);
+  setTimeout(initApp, 1000)
 }
