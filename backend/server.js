@@ -178,7 +178,7 @@ app.get("/api/transactions", async (req, res) => {
   }
 })
 
-// --- Новый endpoint для получения связанных пользователей ---
+// --- Получить связанных пользователей ---
 app.get("/api/linked-users/:email", async (req, res) => {
   const { email } = req.params
 
@@ -195,6 +195,31 @@ app.get("/api/linked-users/:email", async (req, res) => {
   } catch (e) {
     console.error("Linked users error:", e)
     res.status(500).json({ error: "Ошибка получения пользователей: " + e.message })
+  }
+})
+
+// --- Удалить связанный пользователя ---
+app.delete("/api/linked-users/:email/:telegram_id", async (req, res) => {
+  const { email, telegram_id } = req.params
+
+  if (!email || !telegram_id) {
+    return res.status(400).json({ error: "Email и Telegram ID обязательны" })
+  }
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM linked_telegram_users WHERE user_email = $1 AND telegram_id = $2 RETURNING *",
+      [email, telegram_id],
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Связанный пользователь не найден" })
+    }
+
+    res.json({ success: true, deletedUser: result.rows[0] })
+  } catch (e) {
+    console.error("Delete linked user error:", e)
+    res.status(500).json({ error: "Ошибка удаления пользователя: " + e.message })
   }
 })
 

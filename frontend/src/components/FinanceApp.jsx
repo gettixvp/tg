@@ -316,10 +316,91 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   )
 }
 
+const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLinkedUser }) => {
+  const [swipeX, setSwipeX] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const startX = useRef(0)
+
+  const handleTouchStart = (e) => {
+    startX.current = e.touches[0].clientX
+    setIsSwiping(true)
+  }
+
+  const handleTouchMove = (e) => {
+    if (!isSwiping) return
+    const diff = e.touches[0].clientX - startX.current
+    if (diff < 0) {
+      setSwipeX(Math.max(diff, -80))
+    } else if (swipeX < 0) {
+      setSwipeX(Math.min(0, swipeX + diff / 2))
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false)
+    if (swipeX < -40) {
+      setSwipeX(-80)
+    } else {
+      setSwipeX(0)
+    }
+  }
+
+  const handleDelete = () => {
+    if (window.confirm(`Удалить ${linkedUser.telegram_name || "пользователя"} из семейного аккаунта?`)) {
+      vibrate()
+      removeLinkedUser(linkedUser.telegram_id)
+      setSwipeX(0)
+    }
+  }
+
+  const isCurrentUser = linkedUser.telegram_id === currentTelegramId
+
+  return (
+    <div className="relative mb-1.5 overflow-hidden rounded-xl">
+      <div
+        onClick={handleDelete}
+        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${
+          theme === "dark" ? "bg-red-600" : "bg-red-500"
+        }`}
+      >
+        <Trash2 className="w-5 h-5 text-white" />
+      </div>
+
+      <div
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: isSwiping ? "none" : "transform 0.3s ease",
+        }}
+        onTouchStart={!isCurrentUser ? handleTouchStart : undefined}
+        onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
+        onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
+        className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
+          theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
+        }`}
+      >
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+            theme === "dark" ? "bg-blue-700" : "bg-blue-100"
+          }`}
+        >
+          <User className={`w-5 h-5 ${theme === "dark" ? "text-blue-300" : "text-blue-600"}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-medium truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            {linkedUser.telegram_name || "Пользователь"}
+          </p>
+          {isCurrentUser && <p className={`text-xs ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>Вы</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
 
+  // UseState hooks should be at the top level of the component
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
@@ -342,6 +423,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [category, setCategory] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false) // Declare rememberMe here
   const [authCurrency, setAuthCurrency] = useState("BYN")
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
   const [contentSafeAreaInset, setContentSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
@@ -494,6 +576,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }
       }
 
+      const savedCredentials = localStorage.getItem("savedCredentials")
+      if (savedCredentials) {
+        try {
+          const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials)
+          setEmail(savedEmail || "")
+          setPassword(savedPassword || "")
+          setRememberMe(true) // Use the declared variable
+        } catch (e) {
+          console.warn("Failed to load saved credentials", e)
+        }
+      }
+
       const session = localStorage.getItem(SESSION_KEY)
       if (session) {
         const sessionData = JSON.parse(session)
@@ -546,9 +640,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         if (isFullscreen) {
           tg.exitFullscreen()
           setFullscreenEnabled(false)
+          localStorage.setItem("fullscreenEnabled", "false")
         } else {
           tg.requestFullscreen()
           setFullscreenEnabled(true)
+          localStorage.setItem("fullscreenEnabled", "true")
         }
       } catch (e) {
         console.warn("Fullscreen toggle failed", e)
@@ -604,6 +700,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
     } catch (e) {
       console.warn("Failed to load linked users", e)
+    }
+  }
+
+  const removeLinkedUser = async (telegramId) => {
+    if (!user || !user.email) return
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/linked-users/${user.email}/${telegramId}`, {
+        method: "DELETE",
+      })
+
+      if (resp.ok) {
+        vibrateSuccess()
+        await loadLinkedUsers(user.email)
+      } else {
+        vibrateError()
+        alert("Ошибка удаления пользователя")
+      }
+    } catch (e) {
+      console.error("Remove linked user error:", e)
+      vibrateError()
+      alert("Ошибка удаления пользователя")
     }
   }
 
@@ -865,6 +983,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           token: btoa(password),
         }),
       )
+
+      if (rememberMe) {
+        // Use the declared variable
+        localStorage.setItem("savedCredentials", JSON.stringify({ email, password }))
+      } else {
+        localStorage.removeItem("savedCredentials")
+      }
 
       setShowAuthModal(false)
       setEmail("")
@@ -1355,12 +1480,33 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
+                {linkedUsers.length > 1 && (
+                  <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                    Семейный аккаунт
+                  </p>
+                )}
+
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   Аккаунт
                 </h3>
 
                 {isAuthenticated ? (
                   <div className="space-y-3">
+                    {linkedUsers.length > 1 && (
+                      <div className="space-y-2 mb-3">
+                        {linkedUsers.map((linkedUser) => (
+                          <LinkedUserRow
+                            key={linkedUser.telegram_id}
+                            linkedUser={linkedUser}
+                            currentTelegramId={tgUserId}
+                            theme={theme}
+                            vibrate={vibrate}
+                            removeLinkedUser={removeLinkedUser}
+                          />
+                        ))}
+                      </div>
+                    )}
+
                     <div
                       className={`flex items-center gap-3 p-3 rounded-xl border ${
                         theme === "dark" ? "bg-green-900/30 border-green-700/30" : "bg-green-50 border-green-200"
@@ -1392,31 +1538,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </p>
                       </div>
                     </div>
-
-                    {linkedUsers.length > 1 && (
-                      <div
-                        className={`p-3 rounded-xl border ${
-                          theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
-                        }`}
-                      >
-                        <p
-                          className={`text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}
-                        >
-                          Семейный аккаунт ({linkedUsers.length} пользователей)
-                        </p>
-                        <div className="space-y-1">
-                          {linkedUsers.map((linkedUser, idx) => (
-                            <div
-                              key={idx}
-                              className={`text-xs flex items-center gap-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
-                            >
-                              <User className="w-3 h-3" />
-                              <span>{linkedUser.telegram_name || "Пользователь"}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     <button
                       onClick={handleLogout}
@@ -1847,6 +1968,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               }`}
             />
+
+            <label
+              className={`flex items-center gap-2 mb-3 cursor-pointer ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+            >
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded"
+              />
+              <span className="text-sm">Запомнить меня</span>
+            </label>
+
             <p className={`text-xs mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Имя: {displayName}</p>
             <select
               value={authCurrency}
