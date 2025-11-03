@@ -703,14 +703,12 @@ export default function FinanceApp() {
       if (!res.ok) {
         const err = await res.json().catch(() => ({error: "Ошибка сервера"}));
         alert(err.error || "Ошибка входа");
-        vibrateError();​​​​​​​​​​​​​​​​
-
+        vibrateError();
         return;
       }
       
       const json = await res.json();
       applyUser(json.user, json.transactions || [], true);
-      
       localStorage.setItem(SESSION_KEY, JSON.stringify({ 
         email, 
         token: btoa(password) 
@@ -1301,7 +1299,8 @@ export default function FinanceApp() {
                 }`}>
                 Отмена
               </button>
-              <button onClick={() => { 
+              <button 
+                onClick={() => { 
                   const n = parseInt(goalInput, 10); 
                   if (!Number.isNaN(n) && n >= 0) setGoalSavings(n); 
                   setShowGoalModal(false); 
