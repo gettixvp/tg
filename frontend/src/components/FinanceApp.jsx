@@ -195,19 +195,19 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
   return (
     <div className="relative mb-3 overflow-hidden rounded-2xl">
-      <button
+      <div
         onClick={() => {
           if (swipeX === -80) {
             onDelete(tx.id)
             setSwipeX(0)
           }
         }}
-        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center rounded-2xl transition-all ${
-          swipeX === -80 ? "opacity-100" : "opacity-0 pointer-events-none"
-        } ${theme === "dark" ? "bg-red-600" : "bg-red-500"}`}
+        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center rounded-2xl transition-all cursor-pointer ${
+          theme === "dark" ? "bg-red-600" : "bg-red-500"
+        }`}
       >
         <Trash2 className="w-5 h-5 text-white" />
-      </button>
+      </div>
 
       <div
         style={{
@@ -604,90 +604,79 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  const handleAddTransaction = async () => {
+  const addTransaction = async () => {
     blurAll()
     setShowNumKeyboard(false)
-    const amount = Number.parseFloat(newTransaction.amount)
-    if (isNaN(amount) || amount <= 0) {
+    const n = Number(newTransaction.amount)
+    if (!isFinite(n) || n <= 0) {
       vibrateError()
       alert("Введите корректную сумму > 0")
       return
     }
 
-    let convertedUSD = null
+    let convertedUSD = 0
     if (newTransaction.type === "savings") {
-      convertedUSD = amount / exchangeRate
+      convertedUSD = n * exchangeRate
     }
 
-    const txData = {
-      user_id: user?.email || null, // Use email as user identifier
+    const newTx = {
+      id: Date.now(),
+      user_id: user?.id || null,
       type: newTransaction.type,
-      amount: amount,
-      converted_amount_usd: convertedUSD,
-      description: newTransaction.description,
+      amount: n,
+      converted_amount_usd: convertedUSD || null,
+      description: newTransaction.description || "",
       category: newTransaction.category || "Другое",
+      date: new Date().toISOString(),
     }
 
-    try {
-      const txResponse = await fetch(`${API_URL}/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(txData),
-      })
+    setTransactions((p) => [newTx, ...p])
 
-      if (!txResponse.ok) {
-        const errorData = await txResponse.json().catch(() => ({ error: "Unknown error" }))
-        throw new Error(errorData.error || "Ошибка добавления транзакции")
-      }
+    let newBalance = balance
+    let newIncome = income
+    let newExpenses = expenses
+    let newSavings = savings
 
-      const createdTx = await txResponse.json()
+    if (newTransaction.type === "income") {
+      newIncome += n
+      newBalance += n
+      setIncome(newIncome)
+      setBalance(newBalance)
+    } else if (newTransaction.type === "expense") {
+      newExpenses += n
+      newBalance -= n
+      setExpenses(newExpenses)
+      setBalance(newBalance)
+    } else {
+      newSavings += convertedUSD
+      newBalance -= n
+      setSavings(newSavings)
+      setBalance(newBalance)
+    }
 
-      let newBalance = user ? user.balance : 0
-      let newIncome = user ? user.income : 0
-      let newExpenses = user ? user.expenses : 0
-      let newSavings = user ? user.savings_usd : 0
+    setNewTransaction({ type: "expense", amount: "", description: "", category: "" })
+    setShowAddModal(false)
+    vibrateSuccess()
 
-      if (newTransaction.type === "income") {
-        newIncome += amount
-        newBalance += amount
-      } else if (newTransaction.type === "expense") {
-        newExpenses += amount
-        newBalance -= amount
-      } else if (newTransaction.type === "savings") {
-        newSavings += convertedUSD || 0
-        newBalance -= amount // Deduct from local balance
-      }
-
-      // Update user totals on server if authenticated
-      if (user && user.email) {
-        await fetch(`${API_URL}/user/${user.email}`, {
-          method: "PUT",
+    if (user && user.email) {
+      try {
+        await fetch(`${API_URL}/api/transactions`, {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            balance: newBalance,
-            income: newIncome,
-            expenses: newExpenses,
-            savings: newSavings,
-            goalSavings: user.goal_savings,
+            user_id: user.email,
+            type: newTx.type,
+            amount: newTx.amount,
+            description: newTx.description,
+            category: newTx.category,
+            converted_amount_usd: convertedUSD || null,
           }),
         })
-        setUser({
-          ...user,
-          balance: newBalance,
-          income: newIncome,
-          expenses: newExpenses,
-          savings_usd: newSavings,
-        })
-      }
 
-      setTransactions([createdTx, ...transactions]) // Add to the top
-      setShowAddModal(false)
-      setNewTransaction({ type: "expense", amount: "", description: "", category: "" }) // Reset form
-      vibrateSuccess()
-    } catch (err) {
-      console.error("Add transaction error:", err)
-      alert(err.message || "Ошибка при добавлении транзакции")
-      vibrateError()
+        await saveToServer(newBalance, newIncome, newExpenses, newSavings)
+      } catch (e) {
+        console.warn("Failed to save tx", e)
+      }
     }
   }
 
@@ -695,6 +684,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     vibrate()
     const tx = transactions.find((t) => t.id === txId)
     if (!tx) return
+
+    if (!window.confirm("Удалить эту транзакцию?")) return
 
     setTransactions((p) => p.filter((t) => t.id !== txId))
 
@@ -714,26 +705,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       setExpenses(newExpenses)
       setBalance(newBalance)
     } else {
-      // savings
-      newSavings -= tx.converted_amount_usd || 0 // Subtract USD amount
-      newBalance += tx.amount // Add back local currency amount
+      newSavings -= tx.converted_amount_usd || 0
+      newBalance += tx.amount
       setSavings(newSavings)
       setBalance(newBalance)
     }
 
     vibrateSuccess()
 
-    // Save to server if authenticated
     if (user && user.email) {
       try {
-        await fetch(`${API_URL}/transactions/${txId}`, {
+        await fetch(`${API_URL}/api/transactions/${txId}`, {
           method: "DELETE",
         })
-        await saveToServer(newBalance, newIncome, newExpenses, newSavings) // Save updated totals
+        await saveToServer(newBalance, newIncome, newExpenses, newSavings)
       } catch (e) {
         console.warn("Failed to delete tx", e)
-        alert("Ошибка удаления транзакции с сервера.")
-        vibrateError()
       }
     }
   }
@@ -753,36 +740,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         first_name: displayName,
       }
 
-      console.log("[v0] Attempting auth with:", { email, first_name: displayName })
-
-      const res = await fetch(`${API_URL}/auth`, {
+      const res = await fetch(`${API_URL}/api/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
 
-      console.log("[v0] Auth response status:", res.status)
-
       if (!res.ok) {
-        const errorText = await res.text()
-        console.error("[v0] Auth error response:", errorText)
-
-        let errorMessage = "Ошибка входа"
-        try {
-          const errorJson = JSON.parse(errorText)
-          errorMessage = errorJson.error || errorMessage
-        } catch (e) {
-          errorMessage = errorText || errorMessage
-        }
-
-        alert(errorMessage)
+        const err = await res.json().catch(() => ({ error: "Ошибка сервера" }))
+        alert(err.error || "Ошибка входа")
         vibrateError()
         return
       }
 
       const json = await res.json()
-      console.log("[v0] Auth successful, user:", json.user)
-
       applyUser(json.user, json.transactions || [], true)
       localStorage.setItem(
         SESSION_KEY,
@@ -798,15 +769,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       setCurrency(authCurrency)
       vibrateSuccess()
     } catch (e) {
-      console.error("[v0] Auth error:", e)
-      alert("Ошибка авторизации: " + e.message)
+      console.error("Auth error:", e)
+      alert("Ошибка авторизации")
       vibrateError()
     }
   }
 
   const handleLogout = async () => {
     blurAll()
-    // Save current state before logging out
+
     if (user?.id) {
       try {
         await saveToServer(balance, income, expenses, savings)
@@ -814,30 +785,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         console.warn("save on logout failed", e)
       }
     }
+
     localStorage.removeItem(SESSION_KEY)
-    setIsAuthenticated(false) // Reset authentication status
-    setUser(null)
+    setIsAuthenticated(false)
+
+    if (tgUserId) {
+      autoAuthTelegram(tgUserId)
+    } else {
+      setUser(null)
+      setBalance(0)
+      setIncome(0)
+      setExpenses(0)
+      setSavings(0)
+      setTransactions([])
+    }
+    vibrateError()
+  }
+
+  const handleResetAll = async () => {
+    if (!window.confirm("Сбросить данные? Это удалит баланс, доходы, расходы, копилку и операции.")) return
+
     setBalance(0)
     setIncome(0)
     setExpenses(0)
     setSavings(0)
     setTransactions([])
-    vibrateError()
-  }
 
-  const handleResetData = async () => {
-    if (!user) return
-    if (!confirm("Вы уверены? Все данные будут удалены!")) return
-
-    try {
-      await fetch(`${API_URL}/user/${user.email}/reset`, { method: "POST" })
-      setUser({ ...user, balance: 0, income: 0, expenses: 0, savings_usd: 0 })
-      setTransactions([])
-      vibrateSuccess()
-    } catch (err) {
-      console.error("Reset error:", err)
-      alert("Ошибка при сбросе данных")
-      vibrateError()
+    if (user && user.email) {
+      try {
+        await fetch(`${API_URL}/api/user/${user.email}/reset`, {
+          method: "POST",
+        })
+        vibrateSuccess()
+      } catch (e) {
+        console.warn("Failed to reset on server", e)
+      }
     }
   }
 
@@ -845,7 +827,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   async function autoAuthTelegram(telegramId) {
     try {
       const tgEmail = `tg_${telegramId}@telegram.user`
-      const resp = await fetch(`${API_URL}/auth`, {
+      const resp = await fetch(`${API_URL}/api/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -857,7 +839,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       if (!resp.ok) throw new Error("auth failed")
       const json = await resp.json()
-      applyUser(json.user, json.transactions || [], true) // Mark as authenticated
+      applyUser(json.user, json.transactions || [], false) // Mark as authenticated
     } catch (e) {
       console.warn("autoAuthTelegram failed", e)
     }
@@ -865,7 +847,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   async function autoAuth(email, token) {
     try {
-      const resp = await fetch(`${API_URL}/auth`, {
+      const resp = await fetch(`${API_URL}/api/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -898,7 +880,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const saveToServer = async (newBalance, newIncome, newExpenses, newSavings) => {
     if (user && user.email) {
       try {
-        await fetch(`${API_URL}/user/${user.email}`, {
+        await fetch(`${API_URL}/api/user/${user.email}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1445,7 +1427,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <button
-                onClick={handleAddTransaction}
+                onClick={addTransaction}
                 className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] mt-6"
               >
                 Добавить транзакцию
