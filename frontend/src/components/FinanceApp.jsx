@@ -170,7 +170,7 @@ function NavButton({ active, onClick, icon, theme }) {
   )
 }
 
-function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete }) {
+function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const startX = useRef(0)
@@ -240,9 +240,20 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2 mb-0.5">
-              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                {formatDate(tx.date)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                  {formatDate(tx.date)}
+                </span>
+                {showCreator && tx.created_by_name && (
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-md ${
+                      theme === "dark" ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {tx.created_by_name}
+                  </span>
+                )}
+              </div>
             </div>
             {tx.description && (
               <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -343,6 +354,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
+
+  const [linkedUsers, setLinkedUsers] = useState([])
+  const [showLinkedUsers, setShowLinkedUsers] = useState(false)
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -579,6 +593,36 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
   }
 
+  const loadLinkedUsers = async (email) => {
+    if (!email) return
+    try {
+      const resp = await fetch(`${API_BASE}/api/linked-users/${email}`)
+      if (resp.ok) {
+        const data = await resp.json()
+        setLinkedUsers(data.linkedUsers || [])
+        setShowLinkedUsers((data.linkedUsers || []).length > 1)
+      }
+    } catch (e) {
+      console.warn("Failed to load linked users", e)
+    }
+  }
+
+  function applyUser(u, txs = [], isEmailAuth = false) {
+    setUser(u)
+    setIsAuthenticated(isEmailAuth)
+    setBalance(Number(u.balance || 0))
+    setIncome(Number(u.income || 0))
+    setExpenses(Number(u.expenses || 0))
+    setSavings(Number(u.savings_usd || 0)) // Ensure savings is treated as USD
+    setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
+    setGoalInput(String(Number(u.goal_savings || 50000)))
+    setTransactions(txs || [])
+
+    if (isEmailAuth && u.email) {
+      loadLinkedUsers(u.email)
+    }
+  }
+
   async function autoAuthTelegram(telegramId) {
     try {
       const tgEmail = `tg_${telegramId}@telegram.user`
@@ -589,6 +633,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           email: tgEmail,
           password: `tg_${telegramId}`,
           first_name: displayName,
+          telegram_id: telegramId,
+          telegram_name: displayName,
         }),
       })
 
@@ -609,6 +655,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           email,
           password: atob(token), // Decode password from base64
           first_name: displayName,
+          telegram_id: tgUserId,
+          telegram_name: displayName,
         }),
       })
 
@@ -619,18 +667,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       console.warn("autoAuth failed", e)
       localStorage.removeItem(SESSION_KEY) // Clear session if auth fails
     }
-  }
-
-  function applyUser(u, txs = [], isEmailAuth = false) {
-    setUser(u)
-    setIsAuthenticated(isEmailAuth) // Set authentication status
-    setBalance(Number(u.balance || 0))
-    setIncome(Number(u.income || 0))
-    setExpenses(Number(u.expenses || 0))
-    setSavings(Number(u.savings_usd || 0)) // Ensure savings is treated as USD
-    setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
-    setGoalInput(String(Number(u.goal_savings || 50000)))
-    setTransactions(txs || [])
   }
 
   const saveToServer = async (newBalance, newIncome, newExpenses, newSavings) => {
@@ -678,6 +714,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       description: description || "",
       category: category || "Другое",
       date: new Date().toISOString(),
+      created_by_telegram_id: tgUserId || null,
+      created_by_name: displayName || null,
     }
 
     setTransactions((p) => [newTx, ...p])
@@ -722,6 +760,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             description: newTx.description,
             category: newTx.category,
             converted_amount_usd: convertedUSD || null,
+            created_by_telegram_id: tgUserId || null,
+            created_by_name: displayName || null,
           }),
         })
 
@@ -799,6 +839,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         email,
         password,
         first_name: displayName,
+        telegram_id: tgUserId,
+        telegram_name: displayName,
       }
 
       const res = await fetch(`${API_BASE}/api/auth`, {
@@ -1131,6 +1173,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         formatDate={formatDate}
                         theme={theme}
                         onDelete={deleteTransaction}
+                        showCreator={showLinkedUsers}
                       />
                     ))}
                   </div>
@@ -1184,6 +1227,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         formatDate={formatDate}
                         theme={theme}
                         onDelete={deleteTransaction}
+                        showCreator={showLinkedUsers}
                       />
                     ))}
                   </div>
@@ -1295,6 +1339,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           formatDate={formatDate}
                           theme={theme}
                           onDelete={deleteTransaction}
+                          showCreator={showLinkedUsers}
                         />
                       ))}
                   </div>
@@ -1347,6 +1392,32 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </p>
                       </div>
                     </div>
+
+                    {linkedUsers.length > 1 && (
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
+                        }`}
+                      >
+                        <p
+                          className={`text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}
+                        >
+                          Семейный аккаунт ({linkedUsers.length} пользователей)
+                        </p>
+                        <div className="space-y-1">
+                          {linkedUsers.map((linkedUser, idx) => (
+                            <div
+                              key={idx}
+                              className={`text-xs flex items-center gap-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                            >
+                              <User className="w-3 h-3" />
+                              <span>{linkedUser.telegram_name || "Пользователь"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <button
                       onClick={handleLogout}
                       className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
