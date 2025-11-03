@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState, useRef } from "react"
 import {
   Wallet,
@@ -150,14 +152,14 @@ function NavButton({ active, onClick, icon, theme }) {
   return (
     <button
       onClick={onClick}
-      className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
+      className={`p-3 rounded-2xl transition-all duration-300 transform active:scale-95 touch-none ${
         active
           ? theme === "dark"
-            ? "bg-gray-700 text-blue-400"
-            : "bg-blue-100 text-blue-600"
+            ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg"
+            : "bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-lg"
           : theme === "dark"
-            ? "text-gray-400 hover:text-gray-300"
-            : "text-gray-600 hover:text-gray-900"
+            ? "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+            : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
       }`}
     >
       {icon}
@@ -197,9 +199,9 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
 
   return (
-    <div className="relative mb-2 overflow-hidden rounded-xl">
+    <div className="relative mb-3 overflow-hidden rounded-2xl">
       <div
-        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center ${
+        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center rounded-2xl ${
           theme === "dark" ? "bg-red-600" : "bg-red-500"
         }`}
       >
@@ -214,17 +216,17 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`relative flex items-center justify-between p-3 rounded-xl backdrop-blur-sm border transition-all duration-300 hover:shadow-md ${
+        className={`relative flex items-center justify-between p-4 rounded-2xl backdrop-blur-xl border transition-all duration-300 hover:shadow-xl ${
           theme === "dark"
-            ? "bg-gray-800/80 border-gray-700/50 hover:bg-gray-700/80"
-            : "bg-white/90 border-gray-200/50 hover:bg-white shadow-sm"
+            ? "bg-gray-800/70 border-gray-700/30 hover:bg-gray-700/70"
+            : "bg-white/80 border-white/50 hover:bg-white/90 shadow-lg"
         }`}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div
-            className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
+            className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br ${categoryInfo.color} shadow-lg flex-shrink-0`}
           >
-            <span className="text-lg">{categoryInfo.icon}</span>
+            <span className="text-xl">{categoryInfo.icon}</span>
           </div>
 
           <div className="min-w-0 flex-1">
@@ -235,7 +237,7 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
             )}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} flex-shrink-0`}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} flex-shrink-0`}
               >
                 {tx.category}
               </span>
@@ -248,7 +250,7 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
         <div className="text-right ml-2 flex-shrink-0">
           <p
-            className={`font-bold text-sm ${
+            className={`font-bold text-base ${
               tx.type === "income" ? "text-emerald-600" : tx.type === "expense" ? "text-rose-600" : "text-blue-600"
             }`}
           >
@@ -264,9 +266,9 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
             onDelete(tx.id)
             setSwipeX(0)
           }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-red-500 text-white touch-none z-10 shadow-lg"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-3 rounded-xl bg-red-500 text-white touch-none z-10 shadow-xl hover:bg-red-600 transition-colors"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-5 h-5" />
         </button>
       )}
     </div>
@@ -276,8 +278,8 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   return (
     <div
-      className={`grid grid-cols-3 gap-2 p-4 rounded-t-2xl ${
-        theme === "dark" ? "bg-gray-800 border-t border-gray-700" : "bg-gray-100 border-t border-gray-200"
+      className={`grid grid-cols-3 gap-3 p-4 rounded-t-3xl backdrop-blur-xl ${
+        theme === "dark" ? "bg-gray-800/90 border-t border-gray-700/50" : "bg-white/90 border-t border-gray-200/50"
       }`}
     >
       {[1, 2, 3, 4, 5, 6, 7, 8, 9, ".", 0, "⌫"].map((key) => (
@@ -287,10 +289,10 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
             if (key === "⌫") onBackspace()
             else onNumberPress(key.toString())
           }}
-          className={`p-4 rounded-xl text-xl font-semibold transition-all touch-none active:scale-95 ${
+          className={`p-4 rounded-2xl text-xl font-semibold transition-all touch-none active:scale-95 shadow-lg ${
             theme === "dark"
-              ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
-              : "bg-white text-gray-900 hover:bg-gray-50 shadow-sm"
+              ? "bg-gray-700/80 text-gray-100 hover:bg-gray-600/80 backdrop-blur-sm"
+              : "bg-white/90 text-gray-900 hover:bg-white backdrop-blur-sm"
           }`}
         >
           {key}
@@ -298,7 +300,7 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
       ))}
       <button
         onClick={onDone}
-        className="col-span-3 p-4 rounded-xl text-lg font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-all touch-none active:scale-95"
+        className="col-span-3 p-4 rounded-2xl text-lg font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all touch-none active:scale-95 shadow-xl"
       >
         Готово
       </button>
@@ -326,6 +328,13 @@ export default function FinanceApp({ apiUrl }) {
   const [authMode, setAuthMode] = useState("login")
   const [showChart, setShowChart] = useState(false)
   const [chartType, setChartType] = useState("")
+  // New state for the transaction form
+  const [newTransaction, setNewTransaction] = useState({
+    type: "income",
+    amount: "",
+    description: "",
+    category: "",
+  })
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
@@ -344,17 +353,6 @@ export default function FinanceApp({ apiUrl }) {
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
 
-  // Added from updates
-  const [swipedId, setSwipedId] = useState(null)
-  const touchStartX = useRef(0)
-  const touchCurrentX = useRef(0)
-  const [newTransaction, setNewTransaction] = useState({
-    type: "income",
-    amount: "",
-    description: "",
-    category: "",
-  })
-
   const API_URL = apiUrl || API_BASE
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
@@ -369,12 +367,14 @@ export default function FinanceApp({ apiUrl }) {
   const displayName = (tgUser && tgUser.first_name) || "Пользователь"
   const tgPhotoUrl = tgUser && tgUser.photo_url
 
-  // Добавлена блокировка вертикального свайпа в Telegram (from updates)
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready()
       window.Telegram.WebApp.expand()
-      window.Telegram.WebApp.disableVerticalSwipes()
+      // Block vertical swipes in Telegram
+      if (window.Telegram.WebApp.disableVerticalSwipes) {
+        window.Telegram.WebApp.disableVerticalSwipes()
+      }
     }
   }, [])
 
@@ -516,7 +516,7 @@ export default function FinanceApp({ apiUrl }) {
       })
 
       setTransactions(transactions.filter((t) => t.id !== id))
-      setSwipedId(null) // Reset swipedId after deletion
+      // setSwipedId(null) // This state is not used here anymore
       vibrateSuccess() // Added vibration
     } catch (err) {
       console.error("Delete error:", err)
@@ -527,31 +527,32 @@ export default function FinanceApp({ apiUrl }) {
 
   // Исправлена функция удаления: теперь корректно обрабатывает savings и сохраняет баланс на сервер (from updates)
   // Улучшена логика свайпа: предотвращено дублирование кнопок (from updates)
-  const handleTouchStart = (e, id) => {
-    touchStartX.current = e.touches[0].clientX
-    touchCurrentX.current = e.touches[0].clientX
-  }
+  // const handleTouchStart = (e, id) => {
+  //   touchStartX.current = e.touches[0].clientX
+  //   touchCurrentX.current = e.touches[0].clientX
+  // }
 
-  const handleTouchMove = (e, id) => {
-    touchCurrentX.current = e.touches[0].clientX
-    const diff = touchStartX.current - touchCurrentX.current
+  // const handleTouchMove = (e, id) => {
+  //   touchCurrentX.current = e.touches[0].clientX
+  //   const diff = touchStartX.current - touchCurrentX.current
 
-    // Only allow swiping to delete if the transaction is not already swiped
-    if (diff > 50 && swipedId !== id) {
-      setSwipedId(id)
-    } else if (diff < -20 && swipedId === id) {
-      // Allow closing the swipe
-      setSwipedId(null)
-    }
-  }
+  //   // Only allow swiping to delete if the transaction is not already swiped
+  //   if (diff > 50 && swipedId !== id) {
+  //     setSwipedId(id)
+  //   } else if (diff < -20 && swipedId === id) {
+  //     // Allow closing the swipe
+  //     setSwipedId(null)
+  //   }
+  // }
 
-  const handleTouchEnd = () => {
-    touchStartX.current = 0
-    touchCurrentX.current = 0
-  }
+  // const handleTouchEnd = () => {
+  //   touchStartX.current = 0
+  //   touchCurrentX.current = 0
+  // }
 
   // Добавлена новая функция для добавления транзакций (from updates)
   const handleAddTransaction = async () => {
+    // Use newTransaction state for form data
     if (!newTransaction.amount || !user) {
       vibrateError() // Added vibration
       return
@@ -624,7 +625,7 @@ export default function FinanceApp({ apiUrl }) {
 
       setTransactions([createdTx, ...transactions])
       setShowAddModal(false)
-      setNewTransaction({ type: "income", amount: "", description: "", category: "" })
+      setNewTransaction({ type: "income", amount: "", description: "", category: "" }) // Reset form
       vibrateSuccess() // Added vibration
     } catch (err) {
       console.error("Add transaction error:", err)
@@ -858,7 +859,7 @@ export default function FinanceApp({ apiUrl }) {
   const addTransaction = async () => {
     blurAll()
     setShowNumKeyboard(false)
-    const n = Number(amount)
+    const n = Number(newTransaction.amount) // Use amount from newTransaction
     if (!isFinite(n) || n <= 0) {
       vibrateError()
       alert("Введите корректную сумму > 0")
@@ -866,18 +867,19 @@ export default function FinanceApp({ apiUrl }) {
     }
 
     let convertedUSD = 0
-    if (transactionType === "savings") {
+    if (newTransaction.type === "savings") {
+      // Use type from newTransaction
       convertedUSD = n * exchangeRate // Convert to USD for savings
     }
 
     const newTx = {
       id: Date.now(), // Simple ID generation
       user_id: user?.id || null, // User ID if logged in
-      type: transactionType,
+      type: newTransaction.type, // Use type from newTransaction
       amount: n,
       converted_amount_usd: convertedUSD || null, // Store converted amount if applicable
-      description: description || "",
-      category: category || "Другое", // Default category
+      description: newTransaction.description, // Use description from newTransaction
+      category: newTransaction.category || "Другое", // Default category
       date: new Date().toISOString(), // Current date
     }
 
@@ -888,12 +890,12 @@ export default function FinanceApp({ apiUrl }) {
     let newExpenses = expenses
     let newSavings = savings
 
-    if (transactionType === "income") {
+    if (newTransaction.type === "income") {
       newIncome += n
       newBalance += n
       setIncome(newIncome)
       setBalance(newBalance)
-    } else if (transactionType === "expense") {
+    } else if (newTransaction.type === "expense") {
       newExpenses += n
       newBalance -= n
       setExpenses(newExpenses)
@@ -906,9 +908,8 @@ export default function FinanceApp({ apiUrl }) {
       setBalance(newBalance)
     }
 
-    setAmount("") // Clear input
-    setDescription("") // Clear input
-    setCategory("") // Clear input
+    // Clear form and close modal
+    setNewTransaction({ type: "income", amount: "", description: "", category: "" }) // Reset form
     setShowAddModal(false) // Close modal
     vibrateSuccess()
 
@@ -1313,7 +1314,7 @@ export default function FinanceApp({ apiUrl }) {
                         formatCurrency={formatCurrency}
                         formatDate={formatDate}
                         theme={theme}
-                        onDelete={deleteTransaction} // Pass deleteTransaction handler
+                        onDelete={handleDeleteTransaction} // Use the updated handler
                       />
                     ))}
                   </div>
@@ -1366,7 +1367,7 @@ export default function FinanceApp({ apiUrl }) {
                         formatCurrency={formatCurrency}
                         formatDate={formatDate}
                         theme={theme}
-                        onDelete={deleteTransaction}
+                        onDelete={handleDeleteTransaction}
                       />
                     ))}
                   </div>
@@ -1427,7 +1428,14 @@ export default function FinanceApp({ apiUrl }) {
                   </button>
                   <button
                     onClick={() => {
-                      setTransactionType("savings")
+                      // Use setNewTransaction to set the type for savings
+                      setNewTransaction({
+                        ...newTransaction,
+                        type: "savings",
+                        amount: "",
+                        description: "",
+                        category: "",
+                      })
                       setShowAddModal(true)
                       vibrate()
                     }}
@@ -1477,7 +1485,7 @@ export default function FinanceApp({ apiUrl }) {
                           formatCurrency={formatCurrency}
                           formatDate={formatDate}
                           theme={theme}
-                          onDelete={deleteTransaction}
+                          onDelete={handleDeleteTransaction}
                         />
                       ))}
                   </div>
