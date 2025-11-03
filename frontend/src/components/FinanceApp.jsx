@@ -202,7 +202,7 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
 
   return (
-    <div className="relative mb-2 overflow-hidden rounded-xl">
+    <div className="relative mb-1.5 overflow-hidden rounded-xl">
       <div
         onClick={() => {
           if (swipeX === -80) {
@@ -225,35 +225,35 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`relative flex items-center justify-between p-3 rounded-xl border transition-all duration-300 hover:shadow-md ${
+        className={`relative flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 hover:shadow-md ${
           theme === "dark"
             ? "bg-gray-800 border-gray-700/50 hover:bg-gray-700"
             : "bg-white border-gray-200/50 hover:bg-gray-50 shadow-sm"
         }`}
       >
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div
-            className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
+            className={`flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
           >
-            <span className="text-lg">{categoryInfo.icon}</span>
+            <span className="text-base">{categoryInfo.icon}</span>
           </div>
 
           <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2 mb-0.5">
+              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                {formatDate(tx.date)}
+              </span>
+            </div>
             {tx.description && (
               <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 {tx.description}
               </p>
             )}
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} flex-shrink-0`}
-              >
-                {tx.category}
-              </span>
-              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                {formatDate(tx.date)}
-              </span>
-            </div>
+            <span
+              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} mt-0.5`}
+            >
+              {tx.category}
+            </span>
           </div>
         </div>
 
@@ -339,6 +339,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [goalInput, setGoalInput] = useState("50000")
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [fullscreenEnabled, setFullscreenEnabled] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
@@ -381,12 +382,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       const startFullscreen = async () => {
         try {
-          if (tg.requestFullscreen) {
+          if (tg.requestFullscreen && fullscreenEnabled) {
             if (!tg.isFullscreen) {
               tg.requestFullscreen()
             }
             setTimeout(() => {
-              if (!tg.isFullscreen && tg.requestFullscreen) {
+              if (!tg.isFullscreen && tg.requestFullscreen && fullscreenEnabled) {
                 tg.requestFullscreen()
               }
             }, 300)
@@ -422,13 +423,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         updateContentSafeArea()
       }
 
-      // Listen for theme changes
       const handleThemeChanged = () => {
         const newTheme = tg.colorScheme || "light"
         setTheme(newTheme)
       }
 
-      // Listen for viewport changes (when app is minimized/expanded)
       const handleViewportChanged = () => {
         if (tg.isExpanded === false && tg.expand) {
           tg.expand()
@@ -462,7 +461,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     } else {
       setIsReady(true)
     }
-  }, [tg])
+  }, [tg, fullscreenEnabled])
 
   useEffect(() => {
     try {
@@ -477,6 +476,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             setGoalInput(String(data.goalSavings))
           }
           if (data.balanceVisible !== undefined) setBalanceVisible(data.balanceVisible)
+          if (data.fullscreenEnabled !== undefined) setFullscreenEnabled(data.fullscreenEnabled)
         }
       }
 
@@ -502,9 +502,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         goalSavings,
         theme,
         balanceVisible,
+        fullscreenEnabled,
       }),
     )
-  }, [currency, goalSavings, theme, balanceVisible])
+  }, [currency, goalSavings, theme, balanceVisible, fullscreenEnabled])
 
   useEffect(() => {
     const keepAlive = async () => {
@@ -530,8 +531,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       try {
         if (isFullscreen) {
           tg.exitFullscreen()
+          setFullscreenEnabled(false)
         } else {
           tg.requestFullscreen()
+          setFullscreenEnabled(true)
         }
       } catch (e) {
         console.warn("Fullscreen toggle failed", e)
@@ -736,6 +739,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     if (!window.confirm("Удалить эту транзакцию?")) return
 
+    console.log("[v0] Deleting transaction:", tx)
+    console.log("[v0] Current balance:", balance)
+
     setTransactions((p) => p.filter((t) => t.id !== txId))
 
     let newBalance = balance
@@ -748,16 +754,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       newBalance -= tx.amount
       setIncome(newIncome)
       setBalance(newBalance)
+      console.log("[v0] Deleted income. New balance:", newBalance)
     } else if (tx.type === "expense") {
       newExpenses -= tx.amount
       newBalance += tx.amount
       setExpenses(newExpenses)
       setBalance(newBalance)
+      console.log("[v0] Deleted expense. New balance:", newBalance)
     } else {
       newSavings -= tx.converted_amount_usd || 0
       newBalance += tx.amount
       setSavings(newSavings)
       setBalance(newBalance)
+      console.log("[v0] Deleted savings. New balance:", newBalance)
     }
 
     vibrateSuccess()
@@ -931,72 +940,74 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }}
     >
       <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-8 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3 flex-1">
-            {tgPhotoUrl ? (
-              <img
-                src={tgPhotoUrl || "/placeholder.svg"}
-                alt="Avatar"
-                className="w-12 h-12 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
-              />
-            ) : (
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  theme === "dark" ? "bg-gray-700" : "bg-white/80"
-                }`}
-              >
-                <User className={`w-6 h-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+        {activeTab === "overview" && (
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3 flex-1">
+              {tgPhotoUrl ? (
+                <img
+                  src={tgPhotoUrl || "/placeholder.svg"}
+                  alt="Avatar"
+                  className="w-12 h-12 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
+                />
+              ) : (
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    theme === "dark" ? "bg-gray-700" : "bg-white/80"
+                  }`}
+                >
+                  <User className={`w-6 h-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+                </div>
+              )}
+              <div>
+                <h1 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  Привет, {(user && user.first_name) || displayName}! 👋
+                </h1>
+                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Добро пожаловать в ваш финансовый помощник
+                </p>
               </div>
-            )}
-            <div>
-              <h1 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                Привет, {(user && user.first_name) || displayName}! 👋
-              </h1>
-              <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Добро пожаловать в ваш финансовый помощник
-              </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
+                <button
+                  onClick={toggleFullscreen}
+                  className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
+                    theme === "dark"
+                      ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
+                      : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
+                  }`}
+                  title="Полноэкранный режим"
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                  ) : (
+                    <Maximize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                  )}
+                </button>
+              )}
               <button
-                onClick={toggleFullscreen}
+                onClick={() => setBalanceVisible(!balanceVisible)}
                 className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
                   theme === "dark"
                     ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
                     : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
                 }`}
-                title="Полноэкранный режим"
               >
-                {isFullscreen ? (
-                  <Minimize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                {balanceVisible ? (
+                  <Eye className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
                 ) : (
-                  <Maximize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                  <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
                 )}
               </button>
-            )}
-            <button
-              onClick={() => setBalanceVisible(!balanceVisible)}
-              className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
-                theme === "dark"
-                  ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                  : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
-              }`}
-            >
-              {balanceVisible ? (
-                <Eye className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-              ) : (
-                <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-              )}
-            </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {activeTab === "overview" && (
           <div
             className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
               theme === "dark"
-                ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
+                ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
                 : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
             }`}
           >
@@ -1183,7 +1194,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div
                 className={`rounded-2xl p-4 text-white shadow-2xl ${
                   theme === "dark"
-                    ? "bg-gradient-to-br from-gray-800 to-gray-700"
+                    ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
                     : "bg-gradient-to-br from-blue-500 to-purple-600"
                 }`}
               >
