@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react"
 import {
   Wallet,
+  TrendingUp,
+  TrendingDown,
   PiggyBank,
   Plus,
   History,
@@ -16,11 +18,8 @@ import {
   X,
   Maximize2,
   Minimize2,
+  CreditCard,
   BarChart3,
-  Users,
-  ChevronDown,
-  Moon,
-  Sun,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js"
 import { Pie } from "react-chartjs-2"
@@ -33,45 +32,45 @@ const SESSION_KEY = "finance_session_v2"
 
 const categoriesMeta = {
   Еда: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-orange-400 to-red-400",
     icon: "🍕",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-orange-100",
+    textColor: "text-orange-700",
     chartColor: "#f97316",
   },
   Транспорт: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-blue-400 to-cyan-400",
     icon: "🚗",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
     chartColor: "#3b82f6",
   },
   Развлечения: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-pink-400 to-purple-400",
     icon: "🎉",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-pink-100",
+    textColor: "text-pink-700",
     chartColor: "#ec4899",
   },
   Счета: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-teal-400 to-green-400",
     icon: "💡",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-teal-100",
+    textColor: "text-teal-700",
     chartColor: "#14b8a6",
   },
   Покупки: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-purple-400 to-indigo-400",
     icon: "🛍",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-purple-100",
+    textColor: "text-purple-700",
     chartColor: "#a855f7",
   },
   Здоровье: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-yellow-400 to-orange-400",
     icon: "💊",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-yellow-100",
+    textColor: "text-yellow-700",
     chartColor: "#eab308",
   },
   Другое: {
@@ -82,59 +81,59 @@ const categoriesMeta = {
     chartColor: "#64748b",
   },
   Зарплата: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-green-400 to-emerald-400",
     icon: "💵",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-green-100",
+    textColor: "text-green-700",
     chartColor: "#10b981",
   },
   Фриланс: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-cyan-400 to-blue-400",
     icon: "👨‍💻",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-cyan-100",
+    textColor: "text-cyan-700",
     chartColor: "#06b6d4",
   },
   Подарки: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-yellow-300 to-amber-300",
     icon: "🎁",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-yellow-100",
+    textColor: "text-yellow-700",
     chartColor: "#fbbf24",
   },
   Инвестиции: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-indigo-400 to-purple-400",
     icon: "📈",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-indigo-100",
+    textColor: "text-indigo-700",
     chartColor: "#6366f1",
   },
   Отпуск: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-blue-300 to-sky-300",
     icon: "🖼️",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
     chartColor: "#38bdf8",
   },
   Накопления: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-blue-800 to-indigo-800",
     icon: "💰",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
     chartColor: "#1e40af",
   },
   "Экстренный фонд": {
-    color: "from-gray-400 to-slate-400",
+    color: "from-red-400 to-pink-400",
     icon: "🚨",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-red-100",
+    textColor: "text-red-700",
     chartColor: "#ef4444",
   },
   Цель: {
-    color: "from-gray-400 to-slate-400",
+    color: "from-emerald-300 to-green-300",
     icon: "🎯",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
+    bgColor: "bg-emerald-100",
+    textColor: "text-emerald-700",
     chartColor: "#34d399",
   },
 }
@@ -356,8 +355,6 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
 
   const isCurrentUser = linkedUser.telegram_id === currentTelegramId
 
-  const avatarUrl = linkedUser.photo_url || null
-
   return (
     <div className="relative mb-1.5 overflow-hidden rounded-xl">
       <div
@@ -381,21 +378,13 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
           theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
         }`}
       >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl || "/placeholder.svg"}
-            alt={linkedUser.telegram_name}
-            className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
-          />
-        ) : (
-          <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-              theme === "dark" ? "bg-blue-700" : "bg-blue-100"
-            }`}
-          >
-            <User className={`w-5 h-5 ${theme === "dark" ? "text-blue-300" : "text-blue-600"}`} />
-          </div>
-        )}
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+            theme === "dark" ? "bg-blue-700" : "bg-blue-100"
+          }`}
+        >
+          <User className={`w-5 h-5 ${theme === "dark" ? "text-blue-300" : "text-blue-600"}`} />
+        </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
             {linkedUser.telegram_name || "Пользователь"}
@@ -450,7 +439,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
-  const [usersExpanded, setUsersExpanded] = useState(false)
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -665,7 +653,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const currentCurrency = currencies.find((c) => c.code === currency) || currencies[1]
-  const currencySymbol = currentCurrency.symbol
   const formatCurrency = (value, curr = currency) => {
     const num = Number(value)
     if (!isFinite(num)) return `${curr === "USD" ? "$" : currentCurrency.symbol}0`
@@ -1092,9 +1079,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  // Calculate bottom padding for the main content area
-  const bottomPadding = Math.max(contentSafeAreaInset.bottom + 80, 96)
-
   if (!isReady) {
     return (
       <div
@@ -1114,8 +1098,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   return (
     <div
-      className={`min-h-screen pb-20 ${theme === "dark" ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100" : "bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900"}`}
-      style={{ paddingBottom: `${bottomPadding}px` }}
+      className={`fixed inset-0 flex flex-col overflow-hidden ${
+        theme === "dark"
+          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
+          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
+      }`}
+      style={{
+        paddingTop: safeAreaInset.top || 0,
+        paddingLeft: safeAreaInset.left || 0,
+        paddingRight: safeAreaInset.right || 0,
+      }}
     >
       <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-8 pb-4">
         {activeTab === "overview" && (
@@ -1180,6 +1172,45 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </div>
           </div>
         )}
+
+        {activeTab === "overview" && (
+          <div
+            className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
+                : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5 flex-1">
+                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/80">Общий баланс</p>
+                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 mt-3">
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  <span className="text-xs text-white/90">Доходы</span>
+                </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+              </div>
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingDown className="w-3 h-3 text-rose-300" />
+                  <span className="text-xs text-white/90">Расходы</span>
+                </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main
@@ -1204,30 +1235,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {activeTab === "overview" && (
             <div className="space-y-4 animate-fadeIn">
-              <div
-                className={`relative p-5 rounded-2xl shadow-lg overflow-hidden ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
-                    : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
-                }`}
-              >
-                <button
-                  onClick={() => setBalanceVisible(!balanceVisible)}
-                  className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
-                    theme === "dark"
-                      ? "bg-gray-700/50 border-gray-600/30 hover:bg-gray-600/50"
-                      : "bg-white/30 border-white/50 hover:bg-white/40"
-                  }`}
-                >
-                  {balanceVisible ? <Eye className="w-4 h-4 text-white" /> : <EyeOff className="w-4 h-4 text-white" />}
-                </button>
-
-                <p className="text-white/90 text-sm mb-1">Общий баланс</p>
-                <p className="text-white text-3xl font-bold">
-                  {balanceVisible ? `${formatCurrency(balance)}` : "••••••"}
-                </p>
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div
                   className={`backdrop-blur-sm rounded-xl p-3 border shadow-lg ${
@@ -1467,7 +1474,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "settings" && (
-            <div className="p-4 space-y-6">
+            <div className="space-y-4 animate-fadeIn">
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                   theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
@@ -1486,49 +1493,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 {isAuthenticated ? (
                   <div className="space-y-3">
                     {linkedUsers.length > 1 && (
-                      <div className="mb-3">
-                        <button
-                          onClick={() => setUsersExpanded(!usersExpanded)}
-                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                            theme === "dark"
-                              ? "bg-gray-800 border-gray-700/50 hover:bg-gray-700/50"
-                              : "bg-white border-gray-200/50 hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Users className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                            <span className={`font-medium ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                              Пользователи
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded-full ${
-                                theme === "dark" ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-700"
-                              }`}
-                            >
-                              {linkedUsers.length}
-                            </span>
-                          </div>
-                          <ChevronDown
-                            className={`w-5 h-5 transition-transform ${usersExpanded ? "rotate-180" : ""} ${
-                              theme === "dark" ? "text-gray-400" : "text-gray-500"
-                            }`}
+                      <div className="space-y-2 mb-3">
+                        {linkedUsers.map((linkedUser) => (
+                          <LinkedUserRow
+                            key={linkedUser.telegram_id}
+                            linkedUser={linkedUser}
+                            currentTelegramId={tgUserId}
+                            theme={theme}
+                            vibrate={vibrate}
+                            removeLinkedUser={removeLinkedUser}
                           />
-                        </button>
-
-                        {usersExpanded && (
-                          <div className="mt-2 space-y-2">
-                            {linkedUsers.map((linkedUser) => (
-                              <LinkedUserRow
-                                key={linkedUser.telegram_id}
-                                linkedUser={linkedUser}
-                                currentTelegramId={tgUserId}
-                                theme={theme}
-                                vibrate={vibrate}
-                                removeLinkedUser={removeLinkedUser}
-                              />
-                            ))}
-                          </div>
-                        )}
+                        ))}
                       </div>
                     )}
 
@@ -1605,69 +1580,56 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 )}
               </div>
 
-              <div>
+              <div
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                }`}
+              >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   Настройки
                 </h3>
 
                 <div className="space-y-3">
-                  {/* Theme toggle */}
-                  <div
-                    className={`flex items-center justify-between p-3 rounded-xl border ${
-                      theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {theme === "dark" ? (
-                        <Moon className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                      ) : (
-                        <Sun className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                      )}
-                      <span className={`font-medium ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                        Темная тема
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      className={`relative w-12 h-7 rounded-full transition-colors ${
-                        theme === "dark" ? "bg-blue-600" : "bg-gray-300"
+                  <div>
+                    <label
+                      className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                    >
+                      Валюта
+                    </label>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm touch-none ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100"
+                          : "bg-gray-50 border-gray-200 text-gray-900"
                       }`}
                     >
-                      <div
-                        className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${
-                          theme === "dark" ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
+                      {currencies.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name} ({c.symbol})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {/* Fullscreen toggle */}
-                  {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
-                    <div
-                      className={`flex items-center justify-between p-3 rounded-xl border ${
-                        theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
+                  <div>
+                    <label
+                      className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                    >
+                      Тема
+                    </label>
+                    <button
+                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                      className={`w-full p-3 border rounded-xl transition-all text-left text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                          : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <Maximize2 className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                        <span className={`font-medium ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                          Полноэкранный режим
-                        </span>
-                      </div>
-                      <button
-                        onClick={toggleFullscreen}
-                        className={`relative w-12 h-7 rounded-full transition-colors ${
-                          fullscreenEnabled ? "bg-blue-600" : "bg-gray-300"
-                        }`}
-                      >
-                        <div
-                          className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${
-                            fullscreenEnabled ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  )}
+                      {theme === "dark" ? "🌙 Тёмная" : "☀️ Светлая"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1852,7 +1814,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div className="mb-3">
                 {transactionType === "savings" && (
                   <p className={`text-xs mb-2 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
-                    💡 Введите сумму в {currentCurrency.code} - будет конвертировано в USD (курс: 1{" "}
+                    💡 Введите сумму в {currentCurrency.symbol} - будет конвертировано в USD (курс: 1{" "}
                     {currentCurrency.code} ≈ {exchangeRate.toFixed(2)} USD)
                   </p>
                 )}
