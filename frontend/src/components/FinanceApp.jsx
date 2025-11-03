@@ -932,13 +932,30 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     >
       <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-8 pb-4">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex-1">
-            <h1 className={`text-2xl font-bold mb-1 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Привет, {(user && user.first_name) || displayName}! 👋
-            </h1>
-            <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              Добро пожаловать в ваш финансовый помощник
-            </p>
+          <div className="flex items-center gap-3 flex-1">
+            {tgPhotoUrl ? (
+              <img
+                src={tgPhotoUrl || "/placeholder.svg"}
+                alt="Avatar"
+                className="w-12 h-12 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
+              />
+            ) : (
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  theme === "dark" ? "bg-gray-700" : "bg-white/80"
+                }`}
+              >
+                <User className={`w-6 h-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+              </div>
+            )}
+            <div>
+              <h1 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                Привет, {(user && user.first_name) || displayName}! 👋
+              </h1>
+              <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                Добро пожаловать в ваш финансовый помощник
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
@@ -975,42 +992,44 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           </div>
         </div>
 
-        <div
-          className={`relative overflow-hidden rounded-3xl p-5 shadow-2xl ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-              : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm">
-                <CreditCard className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-white/80">Общий баланс</p>
-                <p className="text-3xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+        {activeTab === "overview" && (
+          <div
+            className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
+                : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5 flex-1">
+                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/80">Общий баланс</p>
+                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <div className="rounded-2xl p-3 bg-white/10 backdrop-blur-sm border border-white/20">
-              <div className="flex items-center gap-1 mb-1">
-                <TrendingUp className="w-3 h-3 text-emerald-300" />
-                <span className="text-xs text-white/90">Доходы</span>
+            <div className="grid grid-cols-2 gap-2.5 mt-3">
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  <span className="text-xs text-white/90">Доходы</span>
+                </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
               </div>
-              <p className="text-lg font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
-            </div>
-            <div className="rounded-2xl p-3 bg-white/10 backdrop-blur-sm border border-white/20">
-              <div className="flex items-center gap-1 mb-1">
-                <TrendingDown className="w-3 h-3 text-rose-300" />
-                <span className="text-xs text-white/90">Расходы</span>
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingDown className="w-3 h-3 text-rose-300" />
+                  <span className="text-xs text-white/90">Расходы</span>
+                </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
               </div>
-              <p className="text-lg font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
             </div>
           </div>
-        </div>
+        )}
       </header>
 
       <main
@@ -1801,7 +1820,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <div
-              className={`w-full max-w-md backdrop-blur-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto ${
+              className={`w-full max-w-md backdrop-blur-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
                 theme === "dark" ? "bg-gray-800/90 border-gray-700/20" : "bg-white/90 border-white/50"
               }`}
             >
@@ -1811,7 +1830,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("overview")
                   vibrate()
                 }}
-                icon={<Wallet className="w-4 h-4" />}
+                icon={<Wallet className="h-4 w-7" />}
                 theme={theme}
               />
               <NavButton
@@ -1820,7 +1839,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("history")
                   vibrate()
                 }}
-                icon={<History className="w-4 h-4" />}
+                icon={<History className="h-4 w-[4px28]" />}
                 theme={theme}
               />
               <button
@@ -1838,7 +1857,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("savings")
                   vibrate()
                 }}
-                icon={<PiggyBank className="w-4 h-4" />}
+                icon={<PiggyBank className="h-4 w-[4px28]" />}
                 theme={theme}
               />
               <NavButton
@@ -1847,7 +1866,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("settings")
                   vibrate()
                 }}
-                icon={<Settings className="w-4 h-4" />}
+                icon={<Settings className="h-4 w-[px8]" />}
                 theme={theme}
               />
             </div>
