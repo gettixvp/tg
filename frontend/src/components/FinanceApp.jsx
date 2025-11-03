@@ -11,17 +11,12 @@ import {
   Settings,
   LogOut,
   LogIn,
-  CreditCard,
-  BarChart3,
   Eye,
   EyeOff,
-  Maximize2,
-  Minimize2,
   User,
   Trash2,
   X,
 } from "lucide-react"
-import { Pie } from "react-chartjs-2"
 
 const API_BASE = "https://walletback-aghp.onrender.com"
 const LS_KEY = "finance_settings_v3"
@@ -200,13 +195,19 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
   return (
     <div className="relative mb-3 overflow-hidden rounded-2xl">
-      <div
-        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center rounded-2xl ${
-          theme === "dark" ? "bg-red-600" : "bg-red-500"
-        }`}
+      <button
+        onClick={() => {
+          if (swipeX === -80) {
+            onDelete(tx.id)
+            setSwipeX(0)
+          }
+        }}
+        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center rounded-2xl transition-all ${
+          swipeX === -80 ? "opacity-100" : "opacity-0 pointer-events-none"
+        } ${theme === "dark" ? "bg-red-600" : "bg-red-500"}`}
       >
         <Trash2 className="w-5 h-5 text-white" />
-      </div>
+      </button>
 
       <div
         style={{
@@ -259,18 +260,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
           </p>
         </div>
       </div>
-
-      {swipeX === -80 && (
-        <button
-          onClick={() => {
-            onDelete(tx.id)
-            setSwipeX(0)
-          }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-3 rounded-xl bg-red-500 text-white touch-none z-10 shadow-xl hover:bg-red-600 transition-colors"
-        >
-          <Trash2 className="w-5 h-5" />
-        </button>
-      )}
     </div>
   )
 }
@@ -308,52 +297,41 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   )
 }
 
-export default function FinanceApp({ apiUrl }) {
-  // Added apiUrl prop
-  const mainContentRef = useRef(null)
+export default function FinanceApp({ apiUrl = API_BASE }) {
+  const API_URL = apiUrl
 
   const [user, setUser] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [activeTab, setActiveTab] = useState("overview")
-  const [theme, setTheme] = useState("light")
-  const [currency, setCurrency] = useState("BYN")
-  const [goalSavings, setGoalSavings] = useState(50000)
-  const [balance, setBalance] = useState(0)
-  const [income, setIncome] = useState(0)
-  const [expenses, setExpenses] = useState(0)
-  const [savings, setSavings] = useState(0)
   const [transactions, setTransactions] = useState([])
+  const [activeTab, setActiveTab] = useState("overview")
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState("login")
-  const [showChart, setShowChart] = useState(false)
-  const [chartType, setChartType] = useState("")
-  // New state for the transaction form
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [authCurrency, setAuthCurrency] = useState("BYN")
+  const [theme, setTheme] = useState("light")
+  const [currency, setCurrency] = useState("BYN")
+  const [goalSavings, setGoalSavings] = useState(50000)
+  const [exchangeRate, setExchangeRate] = useState(3.2)
+  const [balanceVisible, setBalanceVisible] = useState(true)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
+  const [contentSafeAreaInset, setContentSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
+  const [isReady, setIsReady] = useState(false)
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
+  const [transactionType, setTransactionType] = useState("expense")
   const [newTransaction, setNewTransaction] = useState({
-    type: "income",
+    type: "expense",
     amount: "",
     description: "",
     category: "",
   })
-  const [transactionType, setTransactionType] = useState("expense")
-  const [amount, setAmount] = useState("")
-  const [description, setDescription] = useState("")
-  const [category, setCategory] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [authCurrency, setAuthCurrency] = useState("BYN")
-  const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
-  const [contentSafeAreaInset, setContentSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
-  const [showGoalModal, setShowGoalModal] = useState(false)
-  const [goalInput, setGoalInput] = useState("50000")
-  const [balanceVisible, setBalanceVisible] = useState(true)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
-  const [exchangeRate, setExchangeRate] = useState(3.2)
-
-  const API_URL = apiUrl || API_BASE
+  const [balance, setBalance] = useState(0) // Declared balance
+  const [income, setIncome] = useState(0) // Declared income
+  const [expenses, setExpenses] = useState(0) // Declared expenses
+  const [savings, setSavings] = useState(0) // Declared savings
+  const [isAuthenticated, setIsAuthenticated] = useState(false) // Declared isAuthenticated
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -371,9 +349,40 @@ export default function FinanceApp({ apiUrl }) {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready()
       window.Telegram.WebApp.expand()
+
       // Block vertical swipes in Telegram
       if (window.Telegram.WebApp.disableVerticalSwipes) {
         window.Telegram.WebApp.disableVerticalSwipes()
+      }
+
+      // Listen for theme changes
+      const handleThemeChanged = () => {
+        const newTheme = window.Telegram.WebApp.colorScheme || "light"
+        console.log("[v0] Theme changed to:", newTheme)
+        setTheme(newTheme)
+      }
+
+      // Listen for viewport changes (when app is minimized/expanded)
+      const handleViewportChanged = () => {
+        console.log("[v0] Viewport changed, isExpanded:", window.Telegram.WebApp.isExpanded)
+        if (!window.Telegram.WebApp.isExpanded) {
+          window.Telegram.WebApp.expand()
+        }
+      }
+
+      if (window.Telegram.WebApp.onEvent) {
+        window.Telegram.WebApp.onEvent("themeChanged", handleThemeChanged)
+        window.Telegram.WebApp.onEvent("viewportChanged", handleViewportChanged)
+      }
+
+      // Set initial theme
+      setTheme(window.Telegram.WebApp.colorScheme || "light")
+
+      return () => {
+        if (window.Telegram.WebApp.offEvent) {
+          window.Telegram.WebApp.offEvent("themeChanged", handleThemeChanged)
+          window.Telegram.WebApp.offEvent("viewportChanged", handleViewportChanged)
+        }
       }
     }
   }, [])
@@ -395,7 +404,6 @@ export default function FinanceApp({ apiUrl }) {
     if (tg) {
       tg.ready && tg.ready()
       if (tg.expand) tg.expand()
-      setTheme(tg.colorScheme || "light")
 
       const startFullscreen = async () => {
         try {
@@ -464,12 +472,85 @@ export default function FinanceApp({ apiUrl }) {
     }
   }, [tg])
 
-  // Исправлена функция удаления: теперь корректно обрабатывает savings и сохраняет баланс на сервер (from updates)
+  useEffect(() => {
+    const fetchSettings = () => {
+      try {
+        const ls = localStorage.getItem(LS_KEY)
+        if (ls) {
+          const data = JSON.parse(ls)
+          if (data) {
+            if (data.currency) setCurrency(data.currency)
+            if (data.theme) setTheme(data.theme)
+            if (data.goalSavings !== undefined) {
+              // Check for undefined to allow 0
+              setGoalSavings(data.goalSavings)
+            }
+            if (data.balanceVisible !== undefined) setBalanceVisible(data.balanceVisible)
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load settings from localStorage:", e)
+      }
+    }
+
+    const restoreSession = () => {
+      try {
+        const session = localStorage.getItem(SESSION_KEY)
+        if (session) {
+          const sessionData = JSON.parse(session)
+          if (sessionData?.email && sessionData?.token) {
+            autoAuth(sessionData.email, sessionData.token)
+          } else if (tgUserId) {
+            // Prioritize Telegram user if available and no valid session
+            autoAuthTelegram(tgUserId)
+          }
+        } else if (tgUserId) {
+          // If no session and Telegram user exists
+          autoAuthTelegram(tgUserId)
+        }
+      } catch (e) {
+        console.warn("Failed to restore session:", e)
+      }
+    }
+
+    fetchSettings()
+    restoreSession()
+  }, [tgUserId]) // Dependencies include tgUserId for Telegram auth prioritization
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        LS_KEY,
+        JSON.stringify({
+          currency,
+          theme,
+          goalSavings,
+          balanceVisible,
+        }),
+      )
+    } catch (e) {
+      console.warn("Failed to save settings to localStorage:", e)
+    }
+  }, [currency, theme, goalSavings, balanceVisible])
+
+  useEffect(() => {
+    const keepAlive = async () => {
+      try {
+        await fetch(`${API_URL}/health`).catch(() => {})
+      } catch (e) {}
+    }
+
+    keepAlive()
+    const interval = setInterval(keepAlive, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [API_URL])
+
   const handleDeleteTransaction = async (id) => {
     const tx = transactions.find((t) => t.id === id)
     if (!tx || !user) return
 
-    if (!window.confirm("Удалить эту транзакцию?")) return // Added confirmation
+    if (!window.confirm("Удалить эту транзакцию?")) return
 
     try {
       const response = await fetch(`${API_URL}/transactions/${id}`, {
@@ -494,115 +575,6 @@ export default function FinanceApp({ apiUrl }) {
         newSavings -= usdAmount
       }
 
-      // Сохраняем обновленный баланс на сервер
-      await fetch(`${API_URL}/user/${user.email}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          balance: newBalance,
-          income: newIncome,
-          expenses: newExpenses,
-          savings: newSavings,
-          goalSavings: user.goal_savings, // Added goalSavings to PUT request
-        }),
-      })
-
-      setUser({
-        ...user,
-        balance: newBalance,
-        income: newIncome,
-        expenses: newExpenses,
-        savings_usd: newSavings,
-      })
-
-      setTransactions(transactions.filter((t) => t.id !== id))
-      // setSwipedId(null) // This state is not used here anymore
-      vibrateSuccess() // Added vibration
-    } catch (err) {
-      console.error("Delete error:", err)
-      alert("Ошибка при удалении транзакции")
-      vibrateError() // Added vibration
-    }
-  }
-
-  // Исправлена функция удаления: теперь корректно обрабатывает savings и сохраняет баланс на сервер (from updates)
-  // Улучшена логика свайпа: предотвращено дублирование кнопок (from updates)
-  // const handleTouchStart = (e, id) => {
-  //   touchStartX.current = e.touches[0].clientX
-  //   touchCurrentX.current = e.touches[0].clientX
-  // }
-
-  // const handleTouchMove = (e, id) => {
-  //   touchCurrentX.current = e.touches[0].clientX
-  //   const diff = touchStartX.current - touchCurrentX.current
-
-  //   // Only allow swiping to delete if the transaction is not already swiped
-  //   if (diff > 50 && swipedId !== id) {
-  //     setSwipedId(id)
-  //   } else if (diff < -20 && swipedId === id) {
-  //     // Allow closing the swipe
-  //     setSwipedId(null)
-  //   }
-  // }
-
-  // const handleTouchEnd = () => {
-  //   touchStartX.current = 0
-  //   touchCurrentX.current = 0
-  // }
-
-  // Добавлена новая функция для добавления транзакций (from updates)
-  const handleAddTransaction = async () => {
-    // Use newTransaction state for form data
-    if (!newTransaction.amount || !user) {
-      vibrateError() // Added vibration
-      return
-    }
-
-    const amount = Number.parseFloat(newTransaction.amount)
-    if (isNaN(amount) || amount <= 0) {
-      alert("Введите корректную сумму")
-      vibrateError() // Added vibration
-      return
-    }
-
-    let newBalance = user.balance
-    let newIncome = user.income
-    let newExpenses = user.expenses
-    let newSavings = user.savings_usd
-    let convertedUSD = null
-
-    if (newTransaction.type === "income") {
-      newBalance += amount
-      newIncome += amount
-    } else if (newTransaction.type === "expense") {
-      newBalance -= amount
-      newExpenses += amount
-    } else if (newTransaction.type === "savings") {
-      convertedUSD = amount / exchangeRate // Use exchange rate to convert to USD
-      newSavings += convertedUSD
-    }
-
-    try {
-      const txResponse = await fetch(`${API_URL}/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user.email,
-          type: newTransaction.type,
-          amount,
-          converted_amount_usd: convertedUSD, // Store converted amount
-          description: newTransaction.description,
-          category: newTransaction.category || "Другое", // Default category
-        }),
-      })
-
-      if (!txResponse.ok) {
-        const errorData = await txResponse.json().catch(() => ({ error: "Unknown error" }))
-        throw new Error(errorData.error || "Ошибка добавления транзакции")
-      }
-
-      const createdTx = await txResponse.json()
-
       await fetch(`${API_URL}/user/${user.email}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -623,220 +595,71 @@ export default function FinanceApp({ apiUrl }) {
         savings_usd: newSavings,
       })
 
-      setTransactions([createdTx, ...transactions])
-      setShowAddModal(false)
-      setNewTransaction({ type: "income", amount: "", description: "", category: "" }) // Reset form
-      vibrateSuccess() // Added vibration
+      setTransactions(transactions.filter((t) => t.id !== id))
+      vibrateSuccess()
     } catch (err) {
-      console.error("Add transaction error:", err)
-      alert(err.message || "Ошибка при добавлении транзакции")
-      vibrateError() // Added vibration
+      console.error("Delete error:", err)
+      alert("Ошибка при удалении транзакции")
+      vibrateError()
     }
   }
 
-  // Добавлена новая функция для сброса данных (from updates)
-  const handleResetData = async () => {
-    if (!user) return
-    if (!confirm("Вы уверены? Все данные будут удалены!")) return
+  const handleAddTransaction = async () => {
+    blurAll()
+    setShowNumKeyboard(false)
+    const amount = Number.parseFloat(newTransaction.amount)
+    if (isNaN(amount) || amount <= 0) {
+      vibrateError()
+      alert("Введите корректную сумму > 0")
+      return
+    }
+
+    let convertedUSD = null
+    if (newTransaction.type === "savings") {
+      convertedUSD = amount / exchangeRate
+    }
+
+    const txData = {
+      user_id: user?.email || null, // Use email as user identifier
+      type: newTransaction.type,
+      amount: amount,
+      converted_amount_usd: convertedUSD,
+      description: newTransaction.description,
+      category: newTransaction.category || "Другое",
+    }
 
     try {
-      await fetch(`${API_URL}/user/${user.email}/reset`, { method: "POST" })
-      setUser({ ...user, balance: 0, income: 0, expenses: 0, savings_usd: 0 })
-      setTransactions([])
-      vibrateSuccess() // Added vibration
-    } catch (err) {
-      console.error("Reset error:", err)
-      alert("Ошибка при сбросе данных")
-      vibrateError() // Added vibration
-    }
-  }
-
-  useEffect(() => {
-    let prevHeight = typeof window !== "undefined" ? window.innerHeight : 0
-    const onResize = () => {
-      const cur = window.innerHeight
-      const isOpen = cur < prevHeight - 100
-      setIsKeyboardOpen(isOpen)
-      prevHeight = cur
-    }
-    window.addEventListener("resize", onResize)
-    return () => window.removeEventListener("resize", onResize)
-  }, [])
-
-  // Modified to use TgUser ID for authentication if available
-  useEffect(() => {
-    try {
-      const ls = localStorage.getItem(LS_KEY)
-      if (ls) {
-        const data = JSON.parse(ls)
-        if (data) {
-          if (data.currency) setCurrency(data.currency)
-          if (data.theme) setTheme(data.theme)
-          if (data.goalSavings) {
-            setGoalSavings(data.goalSavings)
-            setGoalInput(String(data.goalSavings))
-          }
-          if (data.balanceVisible !== undefined) setBalanceVisible(data.balanceVisible)
-        }
-      }
-
-      const session = localStorage.getItem(SESSION_KEY)
-      if (session) {
-        const sessionData = JSON.parse(session)
-        if (sessionData?.email && sessionData?.token) {
-          autoAuth(sessionData.email, sessionData.token)
-        }
-      } else if (tgUserId) {
-        // Prioritize Telegram user if available
-        autoAuthTelegram(tgUserId)
-      }
-    } catch (e) {
-      console.warn("Failed to parse settings", e)
-    }
-  }, [tgUserId]) // Added tgUserId as dependency
-
-  useEffect(() => {
-    localStorage.setItem(
-      LS_KEY,
-      JSON.stringify({
-        currency,
-        goalSavings,
-        theme,
-        balanceVisible,
-      }),
-    )
-  }, [currency, goalSavings, theme, balanceVisible])
-
-  useEffect(() => {
-    const keepAlive = async () => {
-      try {
-        await fetch(`${API_URL}/health`).catch(() => {})
-      } catch (e) {}
-    }
-
-    keepAlive()
-    const interval = setInterval(keepAlive, 5 * 60 * 1000)
-
-    return () => clearInterval(interval)
-  }, [API_URL]) // Added API_URL as dependency
-
-  function blurAll() {
-    if (document.activeElement && typeof document.activeElement.blur === "function") {
-      document.activeElement.blur()
-    }
-  }
-
-  const toggleFullscreen = async () => {
-    if (tg && tg.requestFullscreen && tg.exitFullscreen) {
-      try {
-        if (isFullscreen) {
-          tg.exitFullscreen()
-        } else {
-          tg.requestFullscreen()
-        }
-      } catch (e) {
-        console.warn("Fullscreen toggle failed", e)
-      }
-    }
-  }
-
-  const currentCurrency = currencies.find((c) => c.code === currency) || currencies[1]
-  const formatCurrency = (value, curr = currency) => {
-    const num = Number(value)
-    if (!isFinite(num)) return `${curr === "USD" ? "$" : currentCurrency.symbol}0`
-    const symbol = curr === "USD" ? "$" : currentCurrency.symbol
-    try {
-      const formatted = new Intl.NumberFormat("ru-RU", {
-        style: "currency",
-        currency: curr,
-        minimumFractionDigits: curr === "USD" ? 2 : 0,
-      }).format(num)
-      const sample = Intl.NumberFormat("ru-RU", { style: "currency", currency: curr }).format(0)
-      const stdSym = sample.replace(/\d|\s|,|\.|0/g, "").trim()
-      if (stdSym && symbol && stdSym !== symbol) {
-        return formatted.replace(stdSym, symbol)
-      }
-      return formatted
-    } catch {
-      return `${symbol}${Math.round(num)}`
-    }
-  }
-
-  const formatDate = (dateString) => {
-    if (!dateString) return ""
-    const d = new Date(dateString)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    if (d.toDateString() === today.toDateString()) {
-      return `Сегодня, ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
-    }
-    if (d.toDateString() === yesterday.toDateString()) {
-      return `Вчера, ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
-    }
-    return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
-  }
-
-  // Modified to handle Telegram user authentication
-  async function autoAuthTelegram(telegramId) {
-    try {
-      const tgEmail = `tg_${telegramId}@telegram.user`
-      const resp = await fetch(`${API_URL}/auth`, {
+      const txResponse = await fetch(`${API_URL}/transactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: tgEmail,
-          password: `tg_${telegramId}`, // Use telegramId as password for simplicity
-          first_name: displayName,
-        }),
+        body: JSON.stringify(txData),
       })
 
-      if (!resp.ok) throw new Error("auth failed")
-      const json = await resp.json()
-      applyUser(json.user, json.transactions || [], true) // Mark as authenticated
-    } catch (e) {
-      console.warn("autoAuthTelegram failed", e)
-      // Optionally, you could attempt to register the user here if auto-auth fails
-      // autoRegisterTelegram(telegramId);
-    }
-  }
+      if (!txResponse.ok) {
+        const errorData = await txResponse.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || "Ошибка добавления транзакции")
+      }
 
-  async function autoAuth(email, token) {
-    try {
-      const resp = await fetch(`${API_URL}/auth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password: atob(token), // Decode password from base64
-          first_name: displayName,
-        }),
-      })
+      const createdTx = await txResponse.json()
 
-      if (!resp.ok) throw new Error("auth failed")
-      const json = await resp.json()
-      applyUser(json.user, json.transactions || [], true) // Mark as authenticated
-    } catch (e) {
-      console.warn("autoAuth failed", e)
-      localStorage.removeItem(SESSION_KEY) // Clear session if auth fails
-    }
-  }
+      let newBalance = user ? user.balance : 0
+      let newIncome = user ? user.income : 0
+      let newExpenses = user ? user.expenses : 0
+      let newSavings = user ? user.savings_usd : 0
 
-  function applyUser(u, txs = [], isEmailAuth = false) {
-    setUser(u)
-    setIsAuthenticated(isEmailAuth) // Set authentication status
-    setBalance(Number(u.balance || 0))
-    setIncome(Number(u.income || 0))
-    setExpenses(Number(u.expenses || 0))
-    setSavings(Number(u.savings_usd || 0)) // Ensure savings is treated as USD
-    setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
-    setGoalInput(String(Number(u.goal_savings || 50000))) // Initialize goal input
-    setTransactions(txs || [])
-  }
+      if (newTransaction.type === "income") {
+        newIncome += amount
+        newBalance += amount
+      } else if (newTransaction.type === "expense") {
+        newExpenses += amount
+        newBalance -= amount
+      } else if (newTransaction.type === "savings") {
+        newSavings += convertedUSD || 0
+        newBalance -= amount // Deduct from local balance
+      }
 
-  const saveToServer = async (newBalance, newIncome, newExpenses, newSavings) => {
-    if (user && user.email) {
-      try {
+      // Update user totals on server if authenticated
+      if (user && user.email) {
         await fetch(`${API_URL}/user/${user.email}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -844,97 +667,27 @@ export default function FinanceApp({ apiUrl }) {
             balance: newBalance,
             income: newIncome,
             expenses: newExpenses,
-            savings: newSavings, // Savings in USD
-            goalSavings, // Also save goalSavings
+            savings: newSavings,
+            goalSavings: user.goal_savings,
           }),
         })
-      } catch (e) {
-        console.warn("Failed to save to server", e)
-        alert("Ошибка сохранения данных на сервер.") // Notify user
+        setUser({
+          ...user,
+          balance: newBalance,
+          income: newIncome,
+          expenses: newExpenses,
+          savings_usd: newSavings,
+        })
       }
-    }
-  }
 
-  // Modified to use newTransaction state and apiUrl
-  const addTransaction = async () => {
-    blurAll()
-    setShowNumKeyboard(false)
-    const n = Number(newTransaction.amount) // Use amount from newTransaction
-    if (!isFinite(n) || n <= 0) {
+      setTransactions([createdTx, ...transactions]) // Add to the top
+      setShowAddModal(false)
+      setNewTransaction({ type: "expense", amount: "", description: "", category: "" }) // Reset form
+      vibrateSuccess()
+    } catch (err) {
+      console.error("Add transaction error:", err)
+      alert(err.message || "Ошибка при добавлении транзакции")
       vibrateError()
-      alert("Введите корректную сумму > 0")
-      return
-    }
-
-    let convertedUSD = 0
-    if (newTransaction.type === "savings") {
-      // Use type from newTransaction
-      convertedUSD = n * exchangeRate // Convert to USD for savings
-    }
-
-    const newTx = {
-      id: Date.now(), // Simple ID generation
-      user_id: user?.id || null, // User ID if logged in
-      type: newTransaction.type, // Use type from newTransaction
-      amount: n,
-      converted_amount_usd: convertedUSD || null, // Store converted amount if applicable
-      description: newTransaction.description, // Use description from newTransaction
-      category: newTransaction.category || "Другое", // Default category
-      date: new Date().toISOString(), // Current date
-    }
-
-    setTransactions((p) => [newTx, ...p]) // Add to the top of the list
-
-    let newBalance = balance
-    let newIncome = income
-    let newExpenses = expenses
-    let newSavings = savings
-
-    if (newTransaction.type === "income") {
-      newIncome += n
-      newBalance += n
-      setIncome(newIncome)
-      setBalance(newBalance)
-    } else if (newTransaction.type === "expense") {
-      newExpenses += n
-      newBalance -= n
-      setExpenses(newExpenses)
-      setBalance(newBalance)
-    } else {
-      // savings
-      newSavings += convertedUSD // Update savings in USD
-      newBalance -= n // Deduct from balance in local currency
-      setSavings(newSavings)
-      setBalance(newBalance)
-    }
-
-    // Clear form and close modal
-    setNewTransaction({ type: "income", amount: "", description: "", category: "" }) // Reset form
-    setShowAddModal(false) // Close modal
-    vibrateSuccess()
-
-    // Save to server if authenticated
-    if (user && user.email) {
-      try {
-        await fetch(`${API_URL}/transactions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: user.email, // Use email as user identifier
-            type: newTx.type,
-            amount: newTx.amount,
-            description: newTx.description,
-            category: newTx.category,
-            converted_amount_usd: newTx.converted_amount_usd, // Send converted amount
-          }),
-        })
-
-        await saveToServer(newBalance, newIncome, newExpenses, newSavings) // Save updated totals
-      } catch (e) {
-        console.warn("Failed to save tx", e)
-        alert("Ошибка сохранения транзакции на сервер.")
-        vibrateError()
-      }
     }
   }
 
@@ -942,8 +695,6 @@ export default function FinanceApp({ apiUrl }) {
     vibrate()
     const tx = transactions.find((t) => t.id === txId)
     if (!tx) return
-
-    // Removed confirmation as it's handled in handleDeleteTransaction now
 
     setTransactions((p) => p.filter((t) => t.id !== txId))
 
@@ -999,8 +750,10 @@ export default function FinanceApp({ apiUrl }) {
       const payload = {
         email,
         password,
-        first_name: displayName, // Include display name for potential registration
+        first_name: displayName,
       }
+
+      console.log("[v0] Attempting auth with:", { email, first_name: displayName })
 
       const res = await fetch(`${API_URL}/auth`, {
         method: "POST",
@@ -1008,38 +761,51 @@ export default function FinanceApp({ apiUrl }) {
         body: JSON.stringify(payload),
       })
 
+      console.log("[v0] Auth response status:", res.status)
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Ошибка сервера" }))
-        alert(err.error || "Ошибка входа")
+        const errorText = await res.text()
+        console.error("[v0] Auth error response:", errorText)
+
+        let errorMessage = "Ошибка входа"
+        try {
+          const errorJson = JSON.parse(errorText)
+          errorMessage = errorJson.error || errorMessage
+        } catch (e) {
+          errorMessage = errorText || errorMessage
+        }
+
+        alert(errorMessage)
         vibrateError()
         return
       }
 
       const json = await res.json()
-      applyUser(json.user, json.transactions || [], true) // Apply user data and mark as authenticated
+      console.log("[v0] Auth successful, user:", json.user)
+
+      applyUser(json.user, json.transactions || [], true)
       localStorage.setItem(
         SESSION_KEY,
         JSON.stringify({
           email,
-          token: btoa(password), // Store password securely (base64 encoded)
+          token: btoa(password),
         }),
       )
 
-      setShowAuthModal(false) // Close modal
-      setEmail("") // Clear fields
+      setShowAuthModal(false)
+      setEmail("")
       setPassword("")
-      setCurrency(authCurrency) // Set currency from auth modal
+      setCurrency(authCurrency)
       vibrateSuccess()
     } catch (e) {
-      console.error("Auth error:", e)
-      alert("Ошибка авторизации")
+      console.error("[v0] Auth error:", e)
+      alert("Ошибка авторизации: " + e.message)
       vibrateError()
     }
   }
 
   const handleLogout = async () => {
     blurAll()
-
     // Save current state before logging out
     if (user?.id) {
       try {
@@ -1048,439 +814,332 @@ export default function FinanceApp({ apiUrl }) {
         console.warn("save on logout failed", e)
       }
     }
-
-    localStorage.removeItem(SESSION_KEY) // Clear session token
+    localStorage.removeItem(SESSION_KEY)
     setIsAuthenticated(false) // Reset authentication status
-
-    // If Telegram user exists, try to re-authenticate with Telegram
-    if (tgUserId) {
-      autoAuthTelegram(tgUserId)
-    } else {
-      // Otherwise, reset to initial state
-      setUser(null)
-      setBalance(0)
-      setIncome(0)
-      setExpenses(0)
-      setSavings(0)
-      setTransactions([])
-    }
-    vibrateError() // Indicate logout with vibration
+    setUser(null)
+    setBalance(0)
+    setIncome(0)
+    setExpenses(0)
+    setSavings(0)
+    setTransactions([])
+    vibrateError()
   }
 
-  const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1)
-  const savingsPct = Math.round(savingsProgress * 100)
+  const handleResetData = async () => {
+    if (!user) return
+    if (!confirm("Вы уверены? Все данные будут удалены!")) return
 
-  const getChartData = (type) => {
-    const filtered = transactions.filter((t) => t.type === type)
-    const categoryTotals = {}
+    try {
+      await fetch(`${API_URL}/user/${user.email}/reset`, { method: "POST" })
+      setUser({ ...user, balance: 0, income: 0, expenses: 0, savings_usd: 0 })
+      setTransactions([])
+      vibrateSuccess()
+    } catch (err) {
+      console.error("Reset error:", err)
+      alert("Ошибка при сбросе данных")
+      vibrateError()
+    }
+  }
 
-    filtered.forEach((tx) => {
-      const cat = tx.category || "Другое"
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + tx.amount
-    })
+  // Modified to handle Telegram user authentication
+  async function autoAuthTelegram(telegramId) {
+    try {
+      const tgEmail = `tg_${telegramId}@telegram.user`
+      const resp = await fetch(`${API_URL}/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: tgEmail,
+          password: `tg_${telegramId}`, // Use telegramId as password for simplicity
+          first_name: displayName,
+        }),
+      })
 
-    const labels = Object.keys(categoryTotals)
-    const data = Object.values(categoryTotals)
-    const colors = labels.map((cat) => categoriesMeta[cat]?.chartColor || "#64748b")
+      if (!resp.ok) throw new Error("auth failed")
+      const json = await resp.json()
+      applyUser(json.user, json.transactions || [], true) // Mark as authenticated
+    } catch (e) {
+      console.warn("autoAuthTelegram failed", e)
+    }
+  }
 
-    return {
-      labels,
-      datasets: [
-        {
-          data,
-          backgroundColor: colors,
-          borderWidth: 0,
-        },
-      ],
+  async function autoAuth(email, token) {
+    try {
+      const resp = await fetch(`${API_URL}/auth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password: atob(token), // Decode password from base64
+          first_name: displayName,
+        }),
+      })
+
+      if (!resp.ok) throw new Error("auth failed")
+      const json = await resp.json()
+      applyUser(json.user, json.transactions || [], true) // Mark as authenticated
+    } catch (e) {
+      console.warn("autoAuth failed", e)
+      localStorage.removeItem(SESSION_KEY) // Clear session if auth fails
+    }
+  }
+
+  function applyUser(u, txs = [], isEmailAuth = false) {
+    setUser(u)
+    setIsAuthenticated(isEmailAuth) // Set authentication status
+    setBalance(Number(u.balance || 0))
+    setIncome(Number(u.income || 0))
+    setExpenses(Number(u.expenses || 0))
+    setSavings(Number(u.savings_usd || 0)) // Ensure savings is treated as USD
+    setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
+    setTransactions(txs || [])
+  }
+
+  const saveToServer = async (newBalance, newIncome, newExpenses, newSavings) => {
+    if (user && user.email) {
+      try {
+        await fetch(`${API_URL}/user/${user.email}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            balance: newBalance,
+            income: newIncome,
+            expenses: newExpenses,
+            savings: newSavings, // Savings in USD
+            goalSavings, // Also save goalSavings
+          }),
+        })
+      } catch (e) {
+        console.warn("Failed to save to server", e)
+        alert("Ошибка сохранения данных на сервер.") // Notify user
+      }
+    }
+  }
+
+  const formatCurrency = (amount) => {
+    const curr = currencies.find((c) => c.code === currency) || currencies[0]
+    return `${Number(amount).toFixed(2)} ${curr.symbol}`
+  }
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })
+  }
+
+  const blurAll = () => {
+    if (document.activeElement) {
+      document.activeElement.blur()
+    }
+  }
+
+  const toggleFullscreen = async () => {
+    if (tg && tg.requestFullscreen && tg.exitFullscreen) {
+      try {
+        if (isFullscreen) {
+          tg.exitFullscreen()
+        } else {
+          tg.requestFullscreen()
+        }
+      } catch (e) {
+        console.warn("Fullscreen toggle failed", e)
+      }
     }
   }
 
   if (!isReady) {
     return (
-      <div
-        className={`w-full h-screen flex items-center justify-center ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-            : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
-        }`}
-      >
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
-          <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>Загрузка...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка...</p>
         </div>
       </div>
     )
   }
 
-  // Use local currency for displaying balance, income, expenses
-  const formatLocalCurrency = (value, curr = currency) => {
-    const num = Number(value)
-    if (!isFinite(num)) return `${currentCurrency.symbol}0`
-    try {
-      return new Intl.NumberFormat("ru-RU", {
-        style: "currency",
-        currency: curr,
-        minimumFractionDigits: curr === "USD" ? 2 : 0,
-      }).format(num)
-    } catch {
-      return `${currentCurrency.symbol}${Math.round(num)}`
-    }
-  }
-
   return (
     <div
-      className={`fixed inset-0 flex flex-col overflow-hidden ${
+      className={`min-h-screen transition-colors duration-300 ${
         theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
+          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
           : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
       }`}
-      style={{
-        paddingTop: safeAreaInset.top || 0,
-        paddingLeft: safeAreaInset.left || 0,
-        paddingRight: safeAreaInset.right || 0,
-      }}
     >
-      {activeTab === "overview" && (
-        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-8 pb-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1">
-              <h1 className={`text-2xl font-bold mb-1 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                Привет, {(user && user.first_name) || displayName}! 👋
-              </h1>
-              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Добро пожаловать в ваш финансовый помощник
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
-                <button
-                  onClick={toggleFullscreen}
-                  className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
-                    theme === "dark"
-                      ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                      : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
-                  }`}
-                  title="Полноэкранный режим"
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                  ) : (
-                    <Maximize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                  )}
-                </button>
-              )}
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
-                  theme === "dark"
-                    ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                    : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
-                }`}
-              >
-                {balanceVisible ? (
-                  <Eye className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                ) : (
-                  <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div
-            className={`relative overflow-hidden rounded-3xl p-5 shadow-2xl ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-                : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm">
-                  <CreditCard className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-white/80">Общий баланс</p>
-                  <p className="text-3xl font-bold text-white">
-                    {balanceVisible ? formatLocalCurrency(balance) : "••••••"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className="rounded-2xl p-3 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingUp className="w-3 h-3 text-emerald-300" />
-                  <span className="text-xs text-white/90">Доходы</span>
-                </div>
-                <p className="text-lg font-bold text-white">
-                  {balanceVisible ? formatLocalCurrency(income) : "••••••"}
-                </p>
-              </div>
-              <div className="rounded-2xl p-3 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-1">
-                  <TrendingDown className="w-3 h-3 text-rose-300" />
-                  <span className="text-xs text-white/90">Расходы</span>
-                </div>
-                <p className="text-lg font-bold text-white">
-                  {balanceVisible ? formatLocalCurrency(expenses) : "••••••"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
-      )}
-
       <main
-        ref={mainContentRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+        className="pb-24 overflow-y-auto"
         style={{
+          minHeight: "100vh",
+          paddingTop: Math.max(contentSafeAreaInset.top, 16),
+          paddingBottom: Math.max(contentSafeAreaInset.bottom + 80, 96),
           paddingLeft: contentSafeAreaInset.left || 0,
           paddingRight: contentSafeAreaInset.right || 0,
-          WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
-          touchAction: "pan-y",
-          height: "100%",
         }}
       >
-        <div
-          className={`px-4 pb-28 ${activeTab === "overview" ? "pt-4" : "pt-6"}`}
-          style={{
-            minHeight: "100%",
-            touchAction: "pan-y",
-          }}
-        >
-          {activeTab === "overview" && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="grid grid-cols-2 gap-3">
-                <div
-                  className={`backdrop-blur-sm rounded-xl p-3 border shadow-lg ${
-                    theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
-                      <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+        <div className="max-w-md mx-auto px-4">
+          {!user ? (
+            <div className="flex flex-col items-center justify-center min-h-[80vh] animate-fadeIn">
+              <div
+                className={`backdrop-blur-xl rounded-3xl p-8 shadow-2xl border max-w-sm w-full ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/80 border-white/50"
+                }`}
+              >
+                <div className="text-center mb-8">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+                    <Wallet className="w-10 h-10 text-white" />
+                  </div>
+                  <h1
+                    className={`text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent`}
+                  >
+                    Finance App
+                  </h1>
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Управляйте своими финансами
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {tgUserId && (
+                    <button
+                      onClick={() => {
+                        autoAuthTelegram(tgUserId)
+                        vibrate()
+                      }}
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <User className="w-5 h-5" />
+                      Войти через Telegram
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowAuthModal(true)
+                      vibrate()
+                    }}
+                    className={`w-full font-semibold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 ${
+                      theme === "dark"
+                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                        : "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                    }`}
+                  >
+                    <LogIn className="w-5 h-5" />
+                    Войти через Email
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeTab === "overview" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div
+                    className={`backdrop-blur-xl rounded-3xl p-6 shadow-2xl border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/80 border-white/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {tgPhotoUrl ? (
+                          <img
+                            src={tgPhotoUrl || "/placeholder.svg"}
+                            alt="avatar"
+                            className="w-12 h-12 rounded-full shadow-lg"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                            <User className="w-6 h-6 text-white" />
+                          </div>
+                        )}
+                        <div>
+                          <p className={`font-bold text-lg ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                            {displayName}
+                          </p>
+                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setBalanceVisible(!balanceVisible)
+                          vibrate()
+                        }}
+                        className={`p-2 rounded-xl transition-all ${
+                          theme === "dark" ? "hover:bg-gray-700/50" : "hover:bg-gray-100"
+                        }`}
+                      >
+                        {balanceVisible ? (
+                          <Eye className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
+                        ) : (
+                          <EyeOff className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
+                        )}
+                      </button>
                     </div>
-                    <div>
-                      <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Копилка</p>
-                      <p className={`text-sm font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                        {savingsPct}%
+
+                    <div className="text-center py-6">
+                      <p className={`text-sm mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        Текущий баланс
+                      </p>
+                      <p
+                        className={`text-4xl font-bold mb-1 ${
+                          balanceVisible
+                            ? "bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+                            : theme === "dark"
+                              ? "text-gray-600"
+                              : "text-gray-400"
+                        }`}
+                      >
+                        {balanceVisible ? formatCurrency(balance) : "••••••"}
                       </p>
                     </div>
-                  </div>
-                </div>
-              </div>
 
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Последние операции
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab("history")}
-                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                  >
-                    Все →
-                  </button>
-                </div>
-                {transactions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-                      }`}
-                    >
-                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className={`p-4 rounded-2xl ${theme === "dark" ? "bg-emerald-900/30" : "bg-emerald-50"}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="w-4 h-4 text-emerald-600" />
+                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Доход</p>
+                        </div>
+                        <p className="text-lg font-bold text-emerald-600">
+                          {balanceVisible ? formatCurrency(income) : "••••"}
+                        </p>
+                      </div>
+                      <div className={`p-4 rounded-2xl ${theme === "dark" ? "bg-rose-900/30" : "bg-rose-50"}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingDown className="w-4 h-4 text-rose-600" />
+                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Расход</p>
+                        </div>
+                        <p className="text-lg font-bold text-rose-600">
+                          {balanceVisible ? formatCurrency(expenses) : "••••"}
+                        </p>
+                      </div>
                     </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                      Пока нет операций
-                    </p>
-                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                      Добавьте первую транзакцию
-                    </p>
                   </div>
-                ) : (
-                  <div>
-                    {transactions.slice(0, 4).map((tx) => (
-                      <TxRow
-                        tx={tx}
-                        key={tx.id}
-                        categoriesMeta={categoriesMeta}
-                        formatCurrency={formatCurrency}
-                        formatDate={formatDate}
-                        theme={theme}
-                        onDelete={handleDeleteTransaction} // Use the updated handler
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
-          {activeTab === "history" && (
-            <div className="animate-fadeIn">
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    История операций
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setShowChart(true)
-                      setChartType("expense")
-                    }}
-                    className={`p-2 rounded-lg transition-colors touch-none ${
-                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                    }`}
-                  >
-                    <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                  </button>
-                </div>
-                {transactions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-                      }`}
-                    >
-                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                    </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
-                  </div>
-                ) : (
-                  <div>
-                    {transactions.map((tx) => (
-                      <TxRow
-                        tx={tx}
-                        key={tx.id}
-                        categoriesMeta={categoriesMeta}
-                        formatCurrency={formatCurrency}
-                        formatDate={formatDate}
-                        theme={theme}
-                        onDelete={handleDeleteTransaction}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "savings" && (
-            <div className="space-y-4 animate-fadeIn">
-              <div
-                className={`rounded-2xl p-4 text-white shadow-2xl ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-gray-800 to-gray-700"
-                    : "bg-gradient-to-br from-blue-500 to-purple-600"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">Копилка (USD)</h3>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
-                      Ваша цель накопления
-                    </p>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white/20 flex-shrink-0">
-                    <PiggyBank className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Прогресс</span>
-                    <span className="text-white font-bold">{savingsPct}%</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-500 shadow-lg"
-                      style={{ width: `${savingsPct}%` }}
-                    />
-                  </div>
                   <div
-                    className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
-                  >
-                    <span>{formatCurrency(savings, "USD")}</span>
-                    <span>{formatCurrency(goalSavings, "USD")}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setShowGoalModal(true)
-                      vibrate()
-                    }}
-                    className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-all text-sm touch-none"
-                  >
-                    Изменить цель
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Use setNewTransaction to set the type for savings
-                      setNewTransaction({
-                        ...newTransaction,
-                        type: "savings",
-                        amount: "",
-                        description: "",
-                        category: "",
-                      })
-                      setShowAddModal(true)
-                      vibrate()
-                    }}
-                    className={`flex items-center gap-1 px-4 py-2 rounded-xl font-medium transition-all shadow-lg text-sm touch-none ${
-                      theme === "dark"
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-white text-blue-600 hover:bg-blue-50"
+                    className={`backdrop-blur-xl rounded-3xl p-6 shadow-2xl border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/80 border-white/50"
                     }`}
                   >
-                    <Plus className="w-4 h-4" />
-                    Пополнить
-                  </button>
-                </div>
-              </div>
-
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  История пополнений
-                </h3>
-                {transactions.filter((t) => t.type === "savings").length === 0 ? (
-                  <div className="text-center py-8">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-blue-100"
-                      }`}
-                    >
-                      <PiggyBank className={`w-6 h-6 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        Последние транзакции
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setActiveTab("history")
+                          vibrate()
+                        }}
+                        className={`text-sm font-medium ${
+                          theme === "dark" ? "text-blue-400" : "text-blue-600"
+                        } hover:underline`}
+                      >
+                        Все
+                      </button>
                     </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Начните копить!</p>
-                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                      Добавьте первое пополнение
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    {transactions
-                      .filter((t) => t.type === "savings")
-                      .map((tx) => (
+                    <div className="space-y-3">
+                      {transactions.slice(0, 5).map((tx) => (
                         <TxRow
-                          tx={tx}
                           key={tx.id}
+                          tx={tx}
                           categoriesMeta={categoriesMeta}
                           formatCurrency={formatCurrency}
                           formatDate={formatDate}
@@ -1488,390 +1147,309 @@ export default function FinanceApp({ apiUrl }) {
                           onDelete={handleDeleteTransaction}
                         />
                       ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "settings" && (
-            <div className="space-y-4 animate-fadeIn">
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Аккаунт
-                </h3>
-
-                {isAuthenticated ? (
-                  <div className="space-y-3">
-                    <div
-                      className={`flex items-center gap-3 p-3 rounded-xl border ${
-                        theme === "dark" ? "bg-green-900/30 border-green-700/30" : "bg-green-50 border-green-200"
-                      }`}
-                    >
-                      {tgPhotoUrl ? (
-                        <img
-                          src={tgPhotoUrl || "/placeholder.svg"}
-                          alt="Avatar"
-                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
-                        />
-                      ) : (
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            theme === "dark" ? "bg-green-700" : "bg-green-100"
-                          }`}
-                        >
-                          <User className={`w-5 h-5 ${theme === "dark" ? "text-green-300" : "text-green-600"}`} />
-                        </div>
+                      {transactions.length === 0 && (
+                        <p className={`text-center py-8 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                          Нет транзакций
+                        </p>
                       )}
-                      <div className="min-w-0">
-                        <p
-                          className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
-                        >
-                          {(user && user.first_name) || displayName}
-                        </p>
-                        <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                          {user && user.email}
-                        </p>
-                      </div>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-rose-700 hover:bg-rose-600 text-white"
-                          : "bg-rose-500 hover:bg-rose-600 text-white"
-                      }`}
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Выйти
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div
-                      className={`p-3 rounded-xl border ${
-                        theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
-                      }`}
-                    >
-                      <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        Войдите в учетную запись через email, чтобы синхронизировать данные на всех устройствах.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowAuthModal(true)
-                        setAuthMode("login")
-                        vibrate()
-                      }}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-blue-700 hover:bg-blue-600 text-white"
-                          : "bg-blue-500 hover:bg-blue-600 text-white"
-                      }`}
-                    >
-                      <LogIn className="w-4 h-4" />
-                      Войти через Email
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Настройки
-                </h3>
-
-                <div className="space-y-3">
-                  <div>
-                    <label
-                      className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                    >
-                      Валюта
-                    </label>
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm touch-none ${
-                        theme === "dark"
-                          ? "bg-gray-700 border-gray-600 text-gray-100"
-                          : "bg-gray-50 border-gray-200 text-gray-900"
-                      }`}
-                    >
-                      {currencies.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.name} ({c.symbol})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label
-                      className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                    >
-                      Тема
-                    </label>
-                    <button
-                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      className={`w-full p-3 border rounded-xl transition-all text-left text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
-                          : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
-                      }`}
-                    >
-                      {theme === "dark" ? "🌙 Тёмная" : "☀️ Светлая"}
-                    </button>
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-red-900/30 border-red-700/30" : "bg-red-50 border-red-200"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-3 ${theme === "dark" ? "text-red-300" : "text-red-900"}`}>
-                  Опасная зона
-                </h3>
-                <button
-                  onClick={handleResetData}
-                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-red-700 hover:bg-red-600 text-white"
-                      : "bg-red-500 hover:bg-red-600 text-white"
-                  }`}
-                >
-                  Сбросить все данные
-                </button>
-              </div>
-            </div>
+              {activeTab === "history" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div
+                    className={`backdrop-blur-xl rounded-3xl p-6 shadow-2xl border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/80 border-white/50"
+                    }`}
+                  >
+                    <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      История операций
+                    </h2>
+                    <div className="space-y-3">
+                      {transactions.map((tx) => (
+                        <TxRow
+                          key={tx.id}
+                          tx={tx}
+                          categoriesMeta={categoriesMeta}
+                          formatCurrency={formatCurrency}
+                          formatDate={formatDate}
+                          theme={theme}
+                          onDelete={handleDeleteTransaction}
+                        />
+                      ))}
+                      {transactions.length === 0 && (
+                        <p className={`text-center py-12 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                          Нет транзакций
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "savings" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div
+                    className={`backdrop-blur-xl rounded-3xl p-6 shadow-2xl border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/80 border-white/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                        <PiggyBank className="w-6 h-6 text-white" />
+                      </div>
+                      <h2 className={`text-2xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        Копилка
+                      </h2>
+                    </div>
+
+                    <div className="text-center py-6 mb-6">
+                      <p className={`text-sm mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        Накоплено
+                      </p>
+                      <p className="text-4xl font-bold mb-1 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        ${savings.toFixed(2)}
+                      </p>
+                      <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                        Цель: ${goalSavings.toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="mb-6">
+                      <div
+                        className={`h-3 rounded-full overflow-hidden ${
+                          theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                        }`}
+                      >
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 rounded-full"
+                          style={{ width: `${Math.min((savings / goalSavings) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <p className={`text-xs text-center mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        {((savings / goalSavings) * 100).toFixed(1)}% от цели
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        История накоплений
+                      </h3>
+                      {transactions
+                        .filter((tx) => tx.type === "savings")
+                        .map((tx) => (
+                          <TxRow
+                            key={tx.id}
+                            tx={tx}
+                            categoriesMeta={categoriesMeta}
+                            formatCurrency={formatCurrency}
+                            formatDate={formatDate}
+                            theme={theme}
+                            onDelete={handleDeleteTransaction}
+                          />
+                        ))}
+                      {transactions.filter((tx) => tx.type === "savings").length === 0 && (
+                        <p className={`text-center py-8 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                          Нет накоплений
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "settings" && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div
+                    className={`backdrop-blur-xl rounded-3xl p-6 shadow-2xl border ${
+                      theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/80 border-white/50"
+                    }`}
+                  >
+                    <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Настройки
+                    </h2>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Валюта
+                        </label>
+                        <select
+                          value={currency}
+                          onChange={(e) => {
+                            setCurrency(e.target.value)
+                            vibrateSelect()
+                          }}
+                          className={`w-full p-3 rounded-xl border transition-all ${
+                            theme === "dark"
+                              ? "bg-gray-700 border-gray-600 text-gray-100"
+                              : "bg-white border-gray-200 text-gray-900"
+                          }`}
+                        >
+                          {currencies.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.name} ({c.symbol})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label
+                          className={`block text-sm font-semibold mb-2 ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          Цель накоплений (USD)
+                        </label>
+                        <input
+                          type="number"
+                          value={goalSavings}
+                          onChange={(e) => setGoalSavings(Number(e.target.value))}
+                          className={`w-full p-3 rounded-xl border transition-all ${
+                            theme === "dark"
+                              ? "bg-gray-700 border-gray-600 text-gray-100"
+                              : "bg-white border-gray-200 text-gray-900"
+                          }`}
+                        />
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem(SESSION_KEY)
+                          setUser(null)
+                          setTransactions([])
+                          setIsAuthenticated(false)
+                          vibrateSuccess()
+                        }}
+                        className="w-full bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        Выйти
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
 
-      {showGoalModal && (
+      {showAddModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-          >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Цель накопления (USD)
-            </h3>
-            <div className="mb-4">
-              <label
-                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-              >
-                Сумма цели
-              </label>
-              <input
-                type="number"
-                value={goalInput}
-                min={0}
-                onChange={(e) => setGoalInput(e.target.value.replace(/^0+/, ""))}
-                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-                placeholder="Введите сумму"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowGoalModal(false)}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={() => {
-                  const n = Number.parseInt(goalInput, 10)
-                  if (!Number.isNaN(n) && n >= 0) setGoalSavings(n)
-                  setShowGoalModal(false)
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showChart && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto ${
+            className={`w-full max-w-sm rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-6">
               <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                {chartType === "income" ? "Доходы" : chartType === "expense" ? "Расходы" : "Копилка"} по категориям
+                Новая транзакция
               </h3>
-              <button onClick={() => setShowChart(false)} className="touch-none">
+              <button
+                onClick={() => {
+                  setShowAddModal(false)
+                  vibrate()
+                }}
+                className={`p-2 rounded-xl transition-all ${
+                  theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                }`}
+              >
                 <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
               </button>
             </div>
-            {transactions.filter((t) => t.type === chartType).length > 0 ? (
-              <div className="w-full aspect-square">
-                <Pie
-                  data={getChartData(chartType)}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                      legend: {
-                        position: "bottom",
-                        labels: {
-                          color: theme === "dark" ? "#e5e7eb" : "#1f2937",
-                          padding: 15,
-                          font: { size: 12 },
-                        },
-                      },
-                    },
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Тип</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: "expense", label: "Расход", color: "rose" },
+                    { value: "income", label: "Доход", color: "emerald" },
+                    { value: "savings", label: "Копилка", color: "blue" },
+                  ].map((type) => (
+                    <button
+                      key={type.value}
+                      onClick={() => {
+                        setNewTransaction({ ...newTransaction, type: type.value })
+                        setTransactionType(type.value)
+                        vibrateSelect()
+                      }}
+                      className={`py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
+                        newTransaction.type === type.value
+                          ? `bg-gradient-to-br from-${type.color}-500 to-${type.color}-600 text-white shadow-lg scale-105`
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Сумма ({currency})</label>
+                <input
+                  type="text"
+                  value={newTransaction.amount}
+                  onFocus={() => {
+                    setShowNumKeyboard(true)
+                    if (!newTransaction.amount) {
+                      setNewTransaction({ ...newTransaction, amount: "" })
+                    }
                   }}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.]/g, "")
+                    const parts = value.split(".")
+                    if (parts.length > 2) {
+                      e.target.value = `${parts[0]}.${parts.slice(1).join("")}`
+                    }
+                    setNewTransaction({ ...newTransaction, amount: e.target.value })
+                  }}
+                  className="w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-xl font-bold"
+                  placeholder="0.00"
+                  readOnly={showNumKeyboard}
                 />
               </div>
-            ) : (
-              <div className={`text-center py-8 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                Нет данных для отображения
-              </div>
-            )}
-            <button
-              onClick={() => setShowChart(false)}
-              className={`mt-4 w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-              }`}
-            >
-              Закрыть
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Модальное окно с glassmorphism (from updates) */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="backdrop-blur-2xl bg-white/90 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl border border-white/50 animate-slide-up">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Новая транзакция
-                </h3>
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                >
-                  <X size={24} className="text-gray-600" />
-                </button>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Описание</label>
+                <input
+                  type="text"
+                  value={newTransaction.description}
+                  onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                  onFocus={() => setShowNumKeyboard(false)}
+                  className="w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  placeholder="Например: Зарплата"
+                />
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Тип</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { value: "income", label: "Доход", color: "green" },
-                      { value: "expense", label: "Расход", color: "red" },
-                      { value: "savings", label: "Копилка", color: "amber" },
-                    ].map((type) => (
-                      <button
-                        key={type.value}
-                        onClick={() => {
-                          setNewTransaction({ ...newTransaction, type: type.value })
-                          setTransactionType(type.value) // Also update the global transactionType
-                          vibrateSelect()
-                        }}
-                        className={`py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
-                          newTransaction.type === type.value
-                            ? `bg-gradient-to-br from-${type.color}-500 to-${type.color}-600 text-white shadow-lg scale-105`
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                      >
-                        {type.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Сумма ({currency})</label>
-                  <input
-                    type="text" // Changed to text to allow focus for keyboard
-                    value={newTransaction.amount}
-                    onFocus={() => {
-                      setShowNumKeyboard(true)
-                      // Pre-fill with existing amount if any, but allow editing
-                      if (!newTransaction.amount) {
-                        setNewTransaction({ ...newTransaction, amount: "" })
-                      }
-                    }}
-                    onChange={(e) => {
-                      // Only allow numbers and a single decimal point
-                      const value = e.target.value.replace(/[^0-9.]/g, "")
-                      const parts = value.split(".")
-                      if (parts.length > 2) {
-                        e.target.value = `${parts[0]}.${parts.slice(1).join("")}`
-                      }
-                      setNewTransaction({ ...newTransaction, amount: e.target.value })
-                    }}
-                    className="w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-xl font-bold"
-                    placeholder="0.00"
-                    readOnly={showNumKeyboard} // Make readOnly when keyboard is up to avoid conflict
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Описание</label>
-                  <input
-                    type="text"
-                    value={newTransaction.description}
-                    onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
-                    onFocus={() => setShowNumKeyboard(false)} // Hide keyboard if focused
-                    className="w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    placeholder="Например: Зарплата"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Категория</label>
-                  <input
-                    type="text"
-                    value={newTransaction.category}
-                    onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
-                    onFocus={() => setShowNumKeyboard(false)} // Hide keyboard if focused
-                    className="w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    placeholder="Например: Работа"
-                  />
-                </div>
-
-                <button
-                  onClick={handleAddTransaction}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] mt-6"
-                >
-                  Добавить транзакцию
-                </button>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Категория</label>
+                <input
+                  type="text"
+                  value={newTransaction.category}
+                  onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
+                  onFocus={() => setShowNumKeyboard(false)}
+                  className="w-full px-4 py-3 bg-white/70 backdrop-blur-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  placeholder="Например: Работа"
+                />
               </div>
+
+              <button
+                onClick={handleAddTransaction}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] mt-6"
+              >
+                Добавить транзакцию
+              </button>
             </div>
           </div>
         </div>
@@ -1985,7 +1563,41 @@ export default function FinanceApp({ apiUrl }) {
         </div>
       )}
 
-      {!isKeyboardOpen && (
+      {showNumKeyboard && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-40 animate-slide-up"
+          style={{
+            paddingBottom: Math.max(safeAreaInset.bottom, 8),
+            paddingLeft: safeAreaInset.left || 0,
+            paddingRight: safeAreaInset.right || 0,
+          }}
+        >
+          <NumericKeyboard
+            onNumberPress={(num) => {
+              const currentAmount = newTransaction.amount
+              const newAmount = currentAmount === "0" ? num : currentAmount + num
+              setNewTransaction({ ...newTransaction, amount: newAmount })
+              vibrate()
+            }}
+            onBackspace={() => {
+              setNewTransaction({
+                ...newTransaction,
+                amount: newTransaction.amount.slice(0, -1),
+              })
+              vibrate()
+            }}
+            onDone={() => {
+              setShowNumKeyboard(false)
+              setIsKeyboardOpen(false)
+              blurAll()
+              vibrate()
+            }}
+            theme={theme}
+          />
+        </div>
+      )}
+
+      {!showNumKeyboard && !isKeyboardOpen && (
         <div
           className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
@@ -2022,6 +1634,7 @@ export default function FinanceApp({ apiUrl }) {
                 onClick={() => {
                   setShowAddModal(true)
                   vibrate()
+                  setIsKeyboardOpen(true) // Indicate keyboard is open conceptually for layout
                 }}
                 className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
               >
