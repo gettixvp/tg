@@ -38,40 +38,76 @@ async function initDB() {
     `);
 
     if (tableCheck.rows[0].exists) {
+      // Таблица уже существует — проверяем наличие столбца user_email и миграция
       const columnCheck = await pool.query(`
-        SELECT column_name 
-        FROM information_schema.columns 
+        SELECT column_name
+        FROM information_schema.columns
         WHERE table_name = 'transactions' AND column_name = 'user_email';
       `);
 
       if (columnCheck.rowCount === 0) {
         console.log("Миграция таблицы transactions...");
-        
+
         await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_email TEXT;`);
-        
+
+        // Удаляем старый FK (если был)
         await pool.query(`
-          DO $$ 
+          DO $$
           BEGIN
             ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_user_id_fkey;
           EXCEPTION
             WHEN undefined_object THEN NULL;
           END $$;
         `);
-        
+
         await pool.query(`DELETE FROM transactions WHERE user_email IS NULL;`);
-        
+
         await pool.query(`
-          ALTER TABLE transactions 
-          ADD CONSTRAINT transactions_user_email_fkey 
+          ALTER TABLE transactions
+          ADD CONSTRAINT transactions_user_email_fkey
           FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE;
         `);
-        
+
         console.log("Миграция завершена");
       }
+
+      // Критическое исправление: меняем тип id на BIGINT (если ещё не сделано)
+      const idTypeCheck = await pool.query(`
+        SELECT data_type
+        FROM information_schema.columns
+        WHERE table_name = 'transactions' AND column_name = 'id';
+      `);
+
+      if (idTypeCheck.rows[0].data_type !== 'bigint') {
+        console.log("Миграция: изменение типа id на BIGINT...");
+        await pool.query(`
+          ALTER TABLE transactions 
+          ALTER COLUMN id TYPE BIGINT 
+          USING id::bigint;
+        `);
+
+        // Если была последовательность SERIAL, пересоздаём её как BIGSERIAL
+        await pool.query(`
+          DO $$
+          DECLARE
+            seq_name TEXT;
+          BEGIN
+            SELECT pg_get_serial_sequence('transactions', 'id') INTO seq_name;
+            IF seq_name IS NOT NULL THEN
+              EXECUTE 'DROP SEQUENCE IF EXISTS ' || seq_name;
+              EXECUTE 'CREATE SEQUENCE ' || seq_name || ' AS BIGINT OWNED BY transactions.id';
+              EXECUTE 'ALTER TABLE transactions ALTER COLUMN id SET DEFAULT nextval(''' || seq_name || '''::regclass)';
+            END IF;
+          END $$;
+        `);
+        console.log("Тип id изменён на BIGINT");
+      }
+
     } else {
+      // Таблица создаётся впервые — используем BIGSERIAL сразу
       await pool.query(`
         CREATE TABLE transactions (
-          id SERIAL PRIMARY KEY,
+          id BIGSERIAL PRIMARY KEY,
           user_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
           type TEXT NOT NULL,
           amount NUMERIC NOT NULL,
@@ -83,6 +119,7 @@ async function initDB() {
       `);
     }
 
+    // Добавляем столбец, если его нет
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS converted_amount_usd NUMERIC;`);
 
     console.log("БД готова!");
@@ -92,4 +129,5 @@ async function initDB() {
 }
 
 initDB();
+
 module.exports = pool;
