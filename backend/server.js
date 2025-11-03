@@ -14,6 +14,11 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() })
 })
 
+// --- ПИНГ ДЛЯ RENDER (чтобы не засыпал) ---
+app.get("/ping", (req, res) => {
+  res.send("pong");
+});
+
 // --- Регистрация / Вход ---
 app.post("/api/auth", async (req, res) => {
   const { email, password, first_name, telegram_id, telegram_name } = req.body
