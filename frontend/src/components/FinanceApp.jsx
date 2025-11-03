@@ -740,30 +740,33 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!window.confirm("Удалить эту транзакцию?")) return
 
     console.log("[v0] Deleting transaction:", tx)
-    console.log("[v0] Current balance:", balance)
+    console.log("[v0] Current balance (type):", typeof balance, balance)
+    console.log("[v0] Transaction amount (type):", typeof tx.amount, tx.amount)
 
     setTransactions((p) => p.filter((t) => t.id !== txId))
 
-    let newBalance = balance
-    let newIncome = income
-    let newExpenses = expenses
-    let newSavings = savings
+    let newBalance = Number(balance)
+    let newIncome = Number(income)
+    let newExpenses = Number(expenses)
+    let newSavings = Number(savings)
+    const txAmount = Number(tx.amount)
+    const txConvertedUSD = Number(tx.converted_amount_usd || 0)
 
     if (tx.type === "income") {
-      newIncome -= tx.amount
-      newBalance -= tx.amount
+      newIncome -= txAmount
+      newBalance -= txAmount
       setIncome(newIncome)
       setBalance(newBalance)
       console.log("[v0] Deleted income. New balance:", newBalance)
     } else if (tx.type === "expense") {
-      newExpenses -= tx.amount
-      newBalance += tx.amount
+      newExpenses -= txAmount
+      newBalance += txAmount
       setExpenses(newExpenses)
       setBalance(newBalance)
       console.log("[v0] Deleted expense. New balance:", newBalance)
     } else {
-      newSavings -= tx.converted_amount_usd || 0
-      newBalance += tx.amount
+      newSavings -= txConvertedUSD
+      newBalance += txAmount
       setSavings(newSavings)
       setBalance(newBalance)
       console.log("[v0] Deleted savings. New balance:", newBalance)
