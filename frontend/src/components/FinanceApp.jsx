@@ -225,10 +225,10 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`relative flex items-center justify-between p-3 rounded-xl backdrop-blur-sm border transition-all duration-300 hover:shadow-md ${
+        className={`relative flex items-center justify-between p-3 rounded-xl border transition-all duration-300 hover:shadow-md ${
           theme === "dark"
-            ? "bg-gray-800/80 border-gray-700/50 hover:bg-gray-700/80"
-            : "bg-white/90 border-gray-200/50 hover:bg-white shadow-sm"
+            ? "bg-gray-800 border-gray-700/50 hover:bg-gray-700"
+            : "bg-white border-gray-200/50 hover:bg-gray-50 shadow-sm"
         }`}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
