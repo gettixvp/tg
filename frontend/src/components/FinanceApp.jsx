@@ -1109,9 +1109,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-8 pb-4">
+      <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-10 pb-4">
         {activeTab === "overview" && (
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 mt-2">
             <div className="flex items-center gap-3 flex-1">
               {tgPhotoUrl ? (
                 <img
