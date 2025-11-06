@@ -1066,6 +1066,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       created_by_telegram_id: tgUserId || null,
       created_by_name: displayName || null,
       telegram_photo_url: tgPhotoUrl || null,
+      savings_goal: transactionType === 'savings' ? selectedSavingsGoal : null,
     }
 
     setTransactions((p) => [newTx, ...p])
@@ -1109,7 +1110,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id: user.email,
+            user_email: user.email,
             type: newTx.type,
             amount: newTx.amount,
             description: newTx.description,
@@ -1117,6 +1118,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             converted_amount_usd: convertedUSD || null,
             created_by_telegram_id: tgUserId || null,
             created_by_name: displayName || null,
+            savings_goal: newTx.savings_goal,
           }),
         })
 
@@ -1160,11 +1162,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       setBalance(newBalance)
       console.log("[v0] Deleted expense. New balance:", newBalance)
     } else {
-      newSavings -= txConvertedUSD
+      // Копилка - проверяем какая копилка была пополнена
+      if (tx.savings_goal === 'second') {
+        // Вторая копилка
+        const newSecondGoalSavings = secondGoalSavings - txConvertedUSD
+        setSecondGoalSavings(newSecondGoalSavings)
+        console.log("[v0] Deleted second savings. New second goal savings:", newSecondGoalSavings)
+      } else {
+        // Основная копилка
+        newSavings -= txConvertedUSD
+        setSavings(newSavings)
+        console.log("[v0] Deleted main savings. New savings:", newSavings)
+      }
       newBalance += txAmount
-      setSavings(newSavings)
       setBalance(newBalance)
-      console.log("[v0] Deleted savings. New balance:", newBalance)
     }
 
     vibrateSuccess()

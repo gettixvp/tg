@@ -103,6 +103,9 @@ async function initDB() {
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_name TEXT;`)
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
 
+    // Добавляем колонку для отслеживания какая копилка была пополнена
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS savings_goal TEXT DEFAULT 'main';`)
+
     // Добавляем колонки для настроек копилки
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_name TEXT DEFAULT 'Моя цель';`)
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS initial_savings_amount NUMERIC DEFAULT 0;`)

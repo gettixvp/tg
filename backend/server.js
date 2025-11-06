@@ -111,20 +111,9 @@ app.post("/api/user/:email/reset", async (req, res) => {
   }
 })
 
-// --- Новая транзакция ---
+// --- Добавить транзакцию ---
 app.post("/api/transactions", async (req, res) => {
-  const {
-    user_id,
-    type,
-    amount,
-    description,
-    category,
-    converted_amount_usd,
-    created_by_telegram_id,
-    created_by_name,
-  } = req.body
-
-  const user_email = user_id
+  const { user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name, savings_goal } = req.body
 
   if (!user_email) {
     return res.status(400).json({ error: "Email пользователя обязателен" })
@@ -132,8 +121,8 @@ app.post("/api/transactions", async (req, res) => {
 
   try {
     const r = await pool.query(
-      `INSERT INTO transactions (user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      `INSERT INTO transactions (user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name, savings_goal)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [
         user_email,
         type,
@@ -143,6 +132,7 @@ app.post("/api/transactions", async (req, res) => {
         category,
         created_by_telegram_id,
         created_by_name,
+        savings_goal || 'main',
       ],
     )
     res.json(r.rows[0])
