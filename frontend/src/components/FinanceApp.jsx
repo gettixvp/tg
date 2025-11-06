@@ -449,12 +449,11 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
 function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   return (
-    <div className="flex justify-center">
-      <div
-        className={`grid grid-cols-3 gap-2 p-3 rounded-t-2xl w-full max-w-xs ${
-          theme === "dark" ? "bg-gray-800 border-t border-gray-700" : "bg-gray-100 border-t border-gray-200"
-        }`}
-      >
+    <div
+      className={`grid grid-cols-3 gap-2 p-4 rounded-t-2xl w-full ${
+        theme === "dark" ? "bg-gray-800 border-t border-gray-700" : "bg-gray-100 border-t border-gray-200"
+      }`}
+    >
       {[1, 2, 3, 4, 5, 6, 7, 8, 9, ".", 0, "⌫"].map((key) => (
         <button
           key={key}
@@ -477,7 +476,6 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
       >
         Готово
       </button>
-      </div>
     </div>
   )
 }
@@ -2355,9 +2353,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <input
                 type="text"
                 inputMode="none"
-                value={initialSavingsInput}
+                value={selectedSavingsGoal === 'main' ? (initialSavingsInput || initialSavingsAmount.toString()) : (initialSavingsInput || secondGoalInitialAmount.toString())}
                 readOnly
-                onClick={() => setShowNumKeyboard(true)}
+                onClick={() => {
+                  // Устанавливаем текущее значение в поле при открытии клавиатуры
+                  if (selectedSavingsGoal === 'main') {
+                    setInitialSavingsInput(initialSavingsAmount.toString())
+                  } else {
+                    setInitialSavingsInput(secondGoalInitialAmount.toString())
+                  }
+                  setShowNumKeyboard(true)
+                }}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -2367,31 +2373,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               />
             </div>
             
-            {/* Кнопка изменить прогресс */}
-            <div className="mb-4">
-              <button
-                onClick={() => {
-                  const currentProgress = selectedSavingsGoal === 'main' ? savings : secondGoalSavings
-                  const newProgress = prompt(`Текущий прогресс: $${currentProgress.toFixed(2)}. Введите новое значение:`, currentProgress)
-                  if (newProgress !== null && !isNaN(newProgress)) {
-                    const val = parseFloat(newProgress)
-                    if (selectedSavingsGoal === 'main') {
-                      setSavings(val)
-                    } else {
-                      setSecondGoalSavings(val)
-                    }
-                    saveToServer(balance, income, expenses, selectedSavingsGoal === 'main' ? val : savings)
-                  }
-                }}
-                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-purple-700 hover:bg-purple-600 text-white"
-                    : "bg-purple-500 hover:bg-purple-600 text-white"
-                }`}
-              >
-                Изменить прогресс
-              </button>
-            </div>
             
             <div className="flex gap-2">
               <button
@@ -2443,9 +2424,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setShowSavingsSettingsModal(false)
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                  selectedSavingsGoal === 'main'
+                    ? theme === "dark"
+                      ? "bg-blue-700 hover:bg-blue-600 text-white"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                    : theme === "dark"
+                      ? "bg-purple-700 hover:bg-purple-600 text-white"
+                      : "bg-purple-500 hover:bg-purple-600 text-white"
                 }`}
               >
                 Сохранить
