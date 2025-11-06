@@ -23,6 +23,8 @@ import {
   Heart,
   ChevronDown,
   ChevronUp,
+  MessageCircle,
+  Send,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js"
 import { Pie } from "react-chartjs-2"
@@ -173,10 +175,12 @@ function NavButton({ active, onClick, icon, theme }) {
   )
 }
 
-function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, tgPhotoUrl }) {
+function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onAddComment, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
+  const [showComments, setShowComments] = useState(false)
+  const [commentText, setCommentText] = useState('')
   const startX = useRef(0)
 
   const handleTouchStart = (e) => {
@@ -194,6 +198,19 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
     setLastTap(now)
     startX.current = e.touches[0].clientX
     setIsSwiping(true)
+  }
+
+  const handleClick = () => {
+    if (swipeX === 0) {
+      setShowComments(!showComments)
+    }
+  }
+
+  const handleSendComment = () => {
+    if (commentText.trim()) {
+      onAddComment && onAddComment(tx.id, commentText.trim())
+      setCommentText('')
+    }
   }
 
   const handleTouchMove = (e) => {
@@ -238,88 +255,168 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
           transform: `translateX(${swipeX}px)`,
           transition: isSwiping ? "none" : "transform 0.3s ease",
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className={`relative flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 hover:shadow-md ${
+        className={`relative rounded-xl border transition-all duration-300 ${
           theme === "dark"
-            ? "bg-gray-800 border-gray-700/50 hover:bg-gray-700"
-            : "bg-white border-gray-200/50 hover:bg-gray-50 shadow-sm"
+            ? "bg-gray-800 border-gray-700/50"
+            : "bg-white border-gray-200/50 shadow-sm"
         }`}
       >
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div
-            className={`flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
-          >
-            <span className="text-base">{categoryInfo.icon}</span>
+        {/* Лайк в правом верхнем углу */}
+        {tx.liked && (
+          <div className="absolute -top-1 -right-1 z-10">
+            <Heart className="w-5 h-5 text-red-500 fill-red-500 drop-shadow-lg" />
           </div>
+        )}
 
-          <div className="min-w-0 flex-1 relative">
-            {/* Имя и аватарка справа вверху */}
-            {showCreator && tx.created_by_name && (
-              <div className="absolute top-0 right-0 flex items-center gap-1.5">
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-md ${
-                    theme === "dark" ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-700"
-                  }`}
-                >
+        <div
+          onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="p-3 cursor-pointer"
+        >
+          <div className="flex gap-3">
+            {/* Левая часть: Аватарка и иконка категории */}
+            <div className="flex flex-col items-center gap-2 flex-shrink-0">
+              {/* Аватарка пользователя */}
+              {showCreator && tx.created_by_name && (
+                <>
+                  {tx.telegram_photo_url ? (
+                    <img
+                      src={tx.telegram_photo_url}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
+                    />
+                  ) : (
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      theme === "dark" ? "bg-blue-700" : "bg-blue-200"
+                    }`}>
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Иконка категории */}
+              <div
+                className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md`}
+              >
+                <span className="text-lg">{categoryInfo.icon}</span>
+              </div>
+            </div>
+
+            {/* Центральная часть: Имя, описание, категория */}
+            <div className="flex-1 min-w-0">
+              {/* Имя пользователя */}
+              {showCreator && tx.created_by_name && (
+                <p className={`text-xs font-medium mb-1 ${
+                  theme === "dark" ? "text-blue-300" : "text-blue-600"
+                }`}>
                   {tx.created_by_name}
-                </span>
-                {tx.telegram_photo_url ? (
-                  <img
-                    src={tx.telegram_photo_url}
-                    alt="Avatar"
-                    className="w-6 h-6 rounded-full object-cover border border-white/20"
-                  />
-                ) : (
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    theme === "dark" ? "bg-blue-700" : "bg-blue-200"
-                  }`}>
-                    <User className="w-3 h-3 text-white" />
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Лайк справа вверху */}
-            {tx.liked && (
-              <div className="absolute -top-1 -right-1 z-10">
-                <Heart className="w-5 h-5 text-red-500 fill-red-500 drop-shadow-lg" />
-              </div>
-            )}
-            
-            <div className="pr-20">
+                </p>
+              )}
+              
+              {/* Описание */}
               {tx.description && (
-                <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                <p className={`font-semibold text-sm mb-1 truncate ${
+                  theme === "dark" ? "text-gray-100" : "text-gray-900"
+                }`}>
                   {tx.description}
                 </p>
               )}
+              
+              {/* Категория */}
               <span
-                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} mt-0.5`}
+                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor}`}
               >
                 {tx.category}
               </span>
             </div>
-            
-            {/* Время слева внизу */}
-            <div className="mt-1">
-              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+
+            {/* Правая часть: Сумма и время */}
+            <div className="flex flex-col items-end justify-between flex-shrink-0">
+              {/* Сумма по центру справа */}
+              <p
+                className={`font-bold text-base ${
+                  tx.type === "income" ? "text-emerald-600" : tx.type === "expense" ? "text-rose-600" : "text-blue-600"
+                }`}
+              >
+                {tx.type === "income" ? "+" : "-"}
+                {formatCurrency(tx.amount)}
+              </p>
+              
+              {/* Время справа снизу */}
+              <span className={`text-xs mt-auto ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                 {formatDate(tx.date)}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="text-right ml-2 flex-shrink-0">
-          <p
-            className={`font-bold text-sm ${
-              tx.type === "income" ? "text-emerald-600" : tx.type === "expense" ? "text-rose-600" : "text-blue-600"
-            }`}
-          >
-            {tx.type === "income" ? "+" : "-"}
-            {formatCurrency(tx.amount)}
-          </p>
-        </div>
+        {/* Раскрывающаяся секция комментариев */}
+        {showComments && (
+          <div className={`border-t p-3 ${
+            theme === "dark" ? "border-gray-700 bg-gray-800/50" : "border-gray-200 bg-gray-50"
+          }`}>
+            {/* Существующие комментарии */}
+            {tx.comments && tx.comments.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {tx.comments.map((comment, idx) => (
+                  <div key={idx} className={`p-2 rounded-lg ${
+                    theme === "dark" ? "bg-gray-700/50" : "bg-white"
+                  }`}>
+                    <p className={`text-xs font-medium mb-1 ${
+                      theme === "dark" ? "text-blue-300" : "text-blue-600"
+                    }`}>
+                      {comment.author}
+                    </p>
+                    <p className={`text-sm ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-700"
+                    }`}>
+                      {comment.text}
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      theme === "dark" ? "text-gray-500" : "text-gray-400"
+                    }`}>
+                      {formatDate(comment.date)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Поле ввода комментария */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
+                placeholder="Написать комментарий..."
+                className={`flex-1 p-2 rounded-lg border text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+              <button
+                onClick={handleSendComment}
+                className={`p-2 rounded-lg transition-all ${
+                  commentText.trim()
+                    ? theme === "dark"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                    : theme === "dark"
+                      ? "bg-gray-700 text-gray-500"
+                      : "bg-gray-200 text-gray-400"
+                }`}
+                disabled={!commentText.trim()}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -480,6 +577,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [goalInput, setGoalInput] = useState("50000")
+  const [goalName, setGoalName] = useState("Моя цель")
+  const [showSavingsSettingsModal, setShowSavingsSettingsModal] = useState(false)
+  const [initialSavingsAmount, setInitialSavingsAmount] = useState(0)
+  const [initialSavingsInput, setInitialSavingsInput] = useState("0")
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [fullscreenEnabled, setFullscreenEnabled] = useState(true)
@@ -491,6 +592,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
   const [showLinkedUsersDropdown, setShowLinkedUsersDropdown] = useState(false)
   const [likedTransactions, setLikedTransactions] = useState(new Set())
+  const [transactionComments, setTransactionComments] = useState({})
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -1120,6 +1222,37 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     })
   }
 
+  const addComment = async (txId, commentText) => {
+    vibrate()
+    const newComment = {
+      author: displayName,
+      text: commentText,
+      date: new Date().toISOString(),
+      telegram_id: tgUserId,
+    }
+
+    setTransactionComments((prev) => ({
+      ...prev,
+      [txId]: [...(prev[txId] || []), newComment],
+    }))
+
+    // Сохранение комментария на сервер
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/transactions/${txId}/comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_email: user.email,
+            comment: newComment,
+          }),
+        })
+      } catch (e) {
+        console.warn('Failed to save comment', e)
+      }
+    }
+  }
+
   const getChartData = (type) => {
     const filtered = transactions.filter((t) => t.type === type)
     const categoryTotals = {}
@@ -1360,7 +1493,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div>
                     {transactions.slice(0, 4).map((tx) => (
                       <TxRow
-                        tx={{ ...tx, liked: likedTransactions.has(tx.id) }}
+                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
                         categoriesMeta={categoriesMeta}
                         formatCurrency={formatCurrency}
@@ -1369,6 +1502,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         onDelete={deleteTransaction}
                         showCreator={showLinkedUsers}
                         onToggleLike={toggleLike}
+                        onAddComment={addComment}
                       />
                     ))}
                   </div>
@@ -1415,7 +1549,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div>
                     {transactions.map((tx) => (
                       <TxRow
-                        tx={{ ...tx, liked: likedTransactions.has(tx.id) }}
+                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
                         categoriesMeta={categoriesMeta}
                         formatCurrency={formatCurrency}
@@ -1424,6 +1558,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         onDelete={deleteTransaction}
                         showCreator={showLinkedUsers}
                         onToggleLike={toggleLike}
+                        onAddComment={addComment}
                       />
                     ))}
                   </div>
@@ -1442,14 +1577,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div>
+                  <div className="flex-1">
                     <h3 className="text-xl font-bold mb-1">Копилка (USD)</h3>
                     <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
-                      Ваша цель накопления
+                      {goalName}
                     </p>
                   </div>
-                  <div className="p-2 rounded-xl bg-white/20 flex-shrink-0">
-                    <PiggyBank className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        setShowSavingsSettingsModal(true)
+                        vibrate()
+                      }}
+                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all"
+                    >
+                      <Settings className="w-5 h-5 text-white" />
+                    </button>
+                    <div className="p-2 rounded-xl bg-white/20">
+                      <PiggyBank className="w-6 h-6 text-white" />
+                    </div>
                   </div>
                 </div>
 
@@ -1528,7 +1674,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       .filter((t) => t.type === "savings")
                       .map((tx) => (
                         <TxRow
-                          tx={{ ...tx, liked: likedTransactions.has(tx.id) }}
+                          tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                           key={tx.id}
                           categoriesMeta={categoriesMeta}
                           formatCurrency={formatCurrency}
@@ -1537,6 +1683,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           onDelete={deleteTransaction}
                           showCreator={showLinkedUsers}
                           onToggleLike={toggleLike}
+                          onAddComment={addComment}
                         />
                       ))}
                   </div>
@@ -1719,7 +1866,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </label>
                     <button
                       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      className={`w-full p-3 border rounded-xl transition-all text-left text-sm touch-none active:scale-95 ${
+                      style={{ touchAction: 'manipulation' }}
+                      className={`w-full p-3 border rounded-xl transition-all text-left text-sm active:scale-95 ${
                         theme === "dark"
                           ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
                           : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
@@ -1763,6 +1911,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Цель накопления (USD)
             </h3>
+            <div className="mb-3">
+              <label
+                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Название цели
+              </label>
+              <input
+                type="text"
+                value={goalName}
+                onChange={(e) => setGoalName(e.target.value)}
+                className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+                placeholder="На что копите?"
+              />
+            </div>
             <div className="mb-4">
               <label
                 className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
@@ -1798,6 +1964,69 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   const n = Number.parseInt(goalInput, 10)
                   if (!Number.isNaN(n) && n >= 0) setGoalSavings(n)
                   setShowGoalModal(false)
+                }}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSavingsSettingsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+          >
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Настройки копилки
+            </h3>
+            <div className="mb-4">
+              <label
+                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Начальная сумма (USD)
+              </label>
+              <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                Укажите сумму, которая уже есть вне общего бюджета
+              </p>
+              <input
+                type="number"
+                value={initialSavingsInput}
+                min={0}
+                onChange={(e) => setInitialSavingsInput(e.target.value.replace(/^0+/, "") || "0")}
+                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+                placeholder="0"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSavingsSettingsModal(false)}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  const n = Number.parseInt(initialSavingsInput, 10)
+                  if (!Number.isNaN(n) && n >= 0) {
+                    setInitialSavingsAmount(n)
+                    setSavings(savings + n - initialSavingsAmount)
+                  }
+                  setShowSavingsSettingsModal(false)
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                   theme === "dark"
