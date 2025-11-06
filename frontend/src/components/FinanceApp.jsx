@@ -451,7 +451,7 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   return (
     <div className="flex justify-center">
       <div
-        className={`grid grid-cols-3 gap-2 p-4 rounded-t-2xl w-full max-w-md ${
+        className={`grid grid-cols-3 gap-2 p-3 rounded-t-2xl w-full max-w-xs ${
           theme === "dark" ? "bg-gray-800 border-t border-gray-700" : "bg-gray-100 border-t border-gray-200"
         }`}
       >
@@ -462,7 +462,7 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
             if (key === "⌫") onBackspace()
             else onNumberPress(key.toString())
           }}
-          className={`p-4 rounded-xl text-xl font-semibold transition-all touch-none active:scale-95 ${
+          className={`p-3 rounded-lg text-lg font-semibold transition-all touch-none active:scale-95 ${
             theme === "dark"
               ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
               : "bg-white text-gray-900 hover:bg-gray-50 shadow-sm"
@@ -473,7 +473,7 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
       ))}
       <button
         onClick={onDone}
-        className="col-span-3 p-4 rounded-xl text-lg font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-all touch-none active:scale-95"
+        className="col-span-3 p-3 rounded-lg text-base font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-all touch-none active:scale-95"
       >
         Готово
       </button>
@@ -822,27 +822,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     return () => clearInterval(interval)
   }, [])
-
-  // Автоматический скролл при открытии клавиатуры
-  useEffect(() => {
-    if (showNumKeyboard) {
-      // Небольшая задержка для плавного скролла
-      setTimeout(() => {
-        // Скроллим модальное окно или главный контент вверх
-        if (showAddModal || showSavingsSettingsModal) {
-          // Для модальных окон - скроллим контейнер модального окна
-          const modalContent = document.querySelector('.overflow-y-auto')
-          if (modalContent) {
-            modalContent.scrollTo({ top: 0, behavior: 'smooth' })
-          }
-        }
-        // Скроллим главный контент вверх
-        if (mainContentRef.current) {
-          mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' })
-        }
-      }, 100)
-    }
-  }, [showNumKeyboard, showAddModal, showSavingsSettingsModal])
 
   function blurAll() {
     if (document.activeElement && typeof document.activeElement.blur === "function") {
@@ -2233,8 +2212,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </label>
               <input
                 type="text"
-                value={goalName}
-                onChange={(e) => setGoalName(e.target.value)}
+                value={selectedSavingsGoal === 'main' ? goalName : secondGoalName}
+                onChange={(e) => {
+                  if (selectedSavingsGoal === 'main') {
+                    setGoalName(e.target.value)
+                  } else {
+                    setSecondGoalName(e.target.value)
+                  }
+                }}
                 className={`w-full p-3 border rounded-xl transition-all text-sm ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -2251,11 +2236,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </label>
               <input
                 type="number"
-                value={goalInput}
+                value={selectedSavingsGoal === 'main' ? goalInput : secondGoalInput}
                 min={0}
                 onChange={(e) => {
                   const val = e.target.value.replace(/^0+(?=\d)/, '')
-                  setGoalInput(val || '0')
+                  if (selectedSavingsGoal === 'main') {
+                    setGoalInput(val || '0')
+                  } else {
+                    setSecondGoalInput(val || '0')
+                  }
                 }}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
                   theme === "dark"
@@ -2277,8 +2266,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Отмена
               </button>
               <button
-                onClick={() => {
-                  const n = Number.parseInt(goalInput, 10)
+                onClick={async () => {
+                  const inputVal = selectedSavingsGoal === 'main' ? goalInput : secondGoalInput
+                  const n = Number.parseInt(inputVal, 10)
                   if (!Number.isNaN(n) && n >= 0) {
                     if (selectedSavingsGoal === 'main') {
                       setGoalSavings(n)
@@ -2286,6 +2276,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setSecondGoalAmount(n)
                     }
                   }
+                  // Сохраняем на сервер
+                  await saveToServer(balance, income, expenses, savings)
                   setShowGoalModal(false)
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
@@ -2304,10 +2296,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showSavingsSettingsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl overflow-y-auto ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{
-              maxHeight: showNumKeyboard ? '50vh' : '90vh'
-            }}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -2459,6 +2448,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Сохранить
               </button>
             </div>
+
+            {showNumKeyboard && (
+              <NumericKeyboard
+                onNumberPress={(num) => {
+                  if (amount.includes(".") && num === ".") return
+                  setAmount((prev) => prev + num)
+                }}
+                onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
+                onDone={() => {
+                  setInitialSavingsInput(amount)
+                  setShowNumKeyboard(false)
+                }}
+                theme={theme}
+              />
+            )}
           </div>
         </div>
       )}
@@ -2808,7 +2812,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div
             className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: showNumKeyboard ? "50vh" : "85vh", display: "flex", flexDirection: "column" }}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
               className="p-4 overflow-y-auto flex-1"
@@ -2965,6 +2969,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
             </div>
 
+            {showNumKeyboard && (
+              <NumericKeyboard
+                onNumberPress={(num) => {
+                  if (amount.includes(".") && num === ".") return
+                  setAmount((prev) => prev + num)
+                }}
+                onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
+                onDone={() => setShowNumKeyboard(false)}
+                theme={theme}
+              />
+            )}
           </div>
         </div>
       )}
@@ -3153,32 +3168,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               />
             </div>
           </div>
-        </div>
-      )}
-
-      {/* UI Клавиатура - отдельный компонент с высоким z-index */}
-      {showNumKeyboard && (
-        <div 
-          className="fixed bottom-0 left-0 right-0 z-[70]"
-          style={{ 
-            paddingBottom: safeAreaInset.bottom || 0 
-          }}
-        >
-          <NumericKeyboard
-            onNumberPress={(num) => {
-              if (amount.includes(".") && num === ".") return
-              setAmount((prev) => prev + num)
-            }}
-            onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
-            onDone={() => {
-              // Если открыто модальное окно настроек копилки, сохраняем в initialSavingsInput
-              if (showSavingsSettingsModal) {
-                setInitialSavingsInput(amount)
-              }
-              setShowNumKeyboard(false)
-            }}
-            theme={theme}
-          />
         </div>
       )}
 
