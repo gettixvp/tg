@@ -1202,10 +1202,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     })
   }
 
-  const openTransactionDetails = (tx) => {
+  const openTransactionDetails = async (tx) => {
     setSelectedTransaction(tx)
     setShowTransactionDetails(true)
     vibrate()
+    
+    // Загрузка комментариев с сервера
+    if (user && user.email) {
+      try {
+        const resp = await fetch(`${API_URL}/api/transactions/${tx.id}/comments`)
+        if (resp.ok) {
+          const data = await resp.json()
+          setTransactionComments((prev) => ({
+            ...prev,
+            [tx.id]: data.comments || [],
+          }))
+        }
+      } catch (e) {
+        console.warn('Failed to load comments', e)
+      }
+    }
   }
 
   const addComment = async (txId, commentText) => {
@@ -1394,7 +1410,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }}
       >
         <div
-          className="px-4 pt-4 pb-4"
+          className="px-4 pt-12 pb-4"
           style={{
             minHeight: "100%",
             touchAction: "pan-y",
@@ -1404,7 +1420,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="space-y-4 animate-fadeIn">
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className={`backdrop-blur-sm rounded-xl p-3 border shadow-lg ${
+                  className={`backdrop-blur-sm rounded-xl p-3 border ${
                     theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                   }`}
                 >
@@ -2074,7 +2090,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 type="number"
                 value={goalInput}
                 min={0}
-                onChange={(e) => setGoalInput(e.target.value.replace(/^0+/, ""))}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/^0+(?=\d)/, '')
+                  setGoalInput(val || '0')
+                }}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -2179,7 +2198,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 type="number"
                 value={initialSavingsInput}
                 min={0}
-                onChange={(e) => setInitialSavingsInput(e.target.value.replace(/^0+/, "") || "0")}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/^0+(?=\d)/, '')
+                  setInitialSavingsInput(val || '0')
+                }}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -2261,7 +2283,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 type="number"
                 value={secondGoalInput}
                 min={0}
-                onChange={(e) => setSecondGoalInput(e.target.value.replace(/^0+/, "") || "0")}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/^0+(?=\d)/, '')
+                  setSecondGoalInput(val || '0')
+                }}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -2379,13 +2404,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showTransactionDetails && selectedTransaction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
           <div
-            className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto ${
+            className={`w-full max-w-md rounded-t-2xl p-6 shadow-2xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
-            style={{ WebkitOverflowScrolling: "touch" }}
+            style={{ 
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              WebkitOverflowScrolling: "touch"
+            }}
           >
+            <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch" }}>
             <div className="flex items-center justify-between mb-6">
               <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 Детали операции
@@ -2544,6 +2575,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <Send className="w-5 h-5" />
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </div>
