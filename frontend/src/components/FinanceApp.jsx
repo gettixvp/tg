@@ -547,6 +547,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [secondGoalSavings, setSecondGoalSavings] = useState(0)
   const [showSecondGoalModal, setShowSecondGoalModal] = useState(false)
   const [secondGoalInput, setSecondGoalInput] = useState('0')
+  const [selectedSavingsGoal, setSelectedSavingsGoal] = useState('main') // 'main' или 'second'
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -843,6 +844,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
     setGoalInput(String(Number(u.goal_savings || 50000)))
     setTransactions(txs || [])
+    
+    // Загрузка данных копилки
+    if (u.goal_name) setGoalName(u.goal_name)
+    if (u.initial_savings_amount !== undefined) setInitialSavingsAmount(Number(u.initial_savings_amount || 0))
+    if (u.second_goal_name) setSecondGoalName(u.second_goal_name)
+    if (u.second_goal_amount !== undefined) setSecondGoalAmount(Number(u.second_goal_amount || 0))
+    if (u.second_goal_savings !== undefined) setSecondGoalSavings(Number(u.second_goal_savings || 0))
 
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
@@ -909,6 +917,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             goalSavings, // Also save goalSavings
           }),
         })
+        
+        // Сохранение настроек копилки (включая вторую цель)
+        await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            goalName,
+            initialSavingsAmount,
+            secondGoalName,
+            secondGoalAmount,
+            secondGoalSavings,
+          }),
+        })
       } catch (e) {
         console.warn("Failed to save to server", e)
         alert("Ошибка сохранения данных на сервер.") // Notify user
@@ -963,9 +984,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       setExpenses(newExpenses)
       setBalance(newBalance)
     } else {
-      newSavings += convertedUSD
+      // Копилка - учитываем выбранную цель
+      if (selectedSavingsGoal === 'main') {
+        newSavings += convertedUSD
+        setSavings(newSavings)
+      } else {
+        setSecondGoalSavings(secondGoalSavings + convertedUSD)
+      }
       newBalance -= n
-      setSavings(newSavings)
       setBalance(newBalance)
     }
 
@@ -1303,54 +1329,56 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-4 pb-4">
-        <div
-          className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
-              : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5 flex-1">
-              <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
-                <CreditCard className="w-5 h-5 text-white" />
+      {activeTab === "overview" && (
+        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-12 pb-4">
+          <div
+            className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
+                : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5 flex-1">
+                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/80">Общий баланс</p>
+                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-white/80">Общий баланс</p>
-                <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
-              </div>
+              <button
+                onClick={() => setBalanceVisible(!balanceVisible)}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
+              >
+                {balanceVisible ? (
+                  <Eye className="w-4 h-4 text-white" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-white" />
+                )}
+              </button>
             </div>
-            <button
-              onClick={() => setBalanceVisible(!balanceVisible)}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
-            >
-              {balanceVisible ? (
-                <Eye className="w-4 h-4 text-white" />
-              ) : (
-                <EyeOff className="w-4 h-4 text-white" />
-              )}
-            </button>
-          </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-              <div className="flex items-center gap-1 mb-0.5">
-                <TrendingUp className="w-3 h-3 text-emerald-300" />
-                <span className="text-xs text-white/90">Доходы</span>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  <span className="text-xs text-white/90">Доходы</span>
+                </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
               </div>
-              <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
-            </div>
-            <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-              <div className="flex items-center gap-1 mb-0.5">
-                <TrendingDown className="w-3 h-3 text-rose-300" />
-                <span className="text-xs text-white/90">Расходы</span>
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingDown className="w-3 h-3 text-rose-300" />
+                  <span className="text-xs text-white/90">Расходы</span>
+                </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
               </div>
-              <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main
         ref={mainContentRef}
@@ -1979,6 +2007,45 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Цель накопления (USD)
             </h3>
+            {secondGoalName && secondGoalAmount > 0 && (
+              <div className="mb-3">
+                <label
+                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Выберите копилку
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedSavingsGoal('main')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                      selectedSavingsGoal === 'main'
+                        ? theme === "dark"
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {goalName}
+                  </button>
+                  <button
+                    onClick={() => setSelectedSavingsGoal('second')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                      selectedSavingsGoal === 'second'
+                        ? theme === "dark"
+                          ? "bg-purple-600 text-white"
+                          : "bg-purple-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {secondGoalName}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="mb-3">
               <label
                 className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
@@ -2030,7 +2097,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <button
                 onClick={() => {
                   const n = Number.parseInt(goalInput, 10)
-                  if (!Number.isNaN(n) && n >= 0) setGoalSavings(n)
+                  if (!Number.isNaN(n) && n >= 0) {
+                    if (selectedSavingsGoal === 'main') {
+                      setGoalSavings(n)
+                    } else {
+                      setSecondGoalAmount(n)
+                    }
+                  }
                   setShowGoalModal(false)
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
@@ -2054,6 +2127,45 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
             </h3>
+            {secondGoalName && secondGoalAmount > 0 && (
+              <div className="mb-3">
+                <label
+                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Выберите копилку
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedSavingsGoal('main')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                      selectedSavingsGoal === 'main'
+                        ? theme === "dark"
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {goalName}
+                  </button>
+                  <button
+                    onClick={() => setSelectedSavingsGoal('second')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                      selectedSavingsGoal === 'second'
+                        ? theme === "dark"
+                          ? "bg-purple-600 text-white"
+                          : "bg-purple-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {secondGoalName}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="mb-4">
               <label
                 className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
@@ -2091,8 +2203,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 onClick={() => {
                   const n = Number.parseInt(initialSavingsInput, 10)
                   if (!Number.isNaN(n) && n >= 0) {
-                    setInitialSavingsAmount(n)
-                    setSavings(savings + n - initialSavingsAmount)
+                    if (selectedSavingsGoal === 'main') {
+                      setInitialSavingsAmount(n)
+                      setSavings(savings + n - initialSavingsAmount)
+                    } else {
+                      setSecondGoalSavings(secondGoalSavings + n)
+                    }
                   }
                   setShowSavingsSettingsModal(false)
                 }}
@@ -2474,6 +2590,46 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </button>
                 ))}
               </div>
+
+              {transactionType === "savings" && secondGoalName && secondGoalAmount > 0 && (
+                <div className="mb-3">
+                  <label
+                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Выберите копилку
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedSavingsGoal('main')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                        selectedSavingsGoal === 'main'
+                          ? theme === "dark"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {goalName}
+                    </button>
+                    <button
+                      onClick={() => setSelectedSavingsGoal('second')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                        selectedSavingsGoal === 'second'
+                          ? theme === "dark"
+                            ? "bg-purple-600 text-white"
+                            : "bg-purple-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {secondGoalName}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="mb-3">
                 {transactionType === "savings" && (
