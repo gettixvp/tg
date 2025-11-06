@@ -627,6 +627,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [secondGoalName, setSecondGoalName] = useState('')
   const [secondGoalAmount, setSecondGoalAmount] = useState(0)
   const [secondGoalSavings, setSecondGoalSavings] = useState(0)
+  const [secondGoalInitialAmount, setSecondGoalInitialAmount] = useState(0)
   const [showSecondGoalModal, setShowSecondGoalModal] = useState(false)
   const [secondGoalInput, setSecondGoalInput] = useState('0')
   const [selectedSavingsGoal, setSelectedSavingsGoal] = useState('main') // 'main' или 'second'
@@ -937,6 +938,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (u.second_goal_name) setSecondGoalName(u.second_goal_name)
     if (u.second_goal_amount !== undefined) setSecondGoalAmount(Number(u.second_goal_amount || 0))
     if (u.second_goal_savings !== undefined) setSecondGoalSavings(Number(u.second_goal_savings || 0))
+    if (u.second_goal_initial_amount !== undefined) setSecondGoalInitialAmount(Number(u.second_goal_initial_amount || 0))
 
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
@@ -1014,6 +1016,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             secondGoalName,
             secondGoalAmount,
             secondGoalSavings,
+            secondGoalInitialAmount,
           }),
         })
       } catch (e) {
@@ -2354,10 +2357,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 inputMode="none"
                 value={initialSavingsInput}
                 readOnly
-                onClick={() => {
-                  setShowNumKeyboard(true)
-                  setAmount(initialSavingsInput || '')
-                }}
+                onClick={() => setShowNumKeyboard(true)}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -2429,8 +2429,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     // Сохранение на сервер
                     await saveToServer(balance, income, expenses, newSavings)
                   } else {
-                    // Для второй цели - просто устанавливаем значение
-                    setSecondGoalSavings(n)
+                    // Для второй цели - устанавливаем начальную сумму и обновляем прогресс
+                    const diff = n - secondGoalInitialAmount
+                    setSecondGoalInitialAmount(n)
+                    const newSecondGoalSavings = secondGoalSavings + diff
+                    setSecondGoalSavings(newSecondGoalSavings)
                     // Ждем обновления state и сохраняем
                     await new Promise(resolve => setTimeout(resolve, 100))
                     await saveToServer(balance, income, expenses, savings)
@@ -2452,14 +2455,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             {showNumKeyboard && (
               <NumericKeyboard
                 onNumberPress={(num) => {
-                  if (amount.includes(".") && num === ".") return
-                  setAmount((prev) => prev + num)
+                  if (initialSavingsInput.includes(".") && num === ".") return
+                  setInitialSavingsInput((prev) => prev + num)
                 }}
-                onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
-                onDone={() => {
-                  setInitialSavingsInput(amount)
-                  setShowNumKeyboard(false)
-                }}
+                onBackspace={() => setInitialSavingsInput((prev) => prev.slice(0, -1))}
+                onDone={() => setShowNumKeyboard(false)}
                 theme={theme}
               />
             )}

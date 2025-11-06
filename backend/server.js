@@ -295,16 +295,16 @@ app.get("/api/transactions/:txId/comments", async (req, res) => {
 // --- Обновить настройки копилки ---
 app.put("/api/user/:email/savings-settings", async (req, res) => {
   const { email } = req.params
-  const { goalName, initialSavingsAmount, secondGoalName, secondGoalAmount, secondGoalSavings } = req.body
+  const { goalName, initialSavingsAmount, secondGoalName, secondGoalAmount, secondGoalSavings, secondGoalInitialAmount } = req.body
 
   if (!email) return res.status(400).json({ error: "Email обязателен" })
 
   try {
     await pool.query(
       `UPDATE users
-       SET goal_name=$1, initial_savings_amount=$2, second_goal_name=$3, second_goal_amount=$4, second_goal_savings=$5
-       WHERE email=$6`,
-      [goalName, initialSavingsAmount || 0, secondGoalName, secondGoalAmount || 0, secondGoalSavings || 0, email],
+       SET goal_name=$1, initial_savings_amount=$2, second_goal_name=$3, second_goal_amount=$4, second_goal_savings=$5, second_goal_initial_amount=$6
+       WHERE email=$7`,
+      [goalName, initialSavingsAmount || 0, secondGoalName, secondGoalAmount || 0, secondGoalSavings || 0, secondGoalInitialAmount || 0, email],
     )
     res.json({ success: true })
   } catch (e) {
@@ -328,6 +328,7 @@ function convertUser(u) {
     second_goal_name: u.second_goal_name || "",
     second_goal_amount: Number(u.second_goal_amount || 0),
     second_goal_savings: Number(u.second_goal_savings || 0),
+    second_goal_initial_amount: Number(u.second_goal_initial_amount || 0),
   }
 }
 
