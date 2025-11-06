@@ -2281,7 +2281,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSavingsSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
           >
@@ -2710,7 +2710,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </h4>
               
               {transactionComments[selectedTransaction.id] && transactionComments[selectedTransaction.id].length > 0 ? (
-                <div className="space-y-2 mb-3">
+                <div className="space-y-2 mb-3 overflow-visible">
                   {transactionComments[selectedTransaction.id].map((comment) => (
                     <CommentRow
                       key={comment.id}
@@ -2941,23 +2941,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
             </div>
 
-            {showNumKeyboard && (
-              <NumericKeyboard
-                onNumberPress={(num) => {
-                  if (amount.includes(".") && num === ".") return
-                  setAmount((prev) => prev + num)
-                }}
-                onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
-                onDone={() => {
-                  // Если открыто модальное окно настроек копилки, сохраняем в initialSavingsInput
-                  if (showSavingsSettingsModal) {
-                    setInitialSavingsInput(amount)
-                  }
-                  setShowNumKeyboard(false)
-                }}
-                theme={theme}
-              />
-            )}
           </div>
         </div>
       )}
@@ -3146,6 +3129,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* UI Клавиатура - отдельный компонент с высоким z-index */}
+      {showNumKeyboard && (
+        <div className="fixed bottom-0 left-0 right-0 z-[70]">
+          <NumericKeyboard
+            onNumberPress={(num) => {
+              if (amount.includes(".") && num === ".") return
+              setAmount((prev) => prev + num)
+            }}
+            onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
+            onDone={() => {
+              // Если открыто модальное окно настроек копилки, сохраняем в initialSavingsInput
+              if (showSavingsSettingsModal) {
+                setInitialSavingsInput(amount)
+              }
+              setShowNumKeyboard(false)
+            }}
+            theme={theme}
+          />
         </div>
       )}
 
