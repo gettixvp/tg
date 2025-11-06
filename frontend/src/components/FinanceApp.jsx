@@ -226,8 +226,8 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
 
   return (
-    <div className="mb-2">
-      <div className="relative overflow-hidden rounded-2xl">
+    <div className="mb-1.5">
+      <div className="relative overflow-hidden rounded-xl">
         <div
           onClick={() => {
             if (swipeX === -80) {
@@ -251,46 +251,46 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-4 cursor-pointer ${
+          className={`relative p-3 cursor-pointer ${
             theme === "dark"
-              ? "bg-gray-800/90 backdrop-blur-sm"
-              : "bg-white/90 backdrop-blur-sm shadow-sm"
+              ? "bg-gray-800"
+              : "bg-white shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
           {tx.liked && (
-            <div className="absolute top-2 right-2 z-10">
-              <Heart className="w-5 h-5 text-red-500 fill-red-500 drop-shadow-lg" />
+            <div className="absolute top-1.5 right-1.5 z-10">
+              <Heart className="w-4 h-4 text-red-500 fill-red-500 drop-shadow-lg" />
             </div>
           )}
 
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2.5">
             {/* Иконка категории */}
             <div
-              className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br ${categoryInfo.color} shadow-lg flex-shrink-0`}
+              className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
             >
-              <span className="text-2xl">{categoryInfo.icon}</span>
+              <span className="text-xl">{categoryInfo.icon}</span>
             </div>
 
             {/* Основная информация */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-start justify-between gap-2 mb-0.5">
                 <div className="flex-1 min-w-0">
                   {tx.description && (
-                    <p className={`font-semibold text-base mb-0.5 truncate ${
+                    <p className={`font-semibold text-sm mb-0.5 truncate ${
                       theme === "dark" ? "text-gray-100" : "text-gray-900"
                     }`}>
                       {tx.description}
                     </p>
                   )}
-                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                     {tx.category}
                   </p>
                 </div>
                 
                 {/* Сумма */}
                 <p
-                  className={`font-bold text-lg whitespace-nowrap ${
+                  className={`font-bold text-base whitespace-nowrap ${
                     tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"
                   }`}
                 >
@@ -302,18 +302,18 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
               {/* Нижняя строка: автор и время */}
               <div className="flex items-center justify-between gap-2">
                 {showCreator && tx.created_by_name ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     {tx.telegram_photo_url ? (
                       <img
                         src={tx.telegram_photo_url}
                         alt="Avatar"
-                        className="w-5 h-5 rounded-full object-cover"
+                        className="w-4 h-4 rounded-full object-cover"
                       />
                     ) : (
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
                         theme === "dark" ? "bg-blue-700" : "bg-blue-200"
                       }`}>
-                        <User className="w-3 h-3 text-white" />
+                        <User className="w-2.5 h-2.5 text-white" />
                       </div>
                     )}
                     <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
@@ -1239,7 +1239,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const handleSendDetailsComment = () => {
     if (detailsCommentText.trim() && selectedTransaction) {
-      addComment(selectedTransaction.id, detailsCommentText.trim())
+      const commentTextToSend = detailsCommentText.trim()
+      addComment(selectedTransaction.id, commentTextToSend)
       setDetailsCommentText('')
     }
   }
@@ -1303,68 +1304,49 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }}
     >
       <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-10 pb-4">
-        {activeTab === "overview" && (
-          <div className="flex items-center justify-between mb-4 mt-2">
-            <div className="flex items-center gap-3 flex-1">
-              {tgPhotoUrl ? (
-                <img
-                  src={tgPhotoUrl || "/placeholder.svg"}
-                  alt="Avatar"
-                  className="w-12 h-12 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
-                />
-              ) : (
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    theme === "dark" ? "bg-gray-700" : "bg-white/80"
-                  }`}
-                >
-                  <User className={`w-6 h-6 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
-                </div>
-              )}
-              <div>
-                <h1 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                  Привет, {(user && user.first_name) || displayName}! 👋
-                </h1>
-                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  Добро пожаловать в ваш финансовый помощник
-                </p>
-              </div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+              <Wallet className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
-                <button
-                  onClick={toggleFullscreen}
-                  className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
-                    theme === "dark"
-                      ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                      : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
-                  }`}
-                  title="Полноэкранный режим"
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                  ) : (
-                    <Maximize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                  )}
-                </button>
-              )}
+            <h1 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              FinanceApp
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
               <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
+                onClick={toggleFullscreen}
                 className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
                   theme === "dark"
                     ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
                     : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
                 }`}
+                title="Полноэкранный режим"
               >
-                {balanceVisible ? (
-                  <Eye className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                {isFullscreen ? (
+                  <Minimize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
                 ) : (
-                  <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                  <Maximize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
                 )}
               </button>
-            </div>
+            )}
+            <button
+              onClick={() => setBalanceVisible(!balanceVisible)}
+              className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
+                theme === "dark"
+                  ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
+                  : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
+              }`}
+            >
+              {balanceVisible ? (
+                <Eye className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+              ) : (
+                <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+              )}
+            </button>
           </div>
-        )}
+        </div>
 
         {activeTab === "overview" && (
           <div
@@ -1434,15 +1416,46 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
-                      <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
+                        <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                      </div>
+                      <div>
+                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Копилка</p>
+                        <p className={`text-sm font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                          {savingsPct}%
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Копилка</p>
-                      <p className={`text-sm font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                        {savingsPct}%
-                      </p>
+                    {/* Маленькая круговая диаграмма */}
+                    <div className="relative w-12 h-12 flex-shrink-0">
+                      <svg className="w-12 h-12 transform -rotate-90">
+                        <circle
+                          cx="24"
+                          cy="24"
+                          r="20"
+                          stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <circle
+                          cx="24"
+                          cy="24"
+                          r="20"
+                          stroke={theme === "dark" ? "#3b82f6" : "#6366f1"}
+                          strokeWidth="4"
+                          fill="none"
+                          strokeDasharray={`${2 * Math.PI * 20}`}
+                          strokeDashoffset={`${2 * Math.PI * 20 * (1 - savingsProgress)}`}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                          {savingsPct}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1674,7 +1687,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           onDelete={deleteTransaction}
                           showCreator={showLinkedUsers}
                           onToggleLike={toggleLike}
-                          onAddComment={addComment}
+                          onOpenDetails={openTransactionDetails}
                         />
                       ))}
                   </div>
@@ -1685,6 +1698,39 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "settings" && (
             <div className="space-y-4 animate-fadeIn">
+              {/* Приветствие с аватаркой */}
+              <div
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {tgPhotoUrl ? (
+                    <img
+                      src={tgPhotoUrl}
+                      alt="Avatar"
+                      className="w-14 h-14 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
+                    />
+                  ) : (
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                      }`}
+                    >
+                      <User className={`w-7 h-7 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+                    </div>
+                  )}
+                  <div>
+                    <h2 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                      Привет, {(user && user.first_name) || displayName}! 👋
+                    </h2>
+                    <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      Добро пожаловать в ваш финансовый помощник
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                   theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
