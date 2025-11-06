@@ -206,7 +206,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl">
+    <div className="relative overflow-hidden">
       {comment.telegram_id === tgUserId && (
         <div
           onClick={() => {
@@ -215,7 +215,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
               setSwipeX(0)
             }
           }}
-          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${
+          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-2xl ${
             theme === "dark" ? "bg-red-600" : "bg-red-500"
           }`}
         >
@@ -231,7 +231,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`p-3 rounded-2xl ${
+        className={`p-3 rounded-2xl relative z-10 ${
           comment.telegram_id === tgUserId
             ? theme === "dark"
               ? "bg-blue-600 text-white ml-8"
@@ -312,7 +312,7 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
               setSwipeX(0)
             }
           }}
-          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${
+          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-xl ${
             theme === "dark" ? "bg-red-600" : "bg-red-500"
           }`}
         >
@@ -665,14 +665,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       setTheme(tg.colorScheme || "light")
 
+      // Загружаем настройку fullscreen из localStorage
+      const savedFullscreenEnabled = localStorage.getItem("fullscreenEnabled")
+      const shouldEnableFullscreen = savedFullscreenEnabled !== "false" // По умолчанию true
+
       const startFullscreen = async () => {
         try {
-          if (tg.requestFullscreen && fullscreenEnabled) {
+          if (tg.requestFullscreen && shouldEnableFullscreen) {
             if (!tg.isFullscreen) {
               tg.requestFullscreen()
             }
             setTimeout(() => {
-              if (!tg.isFullscreen && tg.requestFullscreen && fullscreenEnabled) {
+              if (!tg.isFullscreen && tg.requestFullscreen && shouldEnableFullscreen) {
                 tg.requestFullscreen()
               }
             }, 300)
@@ -1420,7 +1424,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
       }`}
       style={{
-        paddingTop: safeAreaInset.top || 0,
+        paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
         paddingLeft: safeAreaInset.left || 0,
         paddingRight: safeAreaInset.right || 0,
       }}
@@ -2330,14 +2334,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Укажите сумму, которая уже есть вне общего бюджета
               </p>
               <input
-                type="number"
+                type="text"
+                inputMode="none"
                 value={initialSavingsInput}
-                min={0}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/^0+(?=\d)/, '')
-                  setInitialSavingsInput(val || '')
+                readOnly
+                onClick={() => {
+                  setShowNumKeyboard(true)
+                  setAmount(initialSavingsInput || '')
                 }}
-                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
+                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                     : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -2405,13 +2410,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setInitialSavingsAmount(n)
                     newSavings = savings + diff
                     setSavings(newSavings)
+                    // Сохранение на сервер
+                    await saveToServer(balance, income, expenses, newSavings)
                   } else {
                     // Для второй цели - просто устанавливаем значение
                     setSecondGoalSavings(n)
+                    // Ждем обновления state и сохраняем
+                    await new Promise(resolve => setTimeout(resolve, 100))
+                    await saveToServer(balance, income, expenses, savings)
                   }
                   
-                  // Сохранение на сервер
-                  await saveToServer(balance, income, expenses, newSavings)
                   setInitialSavingsInput('')
                   setShowSavingsSettingsModal(false)
                 }}
@@ -2936,7 +2944,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setAmount((prev) => prev + num)
                 }}
                 onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
-                onDone={() => setShowNumKeyboard(false)}
+                onDone={() => {
+                  // Если открыто модальное окно настроек копилки, сохраняем в initialSavingsInput
+                  if (showSavingsSettingsModal) {
+                    setInitialSavingsInput(amount)
+                  }
+                  setShowNumKeyboard(false)
+                }}
                 theme={theme}
               />
             )}
