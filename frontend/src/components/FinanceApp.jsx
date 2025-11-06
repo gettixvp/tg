@@ -1426,7 +1426,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }}
     >
       {activeTab === "overview" && (
-        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4" style={{ paddingTop: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }}>
+        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-12 pb-4">
           {/* Градиент на заднем плане */}
           <div 
             className="absolute inset-0 opacity-30 blur-3xl"
@@ -1659,8 +1659,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "history" && (
-            <div className="animate-fadeIn">
-              <div className="h-12" style={{ height: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }} />
+            <div className="animate-fadeIn pt-12">
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                   theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
@@ -1716,8 +1715,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "savings" && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="h-12" style={{ height: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }} />
+            <div className="space-y-4 animate-fadeIn pt-12">
               <div
                 className={`rounded-2xl p-4 text-white shadow-2xl ${
                   theme === "dark"
@@ -1878,8 +1876,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "settings" && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="h-12" style={{ height: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }} />
+            <div className="space-y-4 animate-fadeIn pt-12">
               {/* Приветствие с аватаркой */}
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
