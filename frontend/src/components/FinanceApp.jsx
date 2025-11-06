@@ -449,11 +449,12 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
 function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   return (
-    <div
-      className={`grid grid-cols-3 gap-2 p-4 rounded-t-2xl ${
-        theme === "dark" ? "bg-gray-800 border-t border-gray-700" : "bg-gray-100 border-t border-gray-200"
-      }`}
-    >
+    <div className="flex justify-center">
+      <div
+        className={`grid grid-cols-3 gap-2 p-4 rounded-t-2xl w-full max-w-md ${
+          theme === "dark" ? "bg-gray-800 border-t border-gray-700" : "bg-gray-100 border-t border-gray-200"
+        }`}
+      >
       {[1, 2, 3, 4, 5, 6, 7, 8, 9, ".", 0, "⌫"].map((key) => (
         <button
           key={key}
@@ -476,6 +477,7 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
       >
         Готово
       </button>
+      </div>
     </div>
   )
 }
@@ -1430,7 +1432,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }}
     >
       {activeTab === "overview" && (
-        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-12 pb-4">
+        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
           {/* Градиент на заднем плане */}
           <div 
             className="absolute inset-0 opacity-30 blur-3xl"
@@ -1663,7 +1665,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "history" && (
-            <div className="animate-fadeIn pt-12">
+            <div className="animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                   theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
@@ -1719,7 +1721,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "savings" && (
-            <div className="space-y-4 animate-fadeIn pt-12">
+            <div className="space-y-4 animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
                 className={`rounded-2xl p-4 text-white shadow-2xl ${
                   theme === "dark"
@@ -1819,6 +1821,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     onClick={() => {
                       setTransactionType("savings")
                       setShowAddModal(true)
+                      setShowNumKeyboard(false)
                       vibrate()
                     }}
                     className={`flex items-center gap-1 px-4 py-2 rounded-xl font-medium transition-all shadow-lg text-sm touch-none ${
@@ -1880,7 +1883,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "settings" && (
-            <div className="space-y-4 animate-fadeIn pt-12">
+            <div className="space-y-4 animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               {/* Приветствие с аватаркой */}
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
@@ -2865,11 +2868,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 )}
                 <input
                   type="text"
+                  inputMode="none"
                   placeholder="Сумма"
                   value={amount}
-                  onFocus={() => setShowNumKeyboard(true)}
+                  onClick={() => setShowNumKeyboard(true)}
                   readOnly
-                  className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
+                  className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm cursor-pointer ${
                     theme === "dark"
                       ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                       : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -3115,6 +3119,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <button
                 onClick={() => {
                   setShowAddModal(true)
+                  setShowNumKeyboard(false)
                   vibrate()
                 }}
                 className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
