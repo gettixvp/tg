@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, memo } from "react"
 import {
   Wallet,
   TrendingUp,
@@ -252,7 +252,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
   )
 }
 
-function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onOpenDetails, tgPhotoUrl }) {
+const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onOpenDetails, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
@@ -441,7 +441,7 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
       )}
     </div>
   )
-}
+})
 
 function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   return (
@@ -571,6 +571,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // UseState hooks should be at the top level of the component
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const [theme, setTheme] = useState("light")
   const [currency, setCurrency] = useState("BYN")
@@ -927,6 +928,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
     setGoalInput(String(Number(u.goal_savings || 50000)))
     setTransactions(txs || [])
+    setIsLoading(false) // Завершена основная загрузка
     
     // Загрузка данных копилки
     if (u.goal_name) setGoalName(u.goal_name)
@@ -936,27 +938,73 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (u.second_goal_savings !== undefined) setSecondGoalSavings(Number(u.second_goal_savings || 0))
     if (u.second_goal_initial_amount !== undefined) setSecondGoalInitialAmount(Number(u.second_goal_initial_amount || 0))
 
-    // Автозагрузка комментариев для всех транзакций
-    if (txs && txs.length > 0) {
-      const commentsMap = {}
-      for (const tx of txs) {
-        try {
-          const resp = await fetch(`${API_BASE}/api/transactions/${tx.id}/comments`)
-          if (resp.ok) {
-            const comments = await resp.json()
-            if (comments.length > 0) {
-              commentsMap[tx.id] = comments
-            }
-          }
-        } catch (e) {
-          console.warn(`Failed to load comments for tx ${tx.id}`, e)
-        }
-      }
-      setTransactionComments(commentsMap)
-    }
-
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
+    }
+
+    // Отложенная загрузка комментариев (не блокирует UI)
+    if (txs && txs.length > 0) {
+      // Загружаем только для первых 10 транзакций (видимые на экране)
+      const visibleTxs = txs.slice(0, 10)
+      
+      // Параллельная загрузка вместо последовательной
+      Promise.all(
+        visibleTxs.map(async (tx) => {
+          try {
+            const resp = await fetch(`${API_BASE}/api/transactions/${tx.id}/comments`)
+            if (resp.ok) {
+              const comments = await resp.json()
+              if (comments.length > 0) {
+                return { id: tx.id, comments }
+              }
+            }
+          } catch (e) {
+            console.warn(`Failed to load comments for tx ${tx.id}`, e)
+          }
+          return null
+        })
+      ).then((results) => {
+        const commentsMap = {}
+        results.forEach((result) => {
+          if (result) {
+            commentsMap[result.id] = result.comments
+          }
+        })
+        setTransactionComments(commentsMap)
+      })
+
+      // Загрузка остальных комментариев в фоне
+      if (txs.length > 10) {
+        setTimeout(() => {
+          const remainingTxs = txs.slice(10)
+          Promise.all(
+            remainingTxs.map(async (tx) => {
+              try {
+                const resp = await fetch(`${API_BASE}/api/transactions/${tx.id}/comments`)
+                if (resp.ok) {
+                  const comments = await resp.json()
+                  if (comments.length > 0) {
+                    return { id: tx.id, comments }
+                  }
+                }
+              } catch (e) {
+                console.warn(`Failed to load comments for tx ${tx.id}`, e)
+              }
+              return null
+            })
+          ).then((results) => {
+            setTransactionComments((prev) => {
+              const updated = { ...prev }
+              results.forEach((result) => {
+                if (result) {
+                  updated[result.id] = result.comments
+                }
+              })
+              return updated
+            })
+          })
+        }, 1000) // Задержка 1 секунда перед загрузкой остальных
+      }
     }
   }
 
@@ -977,9 +1025,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       if (!resp.ok) throw new Error("auth failed")
       const json = await resp.json()
-      applyUser(json.user, json.transactions || [], false)
+      await applyUser(json.user, json.transactions || [], false)
     } catch (e) {
       console.warn("autoAuthTelegram failed", e)
+      setIsLoading(false) // Завершить загрузку даже при ошибке
     }
   }
 
@@ -999,14 +1048,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       if (!resp.ok) throw new Error("auth failed")
       const json = await resp.json()
-      applyUser(json.user, json.transactions || [], true) // Mark as authenticated
+      await applyUser(json.user, json.transactions || [], true)
     } catch (e) {
       console.warn("autoAuth failed", e)
-      localStorage.removeItem(SESSION_KEY) // Clear session if auth fails
+      setIsLoading(false) // Завершить загрузку даже при ошибке
     }
   }
 
-  const saveToServer = async (newBalance, newIncome, newExpenses, newSavings) => {
+  async function saveToServer(newBalance, newIncome, newExpenses, newSavings) {
     if (user && user.email) {
       try {
         await fetch(`${API_BASE}/api/user/${user.email}`, {
@@ -1431,7 +1480,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  if (!isReady) {
+  if (!isReady || isLoading) {
     return (
       <div
         className={`w-full h-screen flex items-center justify-center ${
@@ -1442,7 +1491,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       >
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
-          <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>Загрузка...</p>
+          <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>
+            {!isReady ? "Инициализация..." : "Загрузка данных..."}
+          </p>
         </div>
       </div>
     )
