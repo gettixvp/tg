@@ -333,34 +333,37 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
         </div>
       </div>
 
-      {/* Комментарии в стиле iOS iMessage */}
+      {/* Последний комментарий */}
       {tx.comments && tx.comments.length > 0 && (
-        <div className="mt-2 space-y-1.5 px-2">
-          {tx.comments.map((comment, idx) => (
-            <div key={idx} className="flex items-start gap-2">
-              <div className={`flex-1 max-w-[80%] ${comment.telegram_id === tx.created_by_telegram_id ? 'ml-auto' : ''}`}>
-                <div
-                  className={`px-4 py-2 rounded-2xl ${
-                    comment.telegram_id === tx.created_by_telegram_id
-                      ? theme === "dark"
-                        ? "bg-blue-600 text-white"
-                        : "bg-blue-500 text-white"
-                      : theme === "dark"
-                        ? "bg-gray-700 text-gray-100"
-                        : "bg-gray-200 text-gray-900"
-                  }`}
-                >
-                  <p className="text-xs font-medium opacity-80 mb-0.5">{comment.author}</p>
-                  <p className="text-sm">{comment.text}</p>
+        <div className="mt-2 px-2">
+          {(() => {
+            const lastComment = tx.comments[tx.comments.length - 1]
+            return (
+              <div className="flex items-start gap-2">
+                <div className={`flex-1 max-w-[80%] ${lastComment.telegram_id === tx.created_by_telegram_id ? 'ml-auto' : ''}`}>
+                  <div
+                    className={`px-4 py-2 rounded-2xl ${
+                      lastComment.telegram_id === tx.created_by_telegram_id
+                        ? theme === "dark"
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-700 text-gray-100"
+                          : "bg-gray-200 text-gray-900"
+                    }`}
+                  >
+                    <p className="text-xs font-medium opacity-80 mb-0.5">{lastComment.author}</p>
+                    <p className="text-sm">{lastComment.text}</p>
+                  </div>
+                  {tx.comments.length > 1 && (
+                    <p className={`text-xs mt-1 px-2 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                      +{tx.comments.length - 1} комментариев
+                    </p>
+                  )}
                 </div>
-                <p className={`text-xs mt-0.5 px-2 ${
-                  comment.telegram_id === tx.created_by_telegram_id ? 'text-right' : ''
-                } ${theme === "dark" ? "text-gray-600" : "text-gray-500"}`}>
-                  {formatDate(comment.date)}
-                </p>
               </div>
-            </div>
-          ))}
+            )
+          })()}
         </div>
       )}
     </div>
@@ -1348,11 +1351,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {activeTab === "overview" && (
         <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-12 pb-4">
           <div
-            className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
-                : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
-            }`}
+            className="relative overflow-hidden rounded-2xl p-4 shadow-2xl"
+            style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
@@ -2207,6 +2207,33 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 placeholder="0"
               />
             </div>
+            
+            {/* Кнопка изменить прогресс */}
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  const currentProgress = selectedSavingsGoal === 'main' ? savings : secondGoalSavings
+                  const newProgress = prompt(`Текущий прогресс: $${currentProgress.toFixed(2)}. Введите новое значение:`, currentProgress)
+                  if (newProgress !== null && !isNaN(newProgress)) {
+                    const val = parseFloat(newProgress)
+                    if (selectedSavingsGoal === 'main') {
+                      setSavings(val)
+                    } else {
+                      setSecondGoalSavings(val)
+                    }
+                    saveToServer(balance, income, expenses, selectedSavingsGoal === 'main' ? val : savings)
+                  }
+                }}
+                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-purple-700 hover:bg-purple-600 text-white"
+                    : "bg-purple-500 hover:bg-purple-600 text-white"
+                }`}
+              >
+                Изменить прогресс
+              </button>
+            </div>
+            
             <div className="flex gap-2">
               <button
                 onClick={() => setShowSavingsSettingsModal(false)}
@@ -2406,27 +2433,40 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showTransactionDetails && selectedTransaction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
+          onClick={() => setShowTransactionDetails(false)}
+        >
+          {/* Header вне модального окна */}
+          <div className="fixed top-4 left-0 right-0 flex justify-center z-10 px-4">
+            <div className="flex items-center justify-between w-full max-w-md">
+              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-white"}`}>
+                Детали операции
+              </h3>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowTransactionDetails(false)
+                }} 
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          </div>
+          
           <div
-            className={`w-full max-w-md rounded-t-2xl p-4 shadow-2xl ${
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
             style={{ 
-              maxHeight: "70vh",
+              maxHeight: "75vh",
               display: "flex",
-              flexDirection: "column",
-              WebkitOverflowScrolling: "touch"
+              flexDirection: "column"
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Детали операции
-              </h3>
-              <button onClick={() => setShowTransactionDetails(false)} className="touch-none">
-                <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
-              </button>
-            </div>
+            <div className="overflow-y-auto flex-1 p-4" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
 
             {/* Иконка категории по центру */}
             <div className="flex justify-center mb-6">
@@ -2890,8 +2930,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <div
-              className={`w-full max-w-md backdrop-blur-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-                theme === "dark" ? "bg-gray-800/90 border-gray-700/20" : "bg-white/90 border-white/50"
+              className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
+                theme === "dark" ? "bg-gray-800/80 border-gray-700/30" : "bg-white/80 border-white/40"
               }`}
             >
               <NavButton
