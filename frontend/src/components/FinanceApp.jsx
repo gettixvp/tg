@@ -767,28 +767,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }
       }
 
+      // Загружаем сохраненные данные в поля (без автовхода)
+      const savedCreds = localStorage.getItem("savedCredentials")
+      if (savedCreds) {
+        try {
+          const { email: savedEmail, password: savedPassword } = JSON.parse(savedCreds)
+          if (savedEmail && savedPassword) {
+            setEmail(savedEmail)
+            setPassword(atob(savedPassword)) // Декодируем из base64
+            setRememberMe(true)
+          }
+        } catch (e) {
+          console.warn("Failed to load saved credentials", e)
+        }
+      }
+
       const session = localStorage.getItem(SESSION_KEY)
       if (session) {
         const sessionData = JSON.parse(session)
         if (sessionData?.email && sessionData?.token) {
           autoAuth(sessionData.email, sessionData.token)
         }
-      } else {
-        // Проверяем savedCredentials для автовхода
-        const savedCreds = localStorage.getItem("savedCredentials")
-        if (savedCreds) {
-          try {
-            const { email: savedEmail, password: savedPassword } = JSON.parse(savedCreds)
-            if (savedEmail && savedPassword) {
-              // Автовход с сохраненными данными
-              autoAuth(savedEmail, savedPassword)
-            }
-          } catch (e) {
-            console.warn("Failed to auto-login with saved credentials", e)
-          }
-        } else if (tgUserId) {
-          autoAuthTelegram(tgUserId)
-        }
+      } else if (tgUserId) {
+        autoAuthTelegram(tgUserId)
       }
     } catch (e) {
       console.warn("Failed to parse settings", e)
