@@ -228,6 +228,91 @@ app.delete("/api/linked-users/:email/:telegram_id", async (req, res) => {
   }
 })
 
+// --- Добавить комментарий к транзакции ---
+app.post("/api/transactions/:txId/comment", async (req, res) => {
+  const { txId } = req.params
+  const { user_email, comment } = req.body
+
+  if (!user_email || !comment) {
+    return res.status(400).json({ error: "Email и комментарий обязательны" })
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO transaction_comments (transaction_id, author, text, date, telegram_id)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [txId, comment.author, comment.text, comment.date, comment.telegram_id]
+    )
+    res.json({ success: true, comment: result.rows[0] })
+  } catch (e) {
+    console.error("Comment add error:", e)
+    res.status(500).json({ error: "Ошибка добавления комментария: " + e.message })
+  }
+})
+
+// --- Удалить комментарий ---
+app.delete("/api/transactions/:txId/comment/:commentId", async (req, res) => {
+  const { txId, commentId } = req.params
+  const { user_email } = req.body
+
+  if (!user_email) {
+    return res.status(400).json({ error: "Email обязателен" })
+  }
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM transaction_comments WHERE id = $1 AND transaction_id = $2 RETURNING *",
+      [commentId, txId]
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Комментарий не найден" })
+    }
+
+    res.json({ success: true })
+  } catch (e) {
+    console.error("Comment delete error:", e)
+    res.status(500).json({ error: "Ошибка удаления комментария: " + e.message })
+  }
+})
+
+// --- Получить комментарии транзакции ---
+app.get("/api/transactions/:txId/comments", async (req, res) => {
+  const { txId } = req.params
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM transaction_comments WHERE transaction_id = $1 ORDER BY date ASC",
+      [txId]
+    )
+    res.json({ comments: result.rows })
+  } catch (e) {
+    console.error("Comments get error:", e)
+    res.status(500).json({ error: "Ошибка получения комментариев: " + e.message })
+  }
+})
+
+// --- Обновить настройки копилки ---
+app.put("/api/user/:email/savings-settings", async (req, res) => {
+  const { email } = req.params
+  const { goalName, initialSavingsAmount, secondGoalName, secondGoalAmount, secondGoalSavings } = req.body
+
+  if (!email) return res.status(400).json({ error: "Email обязателен" })
+
+  try {
+    await pool.query(
+      `UPDATE users
+       SET goal_name=$1, initial_savings_amount=$2, second_goal_name=$3, second_goal_amount=$4, second_goal_savings=$5
+       WHERE email=$6`,
+      [goalName, initialSavingsAmount || 0, secondGoalName, secondGoalAmount || 0, secondGoalSavings || 0, email],
+    )
+    res.json({ success: true })
+  } catch (e) {
+    console.error("Savings settings update error:", e)
+    res.status(500).json({ error: "Не удалось сохранить настройки: " + e.message })
+  }
+})
+
 // --- Helper ---
 function convertUser(u) {
   return {
@@ -238,6 +323,11 @@ function convertUser(u) {
     expenses: Number(u.expenses || 0),
     savings_usd: Number(u.savings_usd || 0),
     goal_savings: Number(u.goal_savings || 50000),
+    goal_name: u.goal_name || "Моя цель",
+    initial_savings_amount: Number(u.initial_savings_amount || 0),
+    second_goal_name: u.second_goal_name || "",
+    second_goal_amount: Number(u.second_goal_amount || 0),
+    second_goal_savings: Number(u.second_goal_savings || 0),
   }
 }
 

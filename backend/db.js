@@ -101,6 +101,27 @@ async function initDB() {
 
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_telegram_id BIGINT;`)
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_name TEXT;`)
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
+
+    // Добавляем колонки для настроек копилки
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_name TEXT DEFAULT 'Моя цель';`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS initial_savings_amount NUMERIC DEFAULT 0;`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_goal_name TEXT DEFAULT '';`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_goal_amount NUMERIC DEFAULT 0;`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_goal_savings NUMERIC DEFAULT 0;`)
+
+    // Таблица комментариев к транзакциям
+    await pool.query(`CREATE TABLE IF NOT EXISTS transaction_comments (
+      id BIGSERIAL PRIMARY KEY,
+      transaction_id BIGINT NOT NULL,
+      author TEXT NOT NULL,
+      text TEXT NOT NULL,
+      date TIMESTAMP DEFAULT NOW(),
+      telegram_id BIGINT
+    );`)
+
+    // Добавляем telegram_photo_url в linked_telegram_users
+    await pool.query(`ALTER TABLE linked_telegram_users ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
 
     console.log("БД готова!")
   } catch (error) {

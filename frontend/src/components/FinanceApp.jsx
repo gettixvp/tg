@@ -175,12 +175,10 @@ function NavButton({ active, onClick, icon, theme }) {
   )
 }
 
-function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onAddComment, tgPhotoUrl }) {
+function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onOpenDetails, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
-  const [showComments, setShowComments] = useState(false)
-  const [commentText, setCommentText] = useState('')
   const startX = useRef(0)
 
   const handleTouchStart = (e) => {
@@ -202,14 +200,7 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
   const handleClick = () => {
     if (swipeX === 0) {
-      setShowComments(!showComments)
-    }
-  }
-
-  const handleSendComment = () => {
-    if (commentText.trim()) {
-      onAddComment && onAddComment(tx.id, commentText.trim())
-      setCommentText('')
+      onOpenDetails && onOpenDetails(tx)
     }
   }
 
@@ -235,189 +226,143 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
 
   return (
-    <div className="relative mb-1.5 overflow-hidden rounded-xl">
-      <div
-        onClick={() => {
-          if (swipeX === -80) {
-            onDelete(tx.id)
-            setSwipeX(0)
-          }
-        }}
-        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${
-          theme === "dark" ? "bg-red-600" : "bg-red-500"
-        }`}
-      >
-        <Trash2 className="w-5 h-5 text-white" />
-      </div>
-
-      <div
-        style={{
-          transform: `translateX(${swipeX}px)`,
-          transition: isSwiping ? "none" : "transform 0.3s ease",
-        }}
-        className={`relative rounded-xl border transition-all duration-300 ${
-          theme === "dark"
-            ? "bg-gray-800 border-gray-700/50"
-            : "bg-white border-gray-200/50 shadow-sm"
-        }`}
-      >
-        {/* Лайк в правом верхнем углу */}
-        {tx.liked && (
-          <div className="absolute -top-1 -right-1 z-10">
-            <Heart className="w-5 h-5 text-red-500 fill-red-500 drop-shadow-lg" />
-          </div>
-        )}
+    <div className="mb-2">
+      <div className="relative overflow-hidden rounded-2xl">
+        <div
+          onClick={() => {
+            if (swipeX === -80) {
+              onDelete(tx.id)
+              setSwipeX(0)
+            }
+          }}
+          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${
+            theme === "dark" ? "bg-red-600" : "bg-red-500"
+          }`}
+        >
+          <Trash2 className="w-5 h-5 text-white" />
+        </div>
 
         <div
+          style={{
+            transform: `translateX(${swipeX}px)`,
+            transition: isSwiping ? "none" : "transform 0.3s ease",
+          }}
           onClick={handleClick}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="p-3 cursor-pointer"
+          className={`relative p-4 cursor-pointer ${
+            theme === "dark"
+              ? "bg-gray-800/90 backdrop-blur-sm"
+              : "bg-white/90 backdrop-blur-sm shadow-sm"
+          }`}
         >
-          <div className="flex gap-3">
-            {/* Левая часть: Аватарка и иконка категории */}
-            <div className="flex flex-col items-center gap-2 flex-shrink-0">
-              {/* Аватарка пользователя */}
-              {showCreator && tx.created_by_name && (
-                <>
-                  {tx.telegram_photo_url ? (
-                    <img
-                      src={tx.telegram_photo_url}
-                      alt="Avatar"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-white/20"
-                    />
-                  ) : (
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      theme === "dark" ? "bg-blue-700" : "bg-blue-200"
-                    }`}>
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </>
-              )}
-              
-              {/* Иконка категории */}
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md`}
-              >
-                <span className="text-lg">{categoryInfo.icon}</span>
-              </div>
+          {/* Лайк в правом верхнем углу */}
+          {tx.liked && (
+            <div className="absolute top-2 right-2 z-10">
+              <Heart className="w-5 h-5 text-red-500 fill-red-500 drop-shadow-lg" />
+            </div>
+          )}
+
+          <div className="flex items-start gap-3">
+            {/* Иконка категории */}
+            <div
+              className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br ${categoryInfo.color} shadow-lg flex-shrink-0`}
+            >
+              <span className="text-2xl">{categoryInfo.icon}</span>
             </div>
 
-            {/* Центральная часть: Имя, описание, категория */}
+            {/* Основная информация */}
             <div className="flex-1 min-w-0">
-              {/* Имя пользователя */}
-              {showCreator && tx.created_by_name && (
-                <p className={`text-xs font-medium mb-1 ${
-                  theme === "dark" ? "text-blue-300" : "text-blue-600"
-                }`}>
-                  {tx.created_by_name}
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="flex-1 min-w-0">
+                  {tx.description && (
+                    <p className={`font-semibold text-base mb-0.5 truncate ${
+                      theme === "dark" ? "text-gray-100" : "text-gray-900"
+                    }`}>
+                      {tx.description}
+                    </p>
+                  )}
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    {tx.category}
+                  </p>
+                </div>
+                
+                {/* Сумма */}
+                <p
+                  className={`font-bold text-lg whitespace-nowrap ${
+                    tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"
+                  }`}
+                >
+                  {tx.type === "income" ? "+" : "-"}
+                  {formatCurrency(tx.amount)}
                 </p>
-              )}
-              
-              {/* Описание */}
-              {tx.description && (
-                <p className={`font-semibold text-sm mb-1 truncate ${
-                  theme === "dark" ? "text-gray-100" : "text-gray-900"
-                }`}>
-                  {tx.description}
-                </p>
-              )}
-              
-              {/* Категория */}
-              <span
-                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor}`}
-              >
-                {tx.category}
-              </span>
-            </div>
+              </div>
 
-            {/* Правая часть: Сумма и время */}
-            <div className="flex flex-col items-end justify-between flex-shrink-0">
-              {/* Сумма по центру справа */}
-              <p
-                className={`font-bold text-base ${
-                  tx.type === "income" ? "text-emerald-600" : tx.type === "expense" ? "text-rose-600" : "text-blue-600"
-                }`}
-              >
-                {tx.type === "income" ? "+" : "-"}
-                {formatCurrency(tx.amount)}
-              </p>
-              
-              {/* Время справа снизу */}
-              <span className={`text-xs mt-auto ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                {formatDate(tx.date)}
-              </span>
+              {/* Нижняя строка: автор и время */}
+              <div className="flex items-center justify-between gap-2">
+                {showCreator && tx.created_by_name ? (
+                  <div className="flex items-center gap-1.5">
+                    {tx.telegram_photo_url ? (
+                      <img
+                        src={tx.telegram_photo_url}
+                        alt="Avatar"
+                        className="w-5 h-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        theme === "dark" ? "bg-blue-700" : "bg-blue-200"
+                      }`}>
+                        <User className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                    <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+                      {tx.created_by_name}
+                    </span>
+                  </div>
+                ) : (
+                  <div />
+                )}
+                
+                <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+                  {formatDate(tx.date)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Раскрывающаяся секция комментариев */}
-        {showComments && (
-          <div className={`border-t p-3 ${
-            theme === "dark" ? "border-gray-700 bg-gray-800/50" : "border-gray-200 bg-gray-50"
-          }`}>
-            {/* Существующие комментарии */}
-            {tx.comments && tx.comments.length > 0 && (
-              <div className="mb-3 space-y-2">
-                {tx.comments.map((comment, idx) => (
-                  <div key={idx} className={`p-2 rounded-lg ${
-                    theme === "dark" ? "bg-gray-700/50" : "bg-white"
-                  }`}>
-                    <p className={`text-xs font-medium mb-1 ${
-                      theme === "dark" ? "text-blue-300" : "text-blue-600"
-                    }`}>
-                      {comment.author}
-                    </p>
-                    <p className={`text-sm ${
-                      theme === "dark" ? "text-gray-200" : "text-gray-700"
-                    }`}>
-                      {comment.text}
-                    </p>
-                    <p className={`text-xs mt-1 ${
-                      theme === "dark" ? "text-gray-500" : "text-gray-400"
-                    }`}>
-                      {formatDate(comment.date)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Поле ввода комментария */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
-                placeholder="Написать комментарий..."
-                className={`flex-1 p-2 rounded-lg border text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-              />
-              <button
-                onClick={handleSendComment}
-                className={`p-2 rounded-lg transition-all ${
-                  commentText.trim()
-                    ? theme === "dark"
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                    : theme === "dark"
-                      ? "bg-gray-700 text-gray-500"
-                      : "bg-gray-200 text-gray-400"
-                }`}
-                disabled={!commentText.trim()}
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Комментарии в стиле iOS iMessage */}
+      {tx.comments && tx.comments.length > 0 && (
+        <div className="mt-2 space-y-1.5 px-2">
+          {tx.comments.map((comment, idx) => (
+            <div key={idx} className="flex items-start gap-2">
+              <div className={`flex-1 max-w-[80%] ${comment.telegram_id === tx.created_by_telegram_id ? 'ml-auto' : ''}`}>
+                <div
+                  className={`px-4 py-2 rounded-2xl ${
+                    comment.telegram_id === tx.created_by_telegram_id
+                      ? theme === "dark"
+                        ? "bg-blue-600 text-white"
+                        : "bg-blue-500 text-white"
+                      : theme === "dark"
+                        ? "bg-gray-700 text-gray-100"
+                        : "bg-gray-200 text-gray-900"
+                  }`}
+                >
+                  <p className="text-xs font-medium opacity-80 mb-0.5">{comment.author}</p>
+                  <p className="text-sm">{comment.text}</p>
+                </div>
+                <p className={`text-xs mt-0.5 px-2 ${
+                  comment.telegram_id === tx.created_by_telegram_id ? 'text-right' : ''
+                } ${theme === "dark" ? "text-gray-600" : "text-gray-500"}`}>
+                  {formatDate(comment.date)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -593,6 +538,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showLinkedUsersDropdown, setShowLinkedUsersDropdown] = useState(false)
   const [likedTransactions, setLikedTransactions] = useState(new Set())
   const [transactionComments, setTransactionComments] = useState({})
+  const [selectedTransaction, setSelectedTransaction] = useState(null)
+  const [showTransactionDetails, setShowTransactionDetails] = useState(false)
+  const [detailsCommentText, setDetailsCommentText] = useState('')
+  
+  const [secondGoalName, setSecondGoalName] = useState('')
+  const [secondGoalAmount, setSecondGoalAmount] = useState(0)
+  const [secondGoalSavings, setSecondGoalSavings] = useState(0)
+  const [showSecondGoalModal, setShowSecondGoalModal] = useState(false)
+  const [secondGoalInput, setSecondGoalInput] = useState('0')
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -1222,9 +1176,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     })
   }
 
+  const openTransactionDetails = (tx) => {
+    setSelectedTransaction(tx)
+    setShowTransactionDetails(true)
+    vibrate()
+  }
+
   const addComment = async (txId, commentText) => {
     vibrate()
     const newComment = {
+      id: Date.now(),
       author: displayName,
       text: commentText,
       date: new Date().toISOString(),
@@ -1239,7 +1200,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     // Сохранение комментария на сервер
     if (user && user.email) {
       try {
-        await fetch(`${API_BASE}/api/transactions/${txId}/comment`, {
+        await fetch(`${API_URL}/api/transactions/${txId}/comment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1250,6 +1211,36 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       } catch (e) {
         console.warn('Failed to save comment', e)
       }
+    }
+  }
+
+  const deleteComment = async (txId, commentId) => {
+    vibrate()
+    setTransactionComments((prev) => ({
+      ...prev,
+      [txId]: (prev[txId] || []).filter(c => c.id !== commentId),
+    }))
+
+    // Удаление комментария с сервера
+    if (user && user.email) {
+      try {
+        await fetch(`${API_URL}/api/transactions/${txId}/comment/${commentId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_email: user.email,
+          }),
+        })
+      } catch (e) {
+        console.warn('Failed to delete comment', e)
+      }
+    }
+  }
+
+  const handleSendDetailsComment = () => {
+    if (detailsCommentText.trim() && selectedTransaction) {
+      addComment(selectedTransaction.id, detailsCommentText.trim())
+      setDetailsCommentText('')
     }
   }
 
@@ -1502,7 +1493,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         onDelete={deleteTransaction}
                         showCreator={showLinkedUsers}
                         onToggleLike={toggleLike}
-                        onAddComment={addComment}
+                        onOpenDetails={openTransactionDetails}
                       />
                     ))}
                   </div>
@@ -1558,7 +1549,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         onDelete={deleteTransaction}
                         showCreator={showLinkedUsers}
                         onToggleLike={toggleLike}
-                        onAddComment={addComment}
+                        onOpenDetails={openTransactionDetails}
                       />
                     ))}
                   </div>
@@ -2112,6 +2103,177 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             >
               Закрыть
             </button>
+          </div>
+        </div>
+      )}
+
+      {showTransactionDetails && selectedTransaction && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
+            }`}
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Детали операции
+              </h3>
+              <button onClick={() => setShowTransactionDetails(false)} className="touch-none">
+                <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
+              </button>
+            </div>
+
+            {/* Иконка категории по центру */}
+            <div className="flex justify-center mb-6">
+              <div
+                className={`flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${
+                  (categoriesMeta[selectedTransaction.category] || categoriesMeta["Другое"]).color
+                } shadow-2xl`}
+              >
+                <span className="text-4xl">
+                  {(categoriesMeta[selectedTransaction.category] || categoriesMeta["Другое"]).icon}
+                </span>
+              </div>
+            </div>
+
+            {/* Информация о транзакции */}
+            <div className="space-y-4 mb-6">
+              <div className="text-center">
+                <p
+                  className={`text-3xl font-bold mb-2 ${
+                    selectedTransaction.type === "income"
+                      ? "text-emerald-500"
+                      : selectedTransaction.type === "expense"
+                        ? "text-rose-500"
+                        : "text-blue-500"
+                  }`}
+                >
+                  {selectedTransaction.type === "income" ? "+" : "-"}
+                  {formatCurrency(selectedTransaction.amount)}
+                </p>
+                <p className={`text-lg font-semibold mb-1 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  {selectedTransaction.description || "Без описания"}
+                </p>
+                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  {selectedTransaction.category}
+                </p>
+              </div>
+
+              <div className={`flex items-center justify-between p-3 rounded-xl ${
+                theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
+              }`}>
+                <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Дата</span>
+                <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
+                  {formatDate(selectedTransaction.date)}
+                </span>
+              </div>
+
+              {showLinkedUsers && selectedTransaction.created_by_name && (
+                <div className={`flex items-center justify-between p-3 rounded-xl ${
+                  theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
+                }`}>
+                  <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Автор</span>
+                  <div className="flex items-center gap-2">
+                    {selectedTransaction.telegram_photo_url ? (
+                      <img
+                        src={selectedTransaction.telegram_photo_url}
+                        alt="Avatar"
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        theme === "dark" ? "bg-blue-700" : "bg-blue-200"
+                      }`}>
+                        <User className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                    <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
+                      {selectedTransaction.created_by_name}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Комментарии */}
+            <div className="mb-4">
+              <h4 className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                Комментарии
+              </h4>
+              
+              {transactionComments[selectedTransaction.id] && transactionComments[selectedTransaction.id].length > 0 ? (
+                <div className="space-y-2 mb-3">
+                  {transactionComments[selectedTransaction.id].map((comment) => (
+                    <div
+                      key={comment.id}
+                      className={`p-3 rounded-2xl ${
+                        comment.telegram_id === tgUserId
+                          ? theme === "dark"
+                            ? "bg-blue-600 text-white ml-8"
+                            : "bg-blue-500 text-white ml-8"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-100 mr-8"
+                            : "bg-gray-200 text-gray-900 mr-8"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-xs font-medium opacity-80 mb-1">{comment.author}</p>
+                          <p className="text-sm">{comment.text}</p>
+                          <p className={`text-xs mt-1 opacity-60`}>
+                            {formatDate(comment.date)}
+                          </p>
+                        </div>
+                        {comment.telegram_id === tgUserId && (
+                          <button
+                            onClick={() => deleteComment(selectedTransaction.id, comment.id)}
+                            className="opacity-60 hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={`text-sm text-center py-4 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                  Пока нет комментариев
+                </p>
+              )}
+
+              {/* Поле ввода комментария */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={detailsCommentText}
+                  onChange={(e) => setDetailsCommentText(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendDetailsComment()}
+                  placeholder="Написать комментарий..."
+                  className={`flex-1 p-3 rounded-xl border text-sm ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                      : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500"
+                  }`}
+                />
+                <button
+                  onClick={handleSendDetailsComment}
+                  className={`p-3 rounded-xl transition-all ${
+                    detailsCommentText.trim()
+                      ? theme === "dark"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                      : theme === "dark"
+                        ? "bg-gray-700 text-gray-500"
+                        : "bg-gray-200 text-gray-400"
+                  }`}
+                  disabled={!detailsCommentText.trim()}
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
