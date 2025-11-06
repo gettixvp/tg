@@ -175,6 +175,83 @@ function NavButton({ active, onClick, icon, theme }) {
   )
 }
 
+function CommentRow({ comment, theme, tgUserId, onDelete }) {
+  const [swipeX, setSwipeX] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const startX = useRef(0)
+
+  const handleTouchStart = (e) => {
+    if (comment.telegram_id !== tgUserId) return
+    startX.current = e.touches[0].clientX
+    setIsSwiping(true)
+  }
+
+  const handleTouchMove = (e) => {
+    if (!isSwiping || comment.telegram_id !== tgUserId) return
+    const diff = e.touches[0].clientX - startX.current
+    if (diff < 0) {
+      setSwipeX(Math.max(diff, -80))
+    } else if (swipeX < 0) {
+      setSwipeX(Math.min(0, swipeX + diff / 2))
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false)
+    if (swipeX < -40) {
+      setSwipeX(-80)
+    } else {
+      setSwipeX(0)
+    }
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl">
+      {comment.telegram_id === tgUserId && (
+        <div
+          onClick={() => {
+            if (swipeX === -80) {
+              onDelete()
+              setSwipeX(0)
+            }
+          }}
+          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${
+            theme === "dark" ? "bg-red-600" : "bg-red-500"
+          }`}
+        >
+          <Trash2 className="w-5 h-5 text-white" />
+        </div>
+      )}
+      
+      <div
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: isSwiping ? "none" : "transform 0.3s ease",
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`p-3 rounded-2xl ${
+          comment.telegram_id === tgUserId
+            ? theme === "dark"
+              ? "bg-blue-600 text-white ml-8"
+              : "bg-blue-500 text-white ml-8"
+            : theme === "dark"
+              ? "bg-gray-700 text-gray-100 mr-8"
+              : "bg-gray-200 text-gray-900 mr-8"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <p className="text-xs font-medium opacity-80 mb-1">{comment.author}</p>
+            <p className="text-sm">{comment.text}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onOpenDetails, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
@@ -1350,8 +1427,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     >
       {activeTab === "overview" && (
         <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-12 pb-4">
+          {/* Градиент на заднем плане */}
+          <div 
+            className="absolute inset-0 opacity-30 blur-3xl"
+            style={{
+              background: theme === "dark" 
+                ? "radial-gradient(circle at 50% 20%, #3b82f6 0%, transparent 70%)"
+                : "radial-gradient(circle at 50% 20%, #6366f1 0%, transparent 70%)",
+              top: "-20px",
+              height: "200px"
+            }}
+          />
           <div
-            className="relative overflow-hidden rounded-2xl p-4 shadow-2xl"
+            className="relative overflow-hidden rounded-2xl p-4 shadow-2xl z-10"
             style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
           >
             <div className="flex items-center justify-between mb-3">
@@ -1410,17 +1498,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }}
       >
         <div
-          className="px-4 pt-12 pb-4"
+          className="px-4 pt-2 pb-4"
           style={{
             minHeight: "100%",
             touchAction: "pan-y",
           }}
         >
           {activeTab === "overview" && (
-            <div className="space-y-4 animate-fadeIn">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3 animate-fadeIn">
+              <div className="flex gap-3">
+                {/* Основная копилка */}
                 <div
-                  className={`rounded-xl p-3 border ${
+                  className={`rounded-xl p-3 border flex-1 ${
                     theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                   }`}
                 >
@@ -1430,7 +1519,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                       </div>
                       <div>
-                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Копилка</p>
+                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{goalName || "Копилка"}</p>
                       </div>
                     </div>
                     {/* Маленькая круговая диаграмма */}
@@ -1464,6 +1553,55 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 </div>
+                
+                {/* Вторая копилка (если есть) */}
+                {secondGoalName && secondGoalAmount > 0 && (
+                  <div
+                    className={`rounded-xl p-3 border flex-1 ${
+                      theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "bg-purple-100"}`}>
+                          <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+                        </div>
+                        <div>
+                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{secondGoalName}</p>
+                        </div>
+                      </div>
+                      {/* Маленькая круговая диаграмма для второй цели */}
+                      <div className="relative w-14 h-14 flex-shrink-0">
+                        <svg className="w-14 h-14 transform -rotate-90">
+                          <circle
+                            cx="28"
+                            cy="28"
+                            r="24"
+                            stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
+                            strokeWidth="5"
+                            fill="none"
+                          />
+                          <circle
+                            cx="28"
+                            cy="28"
+                            r="24"
+                            stroke={theme === "dark" ? "#a855f7" : "#9333ea"}
+                            strokeWidth="5"
+                            fill="none"
+                            strokeDasharray={`${2 * Math.PI * 24}`}
+                            strokeDashoffset={`${2 * Math.PI * 24 * (1 - (secondGoalSavings / secondGoalAmount))}`}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                            {Math.round((secondGoalSavings / secondGoalAmount) * 100) || 0}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div
@@ -2250,12 +2388,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   const n = Number.parseInt(initialSavingsInput, 10)
                   if (!Number.isNaN(n) && n >= 0) {
                     let newSavings = savings
+                    let newSecondGoalSavings = secondGoalSavings
+                    
                     if (selectedSavingsGoal === 'main') {
                       setInitialSavingsAmount(n)
                       newSavings = savings + n - initialSavingsAmount
                       setSavings(newSavings)
                     } else {
-                      setSecondGoalSavings(secondGoalSavings + n)
+                      // Для второй цели - сохраняем начальную сумму отдельно
+                      newSecondGoalSavings = n
+                      setSecondGoalSavings(n)
                     }
                     
                     // Сохранение на сервер
@@ -2460,7 +2602,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
             style={{ 
-              maxHeight: "75vh",
+              maxHeight: "85vh",
               display: "flex",
               flexDirection: "column"
             }}
@@ -2549,33 +2691,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {transactionComments[selectedTransaction.id] && transactionComments[selectedTransaction.id].length > 0 ? (
                 <div className="space-y-2 mb-3">
                   {transactionComments[selectedTransaction.id].map((comment) => (
-                    <div
+                    <CommentRow
                       key={comment.id}
-                      className={`p-3 rounded-2xl ${
-                        comment.telegram_id === tgUserId
-                          ? theme === "dark"
-                            ? "bg-blue-600 text-white ml-8"
-                            : "bg-blue-500 text-white ml-8"
-                          : theme === "dark"
-                            ? "bg-gray-700 text-gray-100 mr-8"
-                            : "bg-gray-200 text-gray-900 mr-8"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="text-xs font-medium opacity-80 mb-1">{comment.author}</p>
-                          <p className="text-sm">{comment.text}</p>
-                        </div>
-                        {comment.telegram_id === tgUserId && (
-                          <button
-                            onClick={() => deleteComment(selectedTransaction.id, comment.id)}
-                            className="opacity-60 hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                      comment={comment}
+                      theme={theme}
+                      tgUserId={tgUserId}
+                      onDelete={() => deleteComment(selectedTransaction.id, comment.id)}
+                    />
                   ))}
                 </div>
               ) : (
@@ -2614,6 +2736,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <Send className="w-5 h-5" />
                 </button>
               </div>
+            </div>
+            
+            {/* Кнопка закрытия внизу */}
+            <div className="p-4 border-t" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
+              <button
+                onClick={() => setShowTransactionDetails(false)}
+                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Закрыть
+              </button>
             </div>
             </div>
           </div>
