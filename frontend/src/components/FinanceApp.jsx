@@ -766,26 +766,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }
       }
 
-      const savedCredentials = localStorage.getItem("savedCredentials")
-      if (savedCredentials) {
-        try {
-          const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials)
-          setEmail(savedEmail || "")
-          setPassword(savedPassword || "")
-          setRememberMe(true) // Use the declared variable
-        } catch (e) {
-          console.warn("Failed to load saved credentials", e)
-        }
-      }
-
       const session = localStorage.getItem(SESSION_KEY)
       if (session) {
         const sessionData = JSON.parse(session)
         if (sessionData?.email && sessionData?.token) {
           autoAuth(sessionData.email, sessionData.token)
         }
-      } else if (tgUserId) {
-        autoAuthTelegram(tgUserId)
+      } else {
+        // Проверяем savedCredentials для автовхода
+        const savedCreds = localStorage.getItem("savedCredentials")
+        if (savedCreds) {
+          try {
+            const { email: savedEmail, password: savedPassword } = JSON.parse(savedCreds)
+            if (savedEmail && savedPassword) {
+              // Автовход с сохраненными данными
+              autoAuth(savedEmail, savedPassword)
+            }
+          } catch (e) {
+            console.warn("Failed to auto-login with saved credentials", e)
+          }
+        } else if (tgUserId) {
+          autoAuthTelegram(tgUserId)
+        }
       }
     } catch (e) {
       console.warn("Failed to parse settings", e)
@@ -1207,6 +1209,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         first_name: displayName,
         telegram_id: tgUserId,
         telegram_name: displayName,
+        mode: authMode, // Добавляем режим (login или register)
       }
 
       const res = await fetch(`${API_BASE}/api/auth`, {
@@ -1223,7 +1226,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
 
       const json = await res.json()
-      applyUser(json.user, json.transactions || [], true)
+      await applyUser(json.user, json.transactions || [], true)
       localStorage.setItem(
         SESSION_KEY,
         JSON.stringify({
@@ -1233,8 +1236,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )
 
       if (rememberMe) {
-        // Use the declared variable
-        localStorage.setItem("savedCredentials", JSON.stringify({ email, password }))
+        // Сохраняем данные для автовхода
+        localStorage.setItem("savedCredentials", JSON.stringify({ email, password: btoa(password) }))
       } else {
         localStorage.removeItem("savedCredentials")
       }

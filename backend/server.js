@@ -21,13 +21,65 @@ app.get("/ping", (req, res) => {
 
 // --- Регистрация / Вход ---
 app.post("/api/auth", async (req, res) => {
-  const { email, password, first_name, telegram_id, telegram_name } = req.body
+  const { email, password, first_name, telegram_id, telegram_name, mode } = req.body
 
   if (!email) return res.status(400).json({ error: "Email обязателен" })
 
   try {
     const existing = await pool.query("SELECT * FROM users WHERE email = $1", [email])
 
+    // Режим входа
+    if (mode === 'login') {
+      if (existing.rowCount === 0) {
+        return res.status(404).json({ error: "Данного аккаунта не существует. Зарегистрируйтесь." })
+      }
+      
+      const user = existing.rows[0]
+      if (user.password_hash && password) {
+        const ok = await bcrypt.compare(password, user.password_hash)
+        if (!ok) return res.status(401).json({ error: "Неверный пароль" })
+      }
+
+      if (telegram_id && telegram_name) {
+        await pool.query(
+          `INSERT INTO linked_telegram_users (user_email, telegram_id, telegram_name)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_email, telegram_id) DO UPDATE SET telegram_name = $3`,
+          [email, telegram_id, telegram_name],
+        )
+      }
+
+      const tx = await pool.query("SELECT * FROM transactions WHERE user_email = $1 ORDER BY date DESC", [email])
+      return res.json({ user: convertUser(user), transactions: tx.rows })
+    }
+
+    // Режим регистрации
+    if (mode === 'register') {
+      if (existing.rowCount > 0) {
+        return res.status(409).json({ error: "Аккаунт с таким email уже существует" })
+      }
+      
+      const password_hash = password ? await bcrypt.hash(password, 10) : null
+      const userResult = await pool.query(
+        `INSERT INTO users (email, password_hash, first_name, balance, income, expenses, savings_usd, goal_savings)
+         VALUES ($1, $2, $3, 0, 0, 0, 0, 50000) RETURNING *`,
+        [email, password_hash, first_name || email.split("@")[0]],
+      )
+      const user = userResult.rows[0]
+
+      if (telegram_id && telegram_name) {
+        await pool.query(
+          `INSERT INTO linked_telegram_users (user_email, telegram_id, telegram_name)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_email, telegram_id) DO UPDATE SET telegram_name = $3`,
+          [email, telegram_id, telegram_name],
+        )
+      }
+
+      return res.json({ user: convertUser(user), transactions: [] })
+    }
+
+    // Старая логика (для обратной совместимости)
     if (existing.rowCount === 0) {
       // Регистрация
       const password_hash = password ? await bcrypt.hash(password, 10) : null
