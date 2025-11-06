@@ -1303,89 +1303,53 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-10 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
-              <Wallet className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+      <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-4 pb-4">
+        <div
+          className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
+              : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5 flex-1">
+              <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                <CreditCard className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-white/80">Общий баланс</p>
+                <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+              </div>
             </div>
-            <h1 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              FinanceApp
-            </h1>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
-              <button
-                onClick={toggleFullscreen}
-                className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
-                  theme === "dark"
-                    ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                    : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
-                }`}
-                title="Полноэкранный режим"
-              >
-                {isFullscreen ? (
-                  <Minimize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                ) : (
-                  <Maximize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
-                )}
-              </button>
-            )}
             <button
               onClick={() => setBalanceVisible(!balanceVisible)}
-              className={`p-2 rounded-full backdrop-blur-sm border transition-all touch-none ${
-                theme === "dark"
-                  ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
-                  : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
-              }`}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
             >
               {balanceVisible ? (
-                <Eye className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                <Eye className="w-4 h-4 text-white" />
               ) : (
-                <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
+                <EyeOff className="w-4 h-4 text-white" />
               )}
             </button>
           </div>
-        </div>
 
-        {activeTab === "overview" && (
-          <div
-            className={`relative overflow-hidden rounded-2xl p-4 shadow-2xl ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800"
-                : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5 flex-1">
-                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
-                  <CreditCard className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-white/80">Общий баланс</p>
-                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
-                </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+              <div className="flex items-center gap-1 mb-0.5">
+                <TrendingUp className="w-3 h-3 text-emerald-300" />
+                <span className="text-xs text-white/90">Доходы</span>
               </div>
+              <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-2.5 mt-3">
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingUp className="w-3 h-3 text-emerald-300" />
-                  <span className="text-xs text-white/90">Доходы</span>
-                </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+            <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+              <div className="flex items-center gap-1 mb-0.5">
+                <TrendingDown className="w-3 h-3 text-rose-300" />
+                <span className="text-xs text-white/90">Расходы</span>
               </div>
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingDown className="w-3 h-3 text-rose-300" />
-                  <span className="text-xs text-white/90">Расходы</span>
-                </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
-              </div>
+              <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
             </div>
           </div>
-        )}
+        </div>
       </header>
 
       <main
@@ -1402,7 +1366,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }}
       >
         <div
-          className={`px-4 ${activeTab === "overview" ? "pt-4 pb-4" : "pt-6 pb-4"}`}
+          className="px-4 pt-4 pb-4"
           style={{
             minHeight: "100%",
             touchAction: "pan-y",
@@ -1590,10 +1554,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
+                        setShowSecondGoalModal(true)
+                        vibrate()
+                      }}
+                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
+                      title="Добавить вторую цель"
+                    >
+                      <Plus className="w-5 h-5 text-white" />
+                    </button>
+                    <button
+                      onClick={() => {
                         setShowSavingsSettingsModal(true)
                         vibrate()
                       }}
-                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all"
+                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
                     >
                       <Settings className="w-5 h-5 text-white" />
                     </button>
@@ -1620,6 +1594,32 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <span>{formatCurrency(savings, "USD")}</span>
                     <span>{formatCurrency(goalSavings, "USD")}</span>
                   </div>
+
+                  {/* Вторая цель */}
+                  {secondGoalName && secondGoalAmount > 0 && (
+                    <div className="mt-4 pt-4 border-t border-white/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
+                          {secondGoalName}
+                        </span>
+                        <span className="text-white font-bold">
+                          {Math.round((secondGoalSavings / secondGoalAmount) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500 shadow-lg"
+                          style={{ width: `${Math.min((secondGoalSavings / secondGoalAmount) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <div
+                        className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
+                      >
+                        <span>{formatCurrency(secondGoalSavings, "USD")}</span>
+                        <span>{formatCurrency(secondGoalAmount, "USD")}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
@@ -1913,6 +1913,37 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       {theme === "dark" ? "🌙 Тёмная" : "☀️ Светлая"}
                     </button>
                   </div>
+
+                  {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
+                    <div>
+                      <label
+                        className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                      >
+                        Полноэкранный режим
+                      </label>
+                      <button
+                        onClick={toggleFullscreen}
+                        style={{ touchAction: 'manipulation' }}
+                        className={`w-full p-3 border rounded-xl transition-all text-left text-sm active:scale-95 flex items-center gap-2 ${
+                          theme === "dark"
+                            ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                            : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
+                        }`}
+                      >
+                        {isFullscreen ? (
+                          <>
+                            <Minimize2 className="w-4 h-4" />
+                            <span>Выключить</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-4 h-4" />
+                            <span>Включить</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2064,6 +2095,84 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setSavings(savings + n - initialSavingsAmount)
                   }
                   setShowSavingsSettingsModal(false)
+                }}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSecondGoalModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+          >
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Вторая цель накопления
+            </h3>
+            <div className="mb-4">
+              <label
+                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Название цели
+              </label>
+              <input
+                type="text"
+                value={secondGoalName}
+                onChange={(e) => setSecondGoalName(e.target.value)}
+                className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+                placeholder="Например: Отпуск"
+              />
+            </div>
+            <div className="mb-4">
+              <label
+                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Целевая сумма (USD)
+              </label>
+              <input
+                type="number"
+                value={secondGoalInput}
+                min={0}
+                onChange={(e) => setSecondGoalInput(e.target.value.replace(/^0+/, "") || "0")}
+                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+                placeholder="0"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSecondGoalModal(false)}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  const n = Number.parseInt(secondGoalInput, 10)
+                  if (!Number.isNaN(n) && n > 0 && secondGoalName.trim()) {
+                    setSecondGoalAmount(n)
+                    vibrateSuccess()
+                  }
+                  setShowSecondGoalModal(false)
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                   theme === "dark"
