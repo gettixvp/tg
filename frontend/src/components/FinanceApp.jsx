@@ -812,14 +812,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   useEffect(() => {
     const keepAlive = async () => {
       try {
+        // Пингуем backend чтобы не засыпал
         await fetch(`${API_BASE}/api/health`).catch(() => {})
-      } catch (e) {}
+        console.log('[KeepAlive] Backend pinged at', new Date().toLocaleTimeString())
+      } catch (e) {
+        console.warn('[KeepAlive] Failed to ping backend', e)
+      }
     }
 
+    // Первый пинг сразу при загрузке
     keepAlive()
-    const interval = setInterval(keepAlive, 5 * 60 * 1000)
+    
+    // Пинг каждые 14 минут (Render засыпает через 15 минут)
+    const interval = setInterval(keepAlive, 14 * 60 * 1000)
 
-    return () => clearInterval(interval)
+    // Пинг при возврате в приложение
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('[KeepAlive] App became visible, pinging backend')
+        keepAlive()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   function blurAll() {
