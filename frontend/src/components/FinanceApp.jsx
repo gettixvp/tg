@@ -87,7 +87,7 @@ const categoriesMeta = {
     textColor: "text-green-700",
     chartColor: "#10b981",
   },
-  Фриланс: {
+  Фрилан: {
     color: "from-cyan-400 to-blue-400",
     icon: "👨‍💻",
     bgColor: "bg-cyan-100",
@@ -140,7 +140,7 @@ const categoriesMeta = {
 
 const categoriesList = {
   expense: ["Еда", "Транспорт", "Развлечения", "Счета", "Покупки", "Здоровье", "Другое"],
-  income: ["Зарплата", "Фриланс", "Подарки", "Инвестиции", "Другое"],
+  income: ["Зарплата", "Фрилан", "Подарки", "Инвестиции", "Другое"],
   savings: ["Отпуск", "Накопления", "Экстренный фонд", "Цель", "Другое"],
 }
 
@@ -241,9 +241,6 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2 mb-0.5">
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                  {formatDate(tx.date)}
-                </span>
                 {showCreator && tx.created_by_name && (
                   <span
                     className={`text-xs px-1.5 py-0.5 rounded-md ${
@@ -260,11 +257,16 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
                 {tx.description}
               </p>
             )}
-            <span
-              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} mt-0.5`}
-            >
-              {tx.category}
-            </span>
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <span
+                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor}`}
+              >
+                {tx.category}
+              </span>
+              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                {formatDate(tx.date)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -400,7 +402,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
 
-  // UseState hooks should be at the top level of the component
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
@@ -423,7 +424,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [category, setCategory] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [rememberMe, setRememberMe] = useState(false) // Declare rememberMe here
+  const [rememberMe, setRememberMe] = useState(false)
   const [authCurrency, setAuthCurrency] = useState("BYN")
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
   const [contentSafeAreaInset, setContentSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
@@ -582,7 +583,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials)
           setEmail(savedEmail || "")
           setPassword(savedPassword || "")
-          setRememberMe(true) // Use the declared variable
+          setRememberMe(true)
         } catch (e) {
           console.warn("Failed to load saved credentials", e)
         }
@@ -731,8 +732,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setBalance(Number(u.balance || 0))
     setIncome(Number(u.income || 0))
     setExpenses(Number(u.expenses || 0))
-    setSavings(Number(u.savings_usd || 0)) // Ensure savings is treated as USD
-    setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
+    setSavings(Number(u.savings_usd || 0))
+    setGoalSavings(Number(u.goal_savings || 50000))
     setGoalInput(String(Number(u.goal_savings || 50000)))
     setTransactions(txs || [])
 
@@ -771,7 +772,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          password: atob(token), // Decode password from base64
+          password: atob(token),
           first_name: displayName,
           telegram_id: tgUserId,
           telegram_name: displayName,
@@ -780,10 +781,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       if (!resp.ok) throw new Error("auth failed")
       const json = await resp.json()
-      applyUser(json.user, json.transactions || [], true) // Mark as authenticated
+      applyUser(json.user, json.transactions || [], true)
     } catch (e) {
       console.warn("autoAuth failed", e)
-      localStorage.removeItem(SESSION_KEY) // Clear session if auth fails
+      localStorage.removeItem(SESSION_KEY)
     }
   }
 
@@ -797,13 +798,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             balance: newBalance,
             income: newIncome,
             expenses: newExpenses,
-            savings: newSavings, // Savings in USD
-            goalSavings, // Also save goalSavings
+            savings: newSavings,
+            goalSavings,
           }),
         })
       } catch (e) {
         console.warn("Failed to save to server", e)
-        alert("Ошибка сохранения данных на сервер.") // Notify user
+        alert("Ошибка сохранения данных на сервер.")
       }
     }
   }
@@ -985,7 +986,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )
 
       if (rememberMe) {
-        // Use the declared variable
         localStorage.setItem("savedCredentials", JSON.stringify({ email, password }))
       } else {
         localStorage.removeItem("savedCredentials")
@@ -1146,7 +1146,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       ? "bg-gray-800/50 border-gray-700/30 hover:bg-gray-700/50"
                       : "bg-white/80 border-white/50 hover:bg-white shadow-sm"
                   }`}
-                  title="Полноэкранный режим"
+                  title="Полноскранный режим"
                 >
                   {isFullscreen ? (
                     <Minimize2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`} />
