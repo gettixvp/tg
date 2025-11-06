@@ -20,6 +20,9 @@ import {
   Minimize2,
   CreditCard,
   BarChart3,
+  Heart,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js"
 import { Pie } from "react-chartjs-2"
@@ -170,12 +173,25 @@ function NavButton({ active, onClick, icon, theme }) {
   )
 }
 
-function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false }) {
+function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
+  const [lastTap, setLastTap] = useState(0)
   const startX = useRef(0)
 
   const handleTouchStart = (e) => {
+    const now = Date.now()
+    const timeSinceLastTap = now - lastTap
+    
+    if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+      // Двойной тап - ставим лайк
+      e.preventDefault()
+      onToggleLike && onToggleLike(tx.id)
+      setLastTap(0)
+      return
+    }
+    
+    setLastTap(now)
     startX.current = e.touches[0].clientX
     setIsSwiping(true)
   }
@@ -238,9 +254,10 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
             <span className="text-base">{categoryInfo.icon}</span>
           </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2 mb-0.5">
-              {showCreator && tx.created_by_name && (
+          <div className="min-w-0 flex-1 relative">
+            {/* Имя и аватарка справа вверху */}
+            {showCreator && tx.created_by_name && (
+              <div className="absolute top-0 right-0 flex items-center gap-1.5">
                 <span
                   className={`text-xs px-1.5 py-0.5 rounded-md ${
                     theme === "dark" ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-700"
@@ -248,19 +265,44 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
                 >
                   {tx.created_by_name}
                 </span>
-              )}
-            </div>
-            {tx.description && (
-              <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                {tx.description}
-              </p>
+                {tx.telegram_photo_url ? (
+                  <img
+                    src={tx.telegram_photo_url}
+                    alt="Avatar"
+                    className="w-6 h-6 rounded-full object-cover border border-white/20"
+                  />
+                ) : (
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    theme === "dark" ? "bg-blue-700" : "bg-blue-200"
+                  }`}>
+                    <User className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </div>
             )}
-            <div className="flex items-center justify-between gap-2 mt-0.5">
+            
+            {/* Лайк справа вверху */}
+            {tx.liked && (
+              <div className="absolute -top-1 -right-1 z-10">
+                <Heart className="w-5 h-5 text-red-500 fill-red-500 drop-shadow-lg" />
+              </div>
+            )}
+            
+            <div className="pr-20">
+              {tx.description && (
+                <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  {tx.description}
+                </p>
+              )}
               <span
-                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor}`}
+                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} mt-0.5`}
               >
                 {tx.category}
               </span>
+            </div>
+            
+            {/* Время слева внизу */}
+            <div className="mt-1">
               <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                 {formatDate(tx.date)}
               </span>
@@ -378,13 +420,21 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
           theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
         }`}
       >
-        <div
-          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-            theme === "dark" ? "bg-blue-700" : "bg-blue-100"
-          }`}
-        >
-          <User className={`w-5 h-5 ${theme === "dark" ? "text-blue-300" : "text-blue-600"}`} />
-        </div>
+        {linkedUser.telegram_photo_url ? (
+          <img
+            src={linkedUser.telegram_photo_url}
+            alt="Avatar"
+            className="w-10 h-10 rounded-full flex-shrink-0 object-cover border border-white/20"
+          />
+        ) : (
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              theme === "dark" ? "bg-blue-700" : "bg-blue-100"
+            }`}
+          >
+            <User className={`w-5 h-5 ${theme === "dark" ? "text-blue-300" : "text-blue-600"}`} />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
             {linkedUser.telegram_name || "Пользователь"}
@@ -439,6 +489,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
+  const [showLinkedUsersDropdown, setShowLinkedUsersDropdown] = useState(false)
+  const [likedTransactions, setLikedTransactions] = useState(new Set())
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -834,6 +886,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       date: new Date().toISOString(),
       created_by_telegram_id: tgUserId || null,
       created_by_name: displayName || null,
+      telegram_photo_url: tgPhotoUrl || null,
     }
 
     setTransactions((p) => [newTx, ...p])
@@ -1054,13 +1107,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1)
   const savingsPct = Math.round(savingsProgress * 100)
 
+  const toggleLike = (txId) => {
+    vibrate()
+    setLikedTransactions((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(txId)) {
+        newSet.delete(txId)
+      } else {
+        newSet.add(txId)
+      }
+      return newSet
+    })
+  }
+
   const getChartData = (type) => {
     const filtered = transactions.filter((t) => t.type === type)
     const categoryTotals = {}
 
     filtered.forEach((tx) => {
       const cat = tx.category || "Другое"
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + tx.amount
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + Number(tx.amount)
     })
 
     const labels = Object.keys(categoryTotals)
@@ -1068,12 +1134,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const colors = labels.map((cat) => categoriesMeta[cat]?.chartColor || "#64748b")
 
     return {
-      labels,
+      labels: labels.map((label, i) => `${categoriesMeta[label]?.icon || ''} ${label}`),
       datasets: [
         {
           data,
           backgroundColor: colors,
-          borderWidth: 0,
+          borderWidth: 3,
+          borderColor: theme === "dark" ? "#1f2937" : "#ffffff",
+          hoverBorderWidth: 4,
+          hoverBorderColor: theme === "dark" ? "#374151" : "#f3f4f6",
         },
       ],
     }
@@ -1291,7 +1360,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div>
                     {transactions.slice(0, 4).map((tx) => (
                       <TxRow
-                        tx={tx}
+                        tx={{ ...tx, liked: likedTransactions.has(tx.id) }}
                         key={tx.id}
                         categoriesMeta={categoriesMeta}
                         formatCurrency={formatCurrency}
@@ -1299,6 +1368,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         theme={theme}
                         onDelete={deleteTransaction}
                         showCreator={showLinkedUsers}
+                        onToggleLike={toggleLike}
                       />
                     ))}
                   </div>
@@ -1345,7 +1415,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div>
                     {transactions.map((tx) => (
                       <TxRow
-                        tx={tx}
+                        tx={{ ...tx, liked: likedTransactions.has(tx.id) }}
                         key={tx.id}
                         categoriesMeta={categoriesMeta}
                         formatCurrency={formatCurrency}
@@ -1353,6 +1423,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         theme={theme}
                         onDelete={deleteTransaction}
                         showCreator={showLinkedUsers}
+                        onToggleLike={toggleLike}
                       />
                     ))}
                   </div>
@@ -1457,7 +1528,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       .filter((t) => t.type === "savings")
                       .map((tx) => (
                         <TxRow
-                          tx={tx}
+                          tx={{ ...tx, liked: likedTransactions.has(tx.id) }}
                           key={tx.id}
                           categoriesMeta={categoriesMeta}
                           formatCurrency={formatCurrency}
@@ -1465,6 +1536,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           theme={theme}
                           onDelete={deleteTransaction}
                           showCreator={showLinkedUsers}
+                          onToggleLike={toggleLike}
                         />
                       ))}
                   </div>
@@ -1493,17 +1565,42 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 {isAuthenticated ? (
                   <div className="space-y-3">
                     {linkedUsers.length > 1 && (
-                      <div className="space-y-2 mb-3">
-                        {linkedUsers.map((linkedUser) => (
-                          <LinkedUserRow
-                            key={linkedUser.telegram_id}
-                            linkedUser={linkedUser}
-                            currentTelegramId={tgUserId}
-                            theme={theme}
-                            vibrate={vibrate}
-                            removeLinkedUser={removeLinkedUser}
-                          />
-                        ))}
+                      <div className="mb-3">
+                        <button
+                          onClick={() => {
+                            setShowLinkedUsersDropdown(!showLinkedUsersDropdown)
+                            vibrate()
+                          }}
+                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all touch-none ${
+                            theme === "dark" 
+                              ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
+                              : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                          }`}
+                        >
+                          <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                            Пользователи ({linkedUsers.length})
+                          </span>
+                          {showLinkedUsersDropdown ? (
+                            <ChevronUp className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                          ) : (
+                            <ChevronDown className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                          )}
+                        </button>
+                        
+                        {showLinkedUsersDropdown && (
+                          <div className="space-y-2 mt-2">
+                            {linkedUsers.map((linkedUser) => (
+                              <LinkedUserRow
+                                key={linkedUser.telegram_id}
+                                linkedUser={linkedUser}
+                                currentTelegramId={tgUserId}
+                                theme={theme}
+                                vibrate={vibrate}
+                                removeLinkedUser={removeLinkedUser}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1514,7 +1611,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     >
                       {tgPhotoUrl ? (
                         <img
-                          src={tgPhotoUrl || "/placeholder.svg"}
+                          src={tgPhotoUrl}
                           alt="Avatar"
                           className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
                         />
@@ -1599,7 +1696,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
-                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm touch-none ${
+                      style={{ touchAction: 'manipulation' }}
+                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm ${
                         theme === "dark"
                           ? "bg-gray-700 border-gray-600 text-gray-100"
                           : "bg-gray-50 border-gray-200 text-gray-900"
@@ -1743,8 +1841,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         labels: {
                           color: theme === "dark" ? "#e5e7eb" : "#1f2937",
                           padding: 15,
-                          font: { size: 12 },
+                          font: { size: 13, weight: '500' },
+                          usePointStyle: true,
+                          pointStyle: 'circle',
                         },
+                      },
+                      tooltip: {
+                        backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
+                        titleColor: theme === "dark" ? "#f3f4f6" : "#111827",
+                        bodyColor: theme === "dark" ? "#e5e7eb" : "#374151",
+                        borderColor: theme === "dark" ? "#374151" : "#e5e7eb",
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: true,
+                        callbacks: {
+                          label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                          }
+                        }
                       },
                     },
                   }}
