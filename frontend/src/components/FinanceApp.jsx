@@ -823,6 +823,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     return () => clearInterval(interval)
   }, [])
 
+  // Автоматический скролл при открытии клавиатуры
+  useEffect(() => {
+    if (showNumKeyboard) {
+      // Небольшая задержка для плавного скролла
+      setTimeout(() => {
+        // Скроллим модальное окно или главный контент вверх
+        if (showAddModal || showSavingsSettingsModal) {
+          // Для модальных окон - скроллим контейнер модального окна
+          const modalContent = document.querySelector('.overflow-y-auto')
+          if (modalContent) {
+            modalContent.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+        }
+        // Скроллим главный контент вверх
+        if (mainContentRef.current) {
+          mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      }, 100)
+    }
+  }, [showNumKeyboard, showAddModal, showSavingsSettingsModal])
+
   function blurAll() {
     if (document.activeElement && typeof document.activeElement.blur === "function") {
       document.activeElement.blur()
@@ -2283,7 +2304,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showSavingsSettingsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl overflow-y-auto ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            style={{
+              maxHeight: showNumKeyboard ? '50vh' : '90vh'
+            }}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -2784,7 +2808,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div
             className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: showNumKeyboard ? "90vh" : "85vh", display: "flex", flexDirection: "column" }}
+            style={{ maxHeight: showNumKeyboard ? "50vh" : "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
               className="p-4 overflow-y-auto flex-1"
@@ -3134,7 +3158,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* UI Клавиатура - отдельный компонент с высоким z-index */}
       {showNumKeyboard && (
-        <div className="fixed bottom-0 left-0 right-0 z-[70]">
+        <div 
+          className="fixed bottom-0 left-0 right-0 z-[70]"
+          style={{ 
+            paddingBottom: safeAreaInset.bottom || 0 
+          }}
+        >
           <NumericKeyboard
             onNumberPress={(num) => {
               if (amount.includes(".") && num === ".") return
