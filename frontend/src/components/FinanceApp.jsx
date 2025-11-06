@@ -2459,16 +2459,48 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <button
                   onClick={async () => {
                     if (confirm(`Вы уверены, что хотите удалить копилку "${secondGoalName}"?`)) {
-                      // Очищаем данные второй копилки
+                      // Сохраняем на сервер напрямую с пустыми значениями
+                      if (user && user.email) {
+                        try {
+                          // Обновляем настройки копилки
+                          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              goalName,
+                              initialSavingsAmount,
+                              secondGoalName: '',
+                              secondGoalAmount: 0,
+                              secondGoalSavings: 0,
+                              secondGoalInitialAmount: 0,
+                            }),
+                          })
+                          
+                          // Обновляем основные данные пользователя
+                          await fetch(`${API_BASE}/api/user/${user.email}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              balance,
+                              income,
+                              expenses,
+                              savings,
+                              goalSavings,
+                            }),
+                          })
+                        } catch (e) {
+                          console.warn("Failed to delete second goal", e)
+                          alert("Ошибка при удалении копилки")
+                        }
+                      }
+                      
+                      // Очищаем данные второй копилки в UI
                       setSecondGoalName('')
                       setSecondGoalAmount(0)
                       setSecondGoalSavings(0)
                       setSecondGoalInitialAmount(0)
                       setSecondGoalInput('0')
                       setSelectedSavingsGoal('main')
-                      
-                      // Сохраняем на сервер
-                      await saveToServer(balance, income, expenses, savings)
                       setShowSavingsSettingsModal(false)
                     }
                   }}
