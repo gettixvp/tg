@@ -410,33 +410,33 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
         </div>
       </div>
 
-      {/* Последний комментарий */}
+      {/* Последние 2 комментария */}
       {tx.comments && tx.comments.length > 0 && (
-        <div className="mt-2 px-2">
-          {(() => {
-            const lastComment = tx.comments[tx.comments.length - 1]
+        <div className="mt-2 px-2 space-y-1.5">
+          {tx.comments.slice(-2).map((comment, idx) => {
+            const isAuthor = comment.telegram_id === tx.created_by_telegram_id
             return (
-              <div className="flex items-start gap-2">
-                <div className={`flex-1 max-w-[80%] ${lastComment.telegram_id === tx.created_by_telegram_id ? 'ml-auto' : ''}`}>
+              <div key={comment.id || idx} className={`flex ${isAuthor ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] ${isAuthor ? 'ml-auto' : 'mr-auto'}`}>
                   <div
-                    className={`px-4 py-2 rounded-2xl ${
+                    className={`px-3 py-1.5 rounded-2xl ${
                       theme === "dark"
                         ? "bg-blue-600 text-white"
                         : "bg-blue-500 text-white"
                     }`}
                   >
-                    <p className="text-xs font-medium opacity-80 mb-0.5">{lastComment.author}</p>
-                    <p className="text-sm">{lastComment.text}</p>
+                    <p className="text-[10px] font-medium opacity-70">{comment.author}</p>
+                    <p className="text-xs leading-tight">{comment.text}</p>
                   </div>
-                  {tx.comments.length > 1 && (
-                    <p className={`text-xs mt-1 px-2 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                      +{tx.comments.length - 1} комментариев
-                    </p>
-                  )}
                 </div>
               </div>
             )
-          })()}
+          })}
+          {tx.comments.length > 2 && (
+            <p className={`text-[10px] text-center ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+              +{tx.comments.length - 2} комментариев
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -915,7 +915,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  function applyUser(u, txs = [], isEmailAuth = false) {
+  async function applyUser(u, txs = [], isEmailAuth = false) {
     setUser(u)
     setIsAuthenticated(isEmailAuth)
     setBalance(Number(u.balance || 0))
@@ -933,6 +933,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (u.second_goal_amount !== undefined) setSecondGoalAmount(Number(u.second_goal_amount || 0))
     if (u.second_goal_savings !== undefined) setSecondGoalSavings(Number(u.second_goal_savings || 0))
     if (u.second_goal_initial_amount !== undefined) setSecondGoalInitialAmount(Number(u.second_goal_initial_amount || 0))
+
+    // Автозагрузка комментариев для всех транзакций
+    if (txs && txs.length > 0) {
+      const commentsMap = {}
+      for (const tx of txs) {
+        try {
+          const resp = await fetch(`${API_BASE}/api/transactions/${tx.id}/comments`)
+          if (resp.ok) {
+            const comments = await resp.json()
+            if (comments.length > 0) {
+              commentsMap[tx.id] = comments
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to load comments for tx ${tx.id}`, e)
+        }
+      }
+      setTransactionComments(commentsMap)
+    }
 
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
