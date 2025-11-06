@@ -2931,7 +2931,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div className="flex items-center justify-center p-2">
             <div
               className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-                theme === "dark" ? "bg-gray-800/80 border-gray-700/30" : "bg-white/80 border-white/40"
+                theme === "dark" ? "bg-gray-800/50 border-gray-700/30" : "bg-white/50 border-white/40"
               }`}
             >
               <NavButton
