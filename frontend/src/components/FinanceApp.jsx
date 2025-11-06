@@ -1426,7 +1426,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }}
     >
       {activeTab === "overview" && (
-        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pt-12 pb-4">
+        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4" style={{ paddingTop: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }}>
           {/* Градиент на заднем плане */}
           <div 
             className="absolute inset-0 opacity-30 blur-3xl"
@@ -1439,7 +1439,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
           />
           <div
-            className="relative overflow-hidden rounded-2xl p-4 shadow-2xl z-10"
+            className="relative overflow-hidden rounded-2xl p-4 z-10"
             style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
           >
             <div className="flex items-center justify-between mb-3">
@@ -1660,6 +1660,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "history" && (
             <div className="animate-fadeIn">
+              <div className="h-12" style={{ height: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }} />
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                   theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
@@ -1716,6 +1717,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "savings" && (
             <div className="space-y-4 animate-fadeIn">
+              <div className="h-12" style={{ height: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }} />
               <div
                 className={`rounded-2xl p-4 text-white shadow-2xl ${
                   theme === "dark"
@@ -1877,6 +1879,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "settings" && (
             <div className="space-y-4 animate-fadeIn">
+              <div className="h-12" style={{ height: safeAreaInset.top ? `${safeAreaInset.top + 48}px` : '48px' }} />
               {/* Приветствие с аватаркой */}
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
@@ -2335,14 +2338,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 min={0}
                 onChange={(e) => {
                   const val = e.target.value.replace(/^0+(?=\d)/, '')
-                  setInitialSavingsInput(val || '0')
+                  setInitialSavingsInput(val || '')
                 }}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                     : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 }`}
-                placeholder="0"
+                placeholder="Например: 1000"
               />
             </div>
             
@@ -2385,24 +2388,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </button>
               <button
                 onClick={async () => {
-                  const n = Number.parseInt(initialSavingsInput, 10)
-                  if (!Number.isNaN(n) && n >= 0) {
-                    let newSavings = savings
-                    let newSecondGoalSavings = secondGoalSavings
-                    
-                    if (selectedSavingsGoal === 'main') {
-                      setInitialSavingsAmount(n)
-                      newSavings = savings + n - initialSavingsAmount
-                      setSavings(newSavings)
-                    } else {
-                      // Для второй цели - сохраняем начальную сумму отдельно
-                      newSecondGoalSavings = n
-                      setSecondGoalSavings(n)
-                    }
-                    
-                    // Сохранение на сервер
-                    await saveToServer(balance, income, expenses, newSavings)
+                  const inputVal = initialSavingsInput.trim()
+                  if (!inputVal) {
+                    alert('Введите сумму')
+                    return
                   }
+                  
+                  const n = Number.parseFloat(inputVal)
+                  if (Number.isNaN(n) || n < 0) {
+                    alert('Введите корректную сумму')
+                    return
+                  }
+                  
+                  let newSavings = savings
+                  
+                  if (selectedSavingsGoal === 'main') {
+                    // Для основной цели
+                    const diff = n - initialSavingsAmount
+                    setInitialSavingsAmount(n)
+                    newSavings = savings + diff
+                    setSavings(newSavings)
+                  } else {
+                    // Для второй цели - просто устанавливаем значение
+                    setSecondGoalSavings(n)
+                  }
+                  
+                  // Сохранение на сервер
+                  await saveToServer(balance, income, expenses, newSavings)
+                  setInitialSavingsInput('')
                   setShowSavingsSettingsModal(false)
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
