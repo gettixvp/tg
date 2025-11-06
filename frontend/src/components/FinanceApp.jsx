@@ -1935,6 +1935,38 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                 {isAuthenticated ? (
                   <div className="space-y-3">
+                    <div
+                      className={`flex items-center gap-3 p-3 rounded-xl border ${
+                        theme === "dark" ? "bg-green-900/30 border-green-700/30" : "bg-green-50 border-green-200"
+                      }`}
+                    >
+                      {tgPhotoUrl ? (
+                        <img
+                          src={tgPhotoUrl}
+                          alt="Avatar"
+                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+                        />
+                      ) : (
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            theme === "dark" ? "bg-green-700" : "bg-green-100"
+                          }`}
+                        >
+                          <User className={`w-5 h-5 ${theme === "dark" ? "text-green-300" : "text-green-600"}`} />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p
+                          className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                        >
+                          {(user && user.first_name) || displayName}
+                        </p>
+                        <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                          {user && user.email}
+                        </p>
+                      </div>
+                    </div>
+
                     {linkedUsers.length > 1 && (
                       <div className="mb-3">
                         <button
@@ -1974,38 +2006,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         )}
                       </div>
                     )}
-
-                    <div
-                      className={`flex items-center gap-3 p-3 rounded-xl border ${
-                        theme === "dark" ? "bg-green-900/30 border-green-700/30" : "bg-green-50 border-green-200"
-                      }`}
-                    >
-                      {tgPhotoUrl ? (
-                        <img
-                          src={tgPhotoUrl}
-                          alt="Avatar"
-                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
-                        />
-                      ) : (
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            theme === "dark" ? "bg-green-700" : "bg-green-100"
-                          }`}
-                        >
-                          <User className={`w-5 h-5 ${theme === "dark" ? "text-green-300" : "text-green-600"}`} />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p
-                          className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
-                        >
-                          {(user && user.first_name) || displayName}
-                        </p>
-                        <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                          {user && user.email}
-                        </p>
-                      </div>
-                    </div>
 
                     <button
                       onClick={handleLogout}
@@ -2296,9 +2296,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showSavingsSettingsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-          >
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+          <div className="p-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
             </h3>
@@ -2415,9 +2414,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setSecondGoalInitialAmount(n)
                     const newSecondGoalSavings = secondGoalSavings + diff
                     setSecondGoalSavings(newSecondGoalSavings)
-                    // Ждем обновления state и сохраняем
-                    await new Promise(resolve => setTimeout(resolve, 100))
-                    await saveToServer(balance, income, expenses, savings)
+                    
+                    // Сохраняем напрямую с новыми значениями
+                    if (user && user.email) {
+                      try {
+                        await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            goalName,
+                            initialSavingsAmount,
+                            secondGoalName,
+                            secondGoalAmount,
+                            secondGoalSavings: newSecondGoalSavings,
+                            secondGoalInitialAmount: n,
+                          }),
+                        })
+                      } catch (e) {
+                        console.warn("Failed to save to server", e)
+                      }
+                    }
                   }
                   
                   setInitialSavingsInput('')
@@ -2436,6 +2452,37 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Сохранить
               </button>
             </div>
+
+            {/* Кнопка удаления копилки */}
+            {selectedSavingsGoal === 'second' && secondGoalName && (
+              <div className="mt-3">
+                <button
+                  onClick={async () => {
+                    if (confirm(`Вы уверены, что хотите удалить копилку "${secondGoalName}"?`)) {
+                      // Очищаем данные второй копилки
+                      setSecondGoalName('')
+                      setSecondGoalAmount(0)
+                      setSecondGoalSavings(0)
+                      setSecondGoalInitialAmount(0)
+                      setSecondGoalInput('0')
+                      setSelectedSavingsGoal('main')
+                      
+                      // Сохраняем на сервер
+                      await saveToServer(balance, income, expenses, savings)
+                      setShowSavingsSettingsModal(false)
+                    }
+                  }}
+                  className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-red-700 hover:bg-red-600 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
+                  }`}
+                >
+                  Удалить копилку
+                </button>
+              </div>
+            )}
+          </div>
 
             {showNumKeyboard && (
               <NumericKeyboard
