@@ -420,13 +420,9 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
                 <div className={`flex-1 max-w-[80%] ${lastComment.telegram_id === tx.created_by_telegram_id ? 'ml-auto' : ''}`}>
                   <div
                     className={`px-4 py-2 rounded-2xl ${
-                      lastComment.telegram_id === tx.created_by_telegram_id
-                        ? theme === "dark"
-                          ? "bg-blue-600 text-white"
-                          : "bg-blue-500 text-white"
-                        : theme === "dark"
-                          ? "bg-gray-700 text-gray-100"
-                          : "bg-gray-200 text-gray-900"
+                      theme === "dark"
+                        ? "bg-blue-600 text-white"
+                        : "bg-blue-500 text-white"
                     }`}
                   >
                     <p className="text-xs font-medium opacity-80 mb-0.5">{lastComment.author}</p>
@@ -1516,8 +1512,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div className="flex gap-3">
                 {/* Основная копилка */}
                 <div
-                  className={`rounded-xl p-3 border flex-1 ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  onClick={() => {
+                    setActiveTab("savings")
+                    vibrate()
+                  }}
+                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
+                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -1564,8 +1564,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 {/* Вторая копилка (если есть) */}
                 {secondGoalName && secondGoalAmount > 0 && (
                   <div
-                    className={`rounded-xl p-3 border flex-1 ${
-                      theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                    onClick={() => {
+                      setActiveTab("savings")
+                      vibrate()
+                    }}
+                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
+                      theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">

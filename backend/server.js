@@ -158,6 +158,10 @@ app.delete("/api/transactions/:id", async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ error: "Неверный ID" })
 
   try {
+    // Сначала удаляем все комментарии к этой транзакции
+    await pool.query("DELETE FROM transaction_comments WHERE transaction_id = $1", [id])
+    
+    // Затем удаляем саму транзакцию
     const result = await pool.query("DELETE FROM transactions WHERE id = $1 RETURNING *", [id])
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "Транзакция не найдена" })
