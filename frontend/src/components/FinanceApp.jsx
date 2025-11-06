@@ -240,31 +240,31 @@ function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2 mb-0.5">
-              <div className="flex items-center gap-2">
-                <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                  {formatDate(tx.date)}
+              {showCreator && tx.created_by_name && (
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded-md ${
+                    theme === "dark" ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {tx.created_by_name}
                 </span>
-                {showCreator && tx.created_by_name && (
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-md ${
-                      theme === "dark" ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-700"
-                    }`}
-                  >
-                    {tx.created_by_name}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
             {tx.description && (
               <p className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 {tx.description}
               </p>
             )}
-            <span
-              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor} mt-0.5`}
-            >
-              {tx.category}
-            </span>
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <span
+                className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${categoryInfo.bgColor} ${categoryInfo.textColor}`}
+              >
+                {tx.category}
+              </span>
+              <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                {formatDate(tx.date)}
+              </span>
+            </div>
           </div>
         </div>
 
