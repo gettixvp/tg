@@ -123,6 +123,12 @@ async function initDB() {
     // Добавляем telegram_photo_url в linked_telegram_users
     await pool.query(`ALTER TABLE linked_telegram_users ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
 
+    // Создаем индексы для оптимизации запросов
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user_email ON transactions(user_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date DESC);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transaction_comments_transaction_id ON transaction_comments(transaction_id);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_linked_users_email ON linked_telegram_users(user_email);`)
+
     console.log("БД готова!")
   } catch (error) {
     console.error("Ошибка инициализации БД:", error)

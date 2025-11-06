@@ -1207,8 +1207,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setShowTransactionDetails(true)
     vibrate()
     
-    // Загрузка комментариев с сервера
-    if (user && user.email) {
+    // Загрузка комментариев с сервера только если их еще нет в кэше
+    if (user && user.email && !transactionComments[tx.id]) {
       try {
         const resp = await fetch(`${API_URL}/api/transactions/${tx.id}/comments`)
         if (resp.ok) {
@@ -1420,8 +1420,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="space-y-4 animate-fadeIn">
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className={`backdrop-blur-sm rounded-xl p-3 border ${
-                    theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                  className={`rounded-xl p-3 border ${
+                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -1431,37 +1431,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </div>
                       <div>
                         <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Копилка</p>
-                        <p className={`text-sm font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                          {savingsPct}%
-                        </p>
                       </div>
                     </div>
                     {/* Маленькая круговая диаграмма */}
-                    <div className="relative w-12 h-12 flex-shrink-0">
-                      <svg className="w-12 h-12 transform -rotate-90">
+                    <div className="relative w-14 h-14 flex-shrink-0">
+                      <svg className="w-14 h-14 transform -rotate-90">
                         <circle
-                          cx="24"
-                          cy="24"
-                          r="20"
+                          cx="28"
+                          cy="28"
+                          r="24"
                           stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-                          strokeWidth="4"
+                          strokeWidth="5"
                           fill="none"
                         />
                         <circle
-                          cx="24"
-                          cy="24"
-                          r="20"
+                          cx="28"
+                          cy="28"
+                          r="24"
                           stroke={theme === "dark" ? "#3b82f6" : "#6366f1"}
-                          strokeWidth="4"
+                          strokeWidth="5"
                           fill="none"
-                          strokeDasharray={`${2 * Math.PI * 20}`}
-                          strokeDashoffset={`${2 * Math.PI * 20 * (1 - savingsProgress)}`}
+                          strokeDasharray={`${2 * Math.PI * 24}`}
+                          strokeDashoffset={`${2 * Math.PI * 24 * (1 - savingsProgress)}`}
                           strokeLinecap="round"
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          {savingsPct}
+                          {savingsPct || 0}%
                         </span>
                       </div>
                     </div>
@@ -1470,8 +1467,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                className={`rounded-2xl p-4 border ${
+                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2222,15 +2219,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Отмена
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const n = Number.parseInt(initialSavingsInput, 10)
                   if (!Number.isNaN(n) && n >= 0) {
+                    let newSavings = savings
                     if (selectedSavingsGoal === 'main') {
                       setInitialSavingsAmount(n)
-                      setSavings(savings + n - initialSavingsAmount)
+                      newSavings = savings + n - initialSavingsAmount
+                      setSavings(newSavings)
                     } else {
                       setSecondGoalSavings(secondGoalSavings + n)
                     }
+                    
+                    // Сохранение на сервер
+                    await saveToServer(balance, income, expenses, newSavings)
                   }
                   setShowSavingsSettingsModal(false)
                 }}
@@ -2406,17 +2408,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showTransactionDetails && selectedTransaction && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
           <div
-            className={`w-full max-w-md rounded-t-2xl p-6 shadow-2xl ${
+            className={`w-full max-w-md rounded-t-2xl p-4 shadow-2xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
             style={{ 
-              maxHeight: "90vh",
+              maxHeight: "70vh",
               display: "flex",
               flexDirection: "column",
               WebkitOverflowScrolling: "touch"
             }}
           >
-            <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
             <div className="flex items-center justify-between mb-6">
               <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 Детали операции
@@ -2523,9 +2525,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         <div className="flex-1">
                           <p className="text-xs font-medium opacity-80 mb-1">{comment.author}</p>
                           <p className="text-sm">{comment.text}</p>
-                          <p className={`text-xs mt-1 opacity-60`}>
-                            {formatDate(comment.date)}
-                          </p>
                         </div>
                         {comment.telegram_id === tgUserId && (
                           <button
@@ -2553,7 +2552,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   onChange={(e) => setDetailsCommentText(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendDetailsComment()}
                   placeholder="Написать комментарий..."
-                  className={`flex-1 p-3 rounded-xl border text-sm ${
+                  className={`flex-1 p-2 rounded-xl border text-sm ${
                     theme === "dark"
                       ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
                       : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500"
@@ -2967,6 +2966,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         main::-webkit-scrollbar {
           width: 0px;
           background: transparent;
+        }
+        
+        /* Скрыть полосы прокрутки везде */
+        *::-webkit-scrollbar {
+          width: 0px;
+          height: 0px;
+          background: transparent;
+        }
+        
+        * {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
         
         input[type="text"],
