@@ -3296,7 +3296,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно настройки бюджетов */}
       {showBudgetModal && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center z-50"
+          style={{ paddingTop: isFullscreen ? '48px' : '16px' }}
           onClick={() => {
             setShowBudgetModal(false)
             vibrate()
@@ -3310,7 +3311,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               height: "auto",
               display: "flex", 
               flexDirection: "column",
-              margin: "auto"
+              marginTop: "16px"
             }}
           >
             {/* Заголовок - фиксированный */}
@@ -3349,7 +3350,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setBudgetPeriod(budget ? budget.period : 'month')
                         vibrate()
                       }}
-                      className={`w-full p-3 rounded-xl border text-left transition-all touch-none active:scale-95 ${
+                      className={`w-full p-3 rounded-xl border text-left transition-colors ${
                         budget
                           ? theme === "dark"
                             ? "bg-blue-900/20 border-blue-700/30"
@@ -3405,6 +3406,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={budgetLimitInput}
                     onChange={(e) => setBudgetLimitInput(e.target.value)}
                     placeholder="Введите сумму"
