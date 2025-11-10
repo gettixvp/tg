@@ -1465,7 +1465,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         startDate.setFullYear(now.getFullYear() - 1)
       }
       
+      // ВАЖНО: Если есть дата создания бюджета, используем её как минимальную дату
+      const budgetCreatedAt = budget.createdAt ? new Date(budget.createdAt) : null
+      if (budgetCreatedAt && budgetCreatedAt > startDate) {
+        startDate = budgetCreatedAt
+      }
+      
       console.log(`[BUDGET DEBUG] Категория: ${category}, Период: ${budget.period}`)
+      console.log(`[BUDGET DEBUG] Дата создания бюджета:`, budgetCreatedAt)
       console.log(`[BUDGET DEBUG] Дата начала периода:`, startDate)
       
       const categoryTransactions = transactions.filter(tx => {
@@ -1473,6 +1480,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         const isExpense = tx.type === 'expense'
         const isCategory = tx.category === category
         const isInPeriod = txDate >= startDate
+        const isAfterBudgetCreated = budgetCreatedAt ? txDate >= budgetCreatedAt : true
         
         console.log(`[BUDGET DEBUG] Транзакция:`, {
           category: tx.category,
@@ -1481,10 +1489,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           date: tx.date || tx.created_at,
           isExpense,
           isCategory,
-          isInPeriod
+          isInPeriod,
+          isAfterBudgetCreated
         })
         
-        return isExpense && isCategory && isInPeriod
+        return isExpense && isCategory && isInPeriod && isAfterBudgetCreated
       })
       
       console.log(`[BUDGET DEBUG] Найдено транзакций для ${category}:`, categoryTransactions.length)
@@ -3728,6 +3737,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <>
                 <button
                   onClick={async () => {
+                    if (!window.confirm('Очистить прогресс бюджета? Счетчик начнется заново с текущего момента.')) return
+                    
+                    // Сбрасываем дату создания бюджета на текущий момент
+                    const newBudgets = {
+                      ...budgets,
+                      [selectedBudgetCategory]: {
+                        ...budgets[selectedBudgetCategory],
+                        createdAt: new Date().toISOString()
+                      }
+                    }
+                    setBudgets(newBudgets)
+                    
+                    // Сохраняем на сервер
+                    await saveBudgetToServer(newBudgets)
+                    
+                    vibrateSuccess()
+                    alert('Прогресс очищен! Бюджет начнет отслеживать транзакции с этого момента.')
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-orange-700 hover:bg-orange-600 text-white"
+                      : "bg-orange-500 hover:bg-orange-600 text-white"
+                  }`}
+                >
+                  Очистить
+                </button>
+                <button
+                  onClick={async () => {
                     if (!window.confirm('Удалить этот бюджет?')) return
                     
                     // Удаляем только бюджет, транзакции остаются в истории
@@ -3767,7 +3804,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     ...budgets,
                     [selectedBudgetCategory]: {
                       limit,
-                      period: budgetPeriod
+                      period: budgetPeriod,
+                      createdAt: budgets[selectedBudgetCategory]?.createdAt || new Date().toISOString()
                     }
                   }
                   
