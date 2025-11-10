@@ -359,6 +359,26 @@ app.put("/api/user/:email/savings-settings", async (req, res) => {
   }
 })
 
+// --- Обновить бюджеты ---
+app.put("/api/user/:email/budgets", async (req, res) => {
+  const { email } = req.params
+  const { budgets } = req.body
+
+  if (!email) return res.status(400).json({ error: "Email обязателен" })
+
+  try {
+    const budgetsJson = JSON.stringify(budgets || {})
+    await pool.query(
+      `UPDATE users SET budgets=$1 WHERE email=$2`,
+      [budgetsJson, email],
+    )
+    res.json({ success: true })
+  } catch (e) {
+    console.error("Budgets update error:", e)
+    res.status(500).json({ error: "Не удалось сохранить бюджеты: " + e.message })
+  }
+})
+
 // --- Helper ---
 function convertUser(u) {
   return {
@@ -375,6 +395,7 @@ function convertUser(u) {
     second_goal_amount: Number(u.second_goal_amount || 0),
     second_goal_savings: Number(u.second_goal_savings || 0),
     second_goal_initial_amount: Number(u.second_goal_initial_amount || 0),
+    budgets: u.budgets || {},
   }
 }
 

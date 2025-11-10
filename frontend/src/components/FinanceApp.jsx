@@ -626,6 +626,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showSecondGoalModal, setShowSecondGoalModal] = useState(false)
   const [secondGoalInput, setSecondGoalInput] = useState('0')
   const [selectedSavingsGoal, setSelectedSavingsGoal] = useState('main') // 'main' или 'second'
+  
+  // Бюджеты и лимиты
+  const [budgets, setBudgets] = useState({}) // { category: { limit: 500, period: 'month' } }
+  const [showBudgetModal, setShowBudgetModal] = useState(false)
+  const [selectedBudgetCategory, setSelectedBudgetCategory] = useState('')
+  const [budgetLimitInput, setBudgetLimitInput] = useState('')
+  const [budgetPeriod, setBudgetPeriod] = useState('month') // 'week', 'month', 'year'
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -958,6 +965,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (u.second_goal_amount !== undefined) setSecondGoalAmount(Number(u.second_goal_amount || 0))
     if (u.second_goal_savings !== undefined) setSecondGoalSavings(Number(u.second_goal_savings || 0))
     if (u.second_goal_initial_amount !== undefined) setSecondGoalInitialAmount(Number(u.second_goal_initial_amount || 0))
+    
+    // Загрузка бюджетов
+    if (u.budgets) {
+      try {
+        const parsedBudgets = typeof u.budgets === 'string' ? JSON.parse(u.budgets) : u.budgets
+        setBudgets(parsedBudgets || {})
+      } catch (e) {
+        console.warn('Failed to parse budgets', e)
+        setBudgets({})
+      }
+    }
 
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
@@ -1260,6 +1278,61 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         await saveToServer(newBalance, newIncome, newExpenses, newSavings)
       } catch (e) {
         console.warn("Failed to delete tx", e)
+      }
+    }
+  }
+
+  // Функции для работы с бюджетами
+  const getCategorySpending = (category, period = 'month') => {
+    const now = new Date()
+    let startDate = new Date()
+    
+    if (period === 'week') {
+      startDate.setDate(now.getDate() - 7)
+    } else if (period === 'month') {
+      startDate.setMonth(now.getMonth() - 1)
+    } else if (period === 'year') {
+      startDate.setFullYear(now.getFullYear() - 1)
+    }
+    
+    const categoryTransactions = transactions.filter(tx => 
+      tx.type === 'expense' && 
+      tx.category === category &&
+      new Date(tx.created_at) >= startDate
+    )
+    
+    return categoryTransactions.reduce((sum, tx) => sum + Number(tx.converted_amount_usd || 0), 0)
+  }
+
+  const getBudgetStatus = (category) => {
+    const budget = budgets[category]
+    if (!budget) return null
+    
+    const spent = getCategorySpending(category, budget.period)
+    const limit = Number(budget.limit)
+    const percentage = limit > 0 ? (spent / limit) * 100 : 0
+    const remaining = limit - spent
+    
+    return {
+      spent,
+      limit,
+      percentage: Math.min(percentage, 100),
+      remaining,
+      isOverBudget: spent > limit,
+      isNearLimit: percentage >= 80 && percentage < 100
+    }
+  }
+
+  const saveBudgetToServer = async (newBudgets) => {
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/user/${user.email}/budgets`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ budgets: newBudgets }),
+        })
+      } catch (e) {
+        console.warn("Failed to save budgets", e)
       }
     }
   }
@@ -1719,6 +1792,121 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 )}
               </div>
+
+              {/* Бюджеты и лимиты */}
+              {Object.keys(budgets).length > 0 && (
+                <div
+                  className={`rounded-2xl p-4 border ${
+                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Бюджеты
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowBudgetModal(true)
+                        setSelectedBudgetCategory('')
+                        setBudgetLimitInput('')
+                        vibrate()
+                      }}
+                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
+                    >
+                      Настроить
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {Object.entries(budgets).map(([category, budget]) => {
+                      const status = getBudgetStatus(category)
+                      if (!status) return null
+                      
+                      const meta = categoriesMeta[category] || {}
+                      const periodText = budget.period === 'week' ? 'неделю' : budget.period === 'month' ? 'месяц' : 'год'
+                      
+                      return (
+                        <div
+                          key={category}
+                          className={`p-3 rounded-xl border transition-all ${
+                            status.isOverBudget
+                              ? theme === "dark" ? "bg-red-900/20 border-red-700/30" : "bg-red-50 border-red-200"
+                              : status.isNearLimit
+                              ? theme === "dark" ? "bg-orange-900/20 border-orange-700/30" : "bg-orange-50 border-orange-200"
+                              : theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{meta.icon || '💰'}</span>
+                              <div>
+                                <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
+                                  {category}
+                                </p>
+                                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                  На {periodText}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-sm font-bold ${
+                                status.isOverBudget
+                                  ? "text-red-600"
+                                  : status.isNearLimit
+                                  ? "text-orange-600"
+                                  : theme === "dark" ? "text-gray-200" : "text-gray-900"
+                              }`}>
+                                {formatCurrency(status.spent)} / {formatCurrency(status.limit)}
+                              </p>
+                              <p className={`text-xs ${
+                                status.remaining < 0
+                                  ? "text-red-600"
+                                  : theme === "dark" ? "text-gray-400" : "text-gray-600"
+                              }`}>
+                                {status.remaining < 0 ? 'Превышение' : 'Осталось'}: {formatCurrency(Math.abs(status.remaining))}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Прогресс-бар */}
+                          <div className={`w-full h-2 rounded-full overflow-hidden ${
+                            theme === "dark" ? "bg-gray-600" : "bg-gray-200"
+                          }`}>
+                            <div
+                              className={`h-full transition-all duration-500 rounded-full ${
+                                status.isOverBudget
+                                  ? "bg-gradient-to-r from-red-500 to-red-600"
+                                  : status.isNearLimit
+                                  ? "bg-gradient-to-r from-orange-400 to-orange-500"
+                                  : "bg-gradient-to-r from-green-400 to-green-500"
+                              }`}
+                              style={{ width: `${Math.min(status.percentage, 100)}%` }}
+                            />
+                          </div>
+                          
+                          {/* Процент */}
+                          <div className="flex justify-between items-center mt-1">
+                            <p className={`text-xs font-medium ${
+                              status.isOverBudget
+                                ? "text-red-600"
+                                : status.isNearLimit
+                                ? "text-orange-600"
+                                : theme === "dark" ? "text-green-400" : "text-green-600"
+                            }`}>
+                              {Math.round(status.percentage)}%
+                            </p>
+                            {status.isOverBudget && (
+                              <span className="text-xs text-red-600 font-medium">⚠️ Превышен лимит</span>
+                            )}
+                            {status.isNearLimit && !status.isOverBudget && (
+                              <span className="text-xs text-orange-600 font-medium">⚡ Близко к лимиту</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div
                 className={`rounded-2xl p-4 border ${
@@ -2241,6 +2429,38 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Бюджеты */}
+              <div
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                }`}
+              >
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  Бюджеты и лимиты
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowBudgetModal(true)
+                    setSelectedBudgetCategory('')
+                    setBudgetLimitInput('')
+                    vibrate()
+                  }}
+                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm touch-none active:scale-95 flex items-center justify-center gap-2 ${
+                    theme === "dark"
+                      ? "bg-blue-700 hover:bg-blue-600 text-white"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  {Object.keys(budgets).length > 0 ? 'Управление бюджетами' : 'Настроить бюджеты'}
+                </button>
+                {Object.keys(budgets).length > 0 && (
+                  <p className={`text-xs mt-2 text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Активных бюджетов: {Object.keys(budgets).length}
+                  </p>
+                )}
               </div>
 
               <div
@@ -3069,6 +3289,227 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </button>
             </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно настройки бюджетов */}
+      {showBudgetModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+          >
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              {selectedBudgetCategory ? 'Редактировать бюджет' : 'Управление бюджетами'}
+            </h3>
+
+            {!selectedBudgetCategory ? (
+              // Список существующих бюджетов
+              <div className="space-y-3 mb-4">
+                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Установите лимиты расходов для категорий
+                </p>
+                
+                {Object.keys(categoriesMeta).map((category) => {
+                  const budget = budgets[category]
+                  const meta = categoriesMeta[category]
+                  
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => {
+                        setSelectedBudgetCategory(category)
+                        setBudgetLimitInput(budget ? String(budget.limit) : '')
+                        setBudgetPeriod(budget ? budget.period : 'month')
+                        vibrate()
+                      }}
+                      className={`w-full p-3 rounded-xl border text-left transition-all touch-none active:scale-95 ${
+                        budget
+                          ? theme === "dark"
+                            ? "bg-blue-900/20 border-blue-700/30"
+                            : "bg-blue-50 border-blue-200"
+                          : theme === "dark"
+                            ? "bg-gray-700 border-gray-600 hover:bg-gray-650"
+                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{meta.icon}</span>
+                          <div>
+                            <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
+                              {category}
+                            </p>
+                            {budget && (
+                              <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                {formatCurrency(budget.limit)} / {budget.period === 'week' ? 'неделю' : budget.period === 'month' ? 'месяц' : 'год'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {budget ? (
+                          <span className={`text-xs font-medium ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
+                            Изменить
+                          </span>
+                        ) : (
+                          <span className={`text-xs font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Добавить
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              // Форма редактирования бюджета
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-2xl">{categoriesMeta[selectedBudgetCategory]?.icon}</span>
+                  <h4 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    {selectedBudgetCategory}
+                  </h4>
+                </div>
+
+                <div>
+                  <label
+                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Лимит расходов (USD)
+                  </label>
+                  <input
+                    type="number"
+                    value={budgetLimitInput}
+                    onChange={(e) => setBudgetLimitInput(e.target.value)}
+                    placeholder="Введите сумму"
+                    className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Период
+                  </label>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'week', label: 'Неделя' },
+                      { value: 'month', label: 'Месяц' },
+                      { value: 'year', label: 'Год' }
+                    ].map((period) => (
+                      <button
+                        key={period.value}
+                        onClick={() => {
+                          setBudgetPeriod(period.value)
+                          vibrateSelect()
+                        }}
+                        className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                          budgetPeriod === period.value
+                            ? theme === "dark"
+                              ? "bg-blue-600 text-white"
+                              : "bg-blue-500 text-white"
+                            : theme === "dark"
+                              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {period.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedBudgetCategory('')
+                      setBudgetLimitInput('')
+                      vibrate()
+                    }}
+                    className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    Назад
+                  </button>
+                  
+                  {budgets[selectedBudgetCategory] && (
+                    <button
+                      onClick={async () => {
+                        const newBudgets = { ...budgets }
+                        delete newBudgets[selectedBudgetCategory]
+                        setBudgets(newBudgets)
+                        await saveBudgetToServer(newBudgets)
+                        setSelectedBudgetCategory('')
+                        vibrateSuccess()
+                      }}
+                      className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-red-700 hover:bg-red-600 text-white"
+                          : "bg-red-500 hover:bg-red-600 text-white"
+                      }`}
+                    >
+                      Удалить
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={async () => {
+                      const limit = Number(budgetLimitInput)
+                      if (!limit || limit <= 0) {
+                        vibrateError()
+                        alert('Введите корректную сумму')
+                        return
+                      }
+                      
+                      const newBudgets = {
+                        ...budgets,
+                        [selectedBudgetCategory]: {
+                          limit,
+                          period: budgetPeriod
+                        }
+                      }
+                      
+                      setBudgets(newBudgets)
+                      await saveBudgetToServer(newBudgets)
+                      setSelectedBudgetCategory('')
+                      setBudgetLimitInput('')
+                      vibrateSuccess()
+                    }}
+                    className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-blue-700 hover:bg-blue-600 text-white"
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                    }`}
+                  >
+                    Сохранить
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!selectedBudgetCategory && (
+              <button
+                onClick={() => {
+                  setShowBudgetModal(false)
+                  vibrate()
+                }}
+                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 mt-3 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Закрыть
+              </button>
+            )}
           </div>
         </div>
       )}
