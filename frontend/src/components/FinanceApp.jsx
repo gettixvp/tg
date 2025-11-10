@@ -3330,14 +3330,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 overscrollBehavior: "contain"
               }}
             >
-              {!selectedBudgetCategory ? (
-                // Список существующих бюджетов
-                <div className="space-y-3">
-                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                    Установите лимиты расходов для категорий
-                  </p>
-                  
-                  {Object.keys(categoriesMeta).map((category) => {
+              {/* Список существующих бюджетов */}
+              <div className="space-y-3">
+                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Установите лимиты расходов для категорий
+                </p>
+                
+                {Object.keys(categoriesMeta).map((category) => {
                   const budget = budgets[category]
                   const meta = categoriesMeta[category]
                   
