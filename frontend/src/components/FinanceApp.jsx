@@ -29,6 +29,8 @@ import {
   PieChart,
   BarChart2,
   TrendingUpIcon,
+  Filter,
+  Calendar,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
@@ -664,6 +666,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   
   // Вкладка копилки (Копилка / Долги)
   const [savingsTab, setSavingsTab] = useState('savings') // 'savings', 'debts'
+  
+  // Фильтры истории
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterType, setFilterType] = useState('all') // 'all', 'income', 'expense', 'savings'
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -2185,6 +2194,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={() => {
+                      setShowFilters(true)
+                      vibrate()
+                    }}
+                    className={`px-4 py-2 rounded-full font-medium transition-all text-sm flex items-center gap-2 ${
+                      theme === "dark"
+                        ? "bg-blue-700 hover:bg-blue-600 text-white"
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                    }`}
+                  >
+                    <Filter className="w-4 h-4" />
+                    Фильтры
+                  </button>
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     История операций
                   </h3>
