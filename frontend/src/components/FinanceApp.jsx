@@ -3296,40 +3296,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно списка бюджетов */}
       {showBudgetModal && !selectedBudgetCategory && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center z-50"
-          style={{ paddingTop: isFullscreen ? '64px' : '32px' }}
-          onClick={() => {
-            setShowBudgetModal(false)
-            vibrate()
-          }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
+          style={{ touchAction: "none" }}
         >
           <div
-            onClick={(e) => e.stopPropagation()}
-            className={`w-[90%] max-w-md rounded-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ 
-              maxHeight: "75vh",
-              height: "auto",
-              display: "flex", 
-              flexDirection: "column",
-              marginTop: "16px"
-            }}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
-            {/* Заголовок - фиксированный */}
-            <div className="px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
-              <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Управление бюджетами
-              </h3>
-            </div>
-
             {/* Контент - прокручиваемый */}
             <div 
-              className="flex-1 overflow-y-auto px-4 py-3"
+              className="p-4 overflow-y-auto flex-1"
               style={{ 
                 WebkitOverflowScrolling: "touch", 
-                touchAction: "pan-y",
-                overscrollBehavior: "contain"
+                touchAction: "pan-y"
               }}
             >
+              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Управление бюджетами
+              </h3>
               {/* Список существующих бюджетов */}
               <div className="space-y-3">
                 <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -3436,18 +3420,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 >
                   Лимит расходов (USD)
                 </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={budgetLimitInput}
-                  onChange={(e) => setBudgetLimitInput(e.target.value)}
-                  placeholder="Введите сумму"
-                  className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
+                <div
+                  className={`w-full p-4 border rounded-xl text-center text-3xl font-bold ${
                     theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                      : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      ? "bg-gray-700 border-gray-600 text-gray-100"
+                      : "bg-gray-50 border-gray-200 text-gray-900"
                   }`}
-                />
+                  style={{ minHeight: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  {budgetLimitInput || "0"}
+                </div>
               </div>
 
               <div className="mb-4">
@@ -3484,6 +3466,30 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               </div>
             </div>
+
+            {/* Кастомная клавиатура */}
+            <NumericKeyboard
+              onNumberPress={(num) => {
+                setBudgetLimitInput((prev) => {
+                  const current = prev || "0"
+                  if (current === "0") return num
+                  if (current.length >= 10) return current
+                  return current + num
+                })
+                vibrateSelect()
+              }}
+              onBackspace={() => {
+                setBudgetLimitInput((prev) => {
+                  if (!prev || prev.length === 1) return "0"
+                  return prev.slice(0, -1)
+                })
+                vibrate()
+              }}
+              onDone={() => {
+                // Не нужно, так как есть кнопка "Сохранить"
+              }}
+              theme={theme}
+            />
 
             {/* Кнопки внизу */}
             <div className="p-4 border-t flex gap-2" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
