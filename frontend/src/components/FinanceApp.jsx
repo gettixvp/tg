@@ -2562,6 +2562,101 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </button>
             </div>
 
+            {/* Кнопка сброса прогресса */}
+            <div className="mt-3">
+              <button
+                onClick={async () => {
+                  const goalNameToReset = selectedSavingsGoal === 'main' ? goalName : secondGoalName
+                  if (confirm(`Вы уверены, что хотите сбросить прогресс копилки "${goalNameToReset}"?\n\nЭто обнулит накопленную сумму, но сохранит название и цель.`)) {
+                    if (selectedSavingsGoal === 'main') {
+                      // Сброс основной копилки
+                      const newSavings = 0
+                      const newInitialAmount = 0
+                      setSavings(newSavings)
+                      setInitialSavingsAmount(newInitialAmount)
+                      
+                      // Сохраняем на сервер
+                      if (user && user.email) {
+                        try {
+                          await fetch(`${API_BASE}/api/user/${user.email}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              balance,
+                              income,
+                              expenses,
+                              savings: newSavings,
+                              goalSavings,
+                            }),
+                          })
+                          
+                          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              goalName,
+                              initialSavingsAmount: newInitialAmount,
+                              secondGoalName,
+                              secondGoalAmount,
+                              secondGoalSavings,
+                              secondGoalInitialAmount,
+                            }),
+                          })
+                          
+                          vibrateSuccess()
+                          alert('Прогресс копилки сброшен!')
+                        } catch (e) {
+                          console.warn("Failed to reset main goal", e)
+                          alert("Ошибка при сбросе прогресса")
+                          vibrateError()
+                        }
+                      }
+                    } else {
+                      // Сброс второй копилки
+                      const newSecondSavings = 0
+                      const newSecondInitialAmount = 0
+                      setSecondGoalSavings(newSecondSavings)
+                      setSecondGoalInitialAmount(newSecondInitialAmount)
+                      
+                      // Сохраняем на сервер
+                      if (user && user.email) {
+                        try {
+                          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              goalName,
+                              initialSavingsAmount,
+                              secondGoalName,
+                              secondGoalAmount,
+                              secondGoalSavings: newSecondSavings,
+                              secondGoalInitialAmount: newSecondInitialAmount,
+                            }),
+                          })
+                          
+                          vibrateSuccess()
+                          alert('Прогресс копилки сброшен!')
+                        } catch (e) {
+                          console.warn("Failed to reset second goal", e)
+                          alert("Ошибка при сбросе прогресса")
+                          vibrateError()
+                        }
+                      }
+                    }
+                    
+                    setShowSavingsSettingsModal(false)
+                  }
+                }}
+                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-orange-700 hover:bg-orange-600 text-white"
+                    : "bg-orange-500 hover:bg-orange-600 text-white"
+                }`}
+              >
+                🔄 Сбросить прогресс
+              </button>
+            </div>
+
             {/* Кнопка удаления копилки */}
             {selectedSavingsGoal === 'second' && secondGoalName && (
               <div className="mt-3">
