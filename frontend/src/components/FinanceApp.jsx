@@ -896,54 +896,85 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const handleReferralLink = async () => {
       try {
         // Проверяем, есть ли start параметр в Telegram WebApp
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param && tgUserId) {
           const startParam = tg.initDataUnsafe.start_param
           
-          try {
-            // Декодируем email из base64
-            const referrerEmail = atob(startParam)
-            
-            console.log('Referral link detected:', referrerEmail)
-            
-            // Если пользователь уже вошел, связываем аккаунты
-            if (user && user.email && user.email !== referrerEmail) {
-              // Отправляем запрос на связывание аккаунтов
-              const response = await fetch(`${API_BASE}/api/user/${user.email}/link`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ linkedEmail: referrerEmail })
-              })
-              
-              if (response.ok) {
-                alert(`✅ Вы успешно подключились к кошельку пользователя!\n\nТеперь вы можете видеть общие расходы и доходы.`)
-                vibrateSuccess()
-              }
-            } else if (!user) {
-              // Сохраняем реферальную ссылку для использования после входа
-              sessionStorage.setItem('referral_email', referrerEmail)
-              alert('👋 Добро пожаловать!\n\nВойдите в аккаунт, чтобы подключиться к совместному кошельку.')
+          console.log('Start param received:', startParam)
+          
+          let referrerEmail = null
+          let referrerTelegramId = null
+          
+          // Парсим параметр в зависимости от формата
+          if (startParam.startsWith('email_')) {
+            // Формат: email_BASE64_tg_123456789
+            const parts = startParam.split('_tg_')
+            if (parts.length === 2) {
+              const emailPart = parts[0].replace('email_', '')
+              referrerEmail = atob(emailPart)
+              referrerTelegramId = parts[1]
             }
-          } catch (e) {
-            console.error('Failed to decode referral link:', e)
+          } else if (startParam.startsWith('tg_')) {
+            // Формат: tg_123456789
+            referrerTelegramId = startParam.replace('tg_', '')
           }
-        }
-        
-        // Проверяем, есть ли сохраненная реферальная ссылка после входа
-        if (user && user.email) {
-          const savedReferral = sessionStorage.getItem('referral_email')
-          if (savedReferral && savedReferral !== user.email) {
-            // Связываем аккаунты
-            const response = await fetch(`${API_BASE}/api/user/${user.email}/link`, {
+          
+          if (!referrerTelegramId) {
+            console.log('Invalid referral format')
+            return
+          }
+          
+          console.log('Referral link detected!')
+          console.log('Referrer Email:', referrerEmail || 'none')
+          console.log('Referrer Telegram ID:', referrerTelegramId)
+          console.log('Current User Telegram ID:', tgUserId)
+          console.log('Current User Email:', user?.email || 'none')
+          
+          // Проверяем, что пользователь не приглашает сам себя
+          if (referrerTelegramId === String(tgUserId)) {
+            console.log('Cannot link to yourself')
+            return
+          }
+          
+          // Проверяем, не связаны ли уже
+          const linkKey = referrerEmail ? `linked_email_${referrerEmail}` : `linked_tg_${referrerTelegramId}`
+          const alreadyLinked = sessionStorage.getItem(linkKey)
+          if (alreadyLinked) {
+            console.log('Already linked to this user')
+            return
+          }
+          
+          try {
+            // Отправляем запрос на связывание аккаунтов
+            const response = await fetch(`${API_BASE}/api/link`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ linkedEmail: savedReferral })
+              body: JSON.stringify({ 
+                currentTelegramId: tgUserId,
+                currentEmail: user?.email || null,
+                currentUserName: displayName,
+                referrerTelegramId: referrerTelegramId,
+                referrerEmail: referrerEmail || null,
+                referrerName: tgUser?.first_name || 'Пользователь'
+              })
             })
             
             if (response.ok) {
-              sessionStorage.removeItem('referral_email')
-              alert(`✅ Вы успешно подключились к кошельку!\n\nТеперь вы можете видеть общие расходы и доходы.`)
+              // Сохраняем, что уже связались
+              sessionStorage.setItem(linkKey, 'true')
+              
+              alert(`✅ Вы успешно подключились к совместному кошельку!\n\nТеперь вы можете видеть общие расходы и доходы.`)
               vibrateSuccess()
+              
+              // Перезагружаем данные
+              window.location.reload()
+            } else {
+              const error = await response.json()
+              console.error('Link error:', error)
+              alert(`Ошибка подключения: ${error.error || 'Попробуйте позже'}`)
             }
+          } catch (e) {
+            console.error('Failed to link accounts:', e)
+            alert('Не удалось подключиться к кошельку. Проверьте интернет-соединение.')
           }
         }
       } catch (e) {
@@ -952,7 +983,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
     
     handleReferralLink()
-  }, [user, tg])
+  }, [tgUserId, tg, user])
 
   useEffect(() => {
     const keepAlive = async () => {
@@ -1774,20 +1805,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     try {
       vibrateSelect()
       
-      if (!user || !user.email) {
-        alert('Сначала войдите в аккаунт, чтобы пригласить пользователей')
+      // Проверяем наличие Telegram ID
+      if (!tgUserId) {
+        alert('Не удалось получить ваш Telegram ID')
         return
       }
       
-      // Кодируем email в base64 для реферальной ссылки
-      const startParam = btoa(user.email).replace(/=/g, '')
+      // Формируем параметр приглашения
+      // Если есть email - включаем его, если нет - только Telegram ID
+      let startParam
+      if (user && user.email) {
+        // Пользователь с email аккаунтом приглашает
+        const emailEncoded = btoa(user.email).replace(/=/g, '')
+        startParam = `email_${emailEncoded}_tg_${tgUserId}`
+      } else {
+        // Пользователь без email приглашает
+        startParam = `tg_${tgUserId}`
+      }
       
-      // ВАЖНО: Замените 'YOUR_BOT_USERNAME' на имя вашего бота (без @)
-      // Например: 'myfinancebot' или 'wallet_tracker_bot'
       const botUsername = 'kvpoiskby_bot'
       
       // Формируем ссылку для открытия бота с параметром start
-      // Это откроет бота внутри Telegram, а не в браузере
       const inviteUrl = `https://t.me/${botUsername}?start=${startParam}`
       
       // Текст приглашения
@@ -1797,6 +1835,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       
       console.log('Invite URL:', inviteUrl)
       console.log('Start param:', startParam)
+      console.log('Inviter Telegram ID:', tgUserId)
+      console.log('Inviter Email:', user?.email || 'none')
       
       // Проверяем, работаем ли в Telegram WebApp
       if (tg && tg.openTelegramLink) {
@@ -3208,12 +3248,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             Совместный кошелек
                           </p>
                           <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            После входа вы сможете пригласить друзей или членов семьи для совместного управления бюджетом. 
-                            Они автоматически подключатся к вашему аккаунту и смогут видеть общие расходы и доходы.
+                            Пригласите друзей или членов семьи для совместного управления бюджетом. 
+                            Они автоматически подключатся к вашему аккаунту через Telegram и смогут видеть общие расходы и доходы.
                           </p>
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Кнопка приглашения (доступна без email) */}
+                    <button
+                      onClick={inviteUser}
+                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
+                          : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                      }`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Пригласить пользователя
+                    </button>
                     
                     <button
                       onClick={() => {

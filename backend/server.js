@@ -574,6 +574,125 @@ app.get("/api/user/:email/linked", async (req, res) => {
   }
 })
 
+// --- Универсальное связывание пользователей (email + Telegram ID) ---
+app.post("/api/link", async (req, res) => {
+  const { 
+    currentTelegramId, 
+    currentEmail, 
+    currentUserName,
+    referrerTelegramId, 
+    referrerEmail,
+    referrerName 
+  } = req.body
+
+  if (!currentTelegramId || !referrerTelegramId) {
+    return res.status(400).json({ error: "Telegram ID обязательны" })
+  }
+
+  try {
+    // Проверяем, существует ли связь по Telegram ID
+    const existingTg = await pool.query(
+      `SELECT * FROM telegram_links WHERE telegram_id = $1 AND linked_telegram_id = $2`,
+      [currentTelegramId, referrerTelegramId]
+    )
+
+    if (existingTg.rows.length > 0) {
+      return res.json({ success: true, message: "Пользователи уже связаны" })
+    }
+
+    // Создаем двустороннюю связь по Telegram ID
+    await pool.query(
+      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name, linked_email) VALUES ($1, $2, $3, $4)`,
+      [currentTelegramId, referrerTelegramId, currentUserName, referrerEmail]
+    )
+    await pool.query(
+      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name, linked_email) VALUES ($1, $2, $3, $4)`,
+      [referrerTelegramId, currentTelegramId, referrerName, currentEmail]
+    )
+
+    console.log(`✅ Linked users: TG ${currentTelegramId} (${currentEmail || 'no email'}) <-> TG ${referrerTelegramId} (${referrerEmail || 'no email'})`)
+
+    // Если оба пользователя имеют email, создаем также связь по email
+    if (currentEmail && referrerEmail) {
+      const existingEmail = await pool.query(
+        `SELECT * FROM linked_users WHERE user_email = $1 AND linked_email = $2`,
+        [currentEmail, referrerEmail]
+      )
+
+      if (existingEmail.rows.length === 0) {
+        await pool.query(
+          `INSERT INTO linked_users (user_email, linked_email) VALUES ($1, $2)`,
+          [currentEmail, referrerEmail]
+        )
+        await pool.query(
+          `INSERT INTO linked_users (user_email, linked_email) VALUES ($1, $2)`,
+          [referrerEmail, currentEmail]
+        )
+        console.log(`✅ Also linked by email: ${currentEmail} <-> ${referrerEmail}`)
+      }
+    }
+
+    res.json({ success: true, message: "Пользователи успешно связаны" })
+  } catch (e) {
+    console.error("Link users error:", e)
+    res.status(500).json({ error: "Не удалось связать пользователей: " + e.message })
+  }
+})
+
+// --- Связывание пользователей по Telegram ID (старый эндпоинт для совместимости) ---
+app.post("/api/telegram/:telegramId/link", async (req, res) => {
+  const { telegramId } = req.params
+  const { linkedTelegramId, userName, referrerName } = req.body
+
+  if (!linkedTelegramId) {
+    return res.status(400).json({ error: "linkedTelegramId обязателен" })
+  }
+
+  try {
+    // Проверяем, существует ли связь
+    const existing = await pool.query(
+      `SELECT * FROM telegram_links WHERE telegram_id = $1 AND linked_telegram_id = $2`,
+      [telegramId, linkedTelegramId]
+    )
+
+    if (existing.rows.length > 0) {
+      return res.json({ success: true, message: "Пользователи уже связаны" })
+    }
+
+    // Создаем двустороннюю связь
+    await pool.query(
+      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name) VALUES ($1, $2, $3)`,
+      [telegramId, linkedTelegramId, userName]
+    )
+    await pool.query(
+      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name) VALUES ($1, $2, $3)`,
+      [linkedTelegramId, telegramId, referrerName]
+    )
+
+    console.log(`✅ Linked Telegram users: ${telegramId} <-> ${linkedTelegramId}`)
+    res.json({ success: true, message: "Пользователи успешно связаны" })
+  } catch (e) {
+    console.error("Link Telegram users error:", e)
+    res.status(500).json({ error: "Не удалось связать пользователей: " + e.message })
+  }
+})
+
+// --- Получить связанных пользователей по Telegram ID ---
+app.get("/api/telegram/:telegramId/linked", async (req, res) => {
+  const { telegramId } = req.params
+
+  try {
+    const result = await pool.query(
+      `SELECT linked_telegram_id, user_name, created_at FROM telegram_links WHERE telegram_id = $1`,
+      [telegramId]
+    )
+    res.json({ linkedUsers: result.rows })
+  } catch (e) {
+    console.error("Get linked Telegram users error:", e)
+    res.status(500).json({ error: "Не удалось получить связанных пользователей: " + e.message })
+  }
+})
+
 // --- Инициализация таблиц ---
 async function initTables() {
   try {
@@ -612,6 +731,33 @@ async function initTables() {
     `)
     
     console.log('✅ Таблица linked_users инициализирована')
+    
+    // Таблица telegram_links (для связывания по Telegram ID)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS telegram_links (
+        id SERIAL PRIMARY KEY,
+        telegram_id VARCHAR(50) NOT NULL,
+        linked_telegram_id VARCHAR(50) NOT NULL,
+        user_name VARCHAR(255),
+        linked_email VARCHAR(255),
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(telegram_id, linked_telegram_id)
+      )
+    `)
+    
+    // Добавляем колонку linked_email если её нет (для существующих таблиц)
+    await pool.query(`
+      ALTER TABLE telegram_links 
+      ADD COLUMN IF NOT EXISTS linked_email VARCHAR(255)
+    `).catch(() => {
+      // Игнорируем ошибку если колонка уже существует
+    })
+    
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_telegram_links_id ON telegram_links(telegram_id)
+    `)
+    
+    console.log('✅ Таблица telegram_links инициализирована')
   } catch (e) {
     console.error('❌ Ошибка инициализации таблиц:', e.message)
   }
