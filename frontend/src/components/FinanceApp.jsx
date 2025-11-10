@@ -687,6 +687,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [debts, setDebts] = useState([]) // Список долгов
   const [showAddDebtModal, setShowAddDebtModal] = useState(false)
   const [debtType, setDebtType] = useState('owe') // 'owe' (я должен) или 'owed' (мне должны)
+  
+  // Раскрываемое меню системных настроек
+  const [showSystemSettings, setShowSystemSettings] = useState(false)
   const [debtPerson, setDebtPerson] = useState('')
   const [debtAmount, setDebtAmount] = useState('')
   const [debtDescription, setDebtDescription] = useState('')
@@ -1776,18 +1779,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         return
       }
       
-      // Получаем текущий URL Mini App
-      const botUsername = 'your_bot_username' // Замените на имя вашего бота
-      const startParam = btoa(user.email) // Кодируем email в base64 для реферальной ссылки
+      // Кодируем email в base64 для реферальной ссылки
+      const startParam = btoa(user.email).replace(/=/g, '')
       
-      // Формируем реферальную ссылку
-      const inviteUrl = `https://t.me/${botUsername}?start=${startParam}`
+      // Получаем URL текущего Mini App
+      let appUrl = ''
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param !== undefined) {
+        // Получаем URL из Telegram WebApp
+        appUrl = window.location.href.split('?')[0]
+      } else {
+        // Fallback для разработки
+        appUrl = window.location.origin
+      }
+      
+      // Формируем ссылку для приглашения с параметром tgWebAppStartParam
+      const inviteUrl = `${appUrl}?tgWebAppStartParam=${startParam}`
       
       // Текст приглашения
       const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
         `Я использую этот финансовый трекер для управления бюджетом. ` +
-        `Нажми на ссылку, чтобы автоматически подключиться к моему аккаунту и следить за общими расходами!\n\n` +
-        `${inviteUrl}`
+        `Нажми на ссылку, чтобы автоматически подключиться к моему аккаунту и следить за общими расходами!`
       
       // Проверяем, работаем ли в Telegram WebApp
       if (tg && tg.openTelegramLink) {
@@ -1805,7 +1816,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         })
       } else {
         // Fallback: копируем в буфер обмена
-        navigator.clipboard.writeText(inviteText).then(() => {
+        const fullText = `${inviteText}\n\n${inviteUrl}`
+        navigator.clipboard.writeText(fullText).then(() => {
           alert('Ссылка-приглашение скопирована в буфер обмена!\n\nОтправьте её другу в Telegram.')
           vibrateSuccess()
         }).catch(() => {
@@ -3150,6 +3162,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </div>
                     )}
 
+                    {/* Кнопка приглашения пользователя */}
+                    <button
+                      onClick={inviteUser}
+                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
+                          : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                      }`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Пригласить пользователя
+                    </button>
+                    
                     <button
                       onClick={handleLogout}
                       className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
@@ -3169,10 +3194,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
                       }`}
                     >
-                      <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      <p className={`text-sm mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
                         Войдите в учетную запись через email, чтобы синхронизировать данные на всех устройствах.
                       </p>
                     </div>
+                    
+                    {/* Описание совместного кошелька */}
+                    <div className={`p-3 rounded-xl border ${
+                      theme === "dark" ? "bg-purple-900/20 border-purple-700/30" : "bg-purple-50 border-purple-200"
+                    }`}>
+                      <div className="flex items-start gap-2">
+                        <Users className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+                        <div>
+                          <p className={`text-xs font-medium mb-1 ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>
+                            Совместный кошелек
+                          </p>
+                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            После входа вы сможете пригласить друзей или членов семьи для совместного управления бюджетом. 
+                            Они автоматически подключатся к вашему аккаунту и смогут видеть общие расходы и доходы.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <button
                       onClick={() => {
                         setShowAuthModal(true)
@@ -3187,37 +3231,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <LogIn className="w-4 h-4" />
                       Войти через Email
                     </button>
-                    
-                    {/* Кнопка приглашения пользователя */}
-                    <button
-                      onClick={inviteUser}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 mt-3 ${
-                        theme === "dark"
-                          ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
-                          : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                      }`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Пригласить пользователя
-                    </button>
-                    
-                    {/* Описание функции приглашения */}
-                    <div className={`mt-3 p-3 rounded-xl border ${
-                      theme === "dark" ? "bg-purple-900/20 border-purple-700/30" : "bg-purple-50 border-purple-200"
-                    }`}>
-                      <div className="flex items-start gap-2">
-                        <Users className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-                        <div>
-                          <p className={`text-xs font-medium mb-1 ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>
-                            Совместный кошелек
-                          </p>
-                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            Пригласите друзей или членов семьи для совместного управления бюджетом. 
-                            Они автоматически подключатся к вашему аккаунту и смогут видеть общие расходы и доходы.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -3340,49 +3353,85 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 )}
               </div>
 
-              {/* Пересчет баланса */}
+              {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-orange-900/30 border-orange-700/30" : "bg-orange-50 border-orange-200"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-orange-300" : "text-orange-900"}`}>
-                  Исправление данных
-                </h3>
                 <button
-                  onClick={recalculateBalance}
-                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm active:scale-95 flex items-center justify-center gap-2 ${
-                    theme === "dark"
-                      ? "bg-orange-700 hover:bg-orange-600 text-white"
-                      : "bg-orange-500 hover:bg-orange-600 text-white"
+                  onClick={() => {
+                    setShowSystemSettings(!showSystemSettings)
+                    vibrate()
+                  }}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                    theme === "dark" 
+                      ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
+                      : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
-                  <RefreshCw className="w-4 h-4" />
-                  Пересчитать баланс
+                  <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                    ⚙️ Системные настройки
+                  </span>
+                  {showSystemSettings ? (
+                    <ChevronUp className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                  ) : (
+                    <ChevronDown className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                  )}
                 </button>
-                <p className={`text-xs mt-2 text-center ${theme === "dark" ? "text-orange-400" : "text-orange-700"}`}>
-                  Пересчитывает баланс на основе всех транзакций. Используйте, если баланс некорректен.
-                </p>
-              </div>
+                
+                {showSystemSettings && (
+                  <div className="space-y-3 mt-3">
+                    {/* Исправление данных */}
+                    <div
+                      className={`rounded-xl p-3 border ${
+                        theme === "dark" ? "bg-orange-900/30 border-orange-700/30" : "bg-orange-50 border-orange-200"
+                      }`}
+                    >
+                      <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-orange-300" : "text-orange-900"}`}>
+                        Исправление данных
+                      </h4>
+                      <button
+                        onClick={recalculateBalance}
+                        className={`w-full py-2 rounded-lg font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${
+                          theme === "dark"
+                            ? "bg-orange-700 hover:bg-orange-600 text-white"
+                            : "bg-orange-500 hover:bg-orange-600 text-white"
+                        }`}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Пересчитать баланс
+                      </button>
+                      <p className={`text-xs mt-2 ${theme === "dark" ? "text-orange-400" : "text-orange-700"}`}>
+                        Пересчитывает баланс на основе всех транзакций. Используйте, если баланс некорректен.
+                      </p>
+                    </div>
 
-              <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-red-900/30 border-red-700/30" : "bg-red-50 border-red-200"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-3 ${theme === "dark" ? "text-red-300" : "text-red-900"}`}>
-                  Опасная зона
-                </h3>
-                <button
-                  onClick={handleResetAll}
-                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-red-700 hover:bg-red-600 text-white"
-                      : "bg-red-500 hover:bg-red-600 text-white"
-                  }`}
-                >
-                  Сбросить все данные
-                </button>
+                    {/* Опасная зона */}
+                    <div
+                      className={`rounded-xl p-3 border ${
+                        theme === "dark" ? "bg-red-900/30 border-red-700/30" : "bg-red-50 border-red-200"
+                      }`}
+                    >
+                      <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-red-300" : "text-red-900"}`}>
+                        Опасная зона
+                      </h4>
+                      <button
+                        onClick={handleResetAll}
+                        className={`w-full py-2 rounded-lg font-medium transition-all shadow text-xs touch-none active:scale-95 ${
+                          theme === "dark"
+                            ? "bg-red-700 hover:bg-red-600 text-white"
+                            : "bg-red-500 hover:bg-red-600 text-white"
+                        }`}
+                      >
+                        Сбросить все данные
+                      </button>
+                      <p className={`text-xs mt-2 ${theme === "dark" ? "text-red-400" : "text-red-700"}`}>
+                        Удалит все транзакции, бюджеты и настройки. Это действие необратимо!
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
