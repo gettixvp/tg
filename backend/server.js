@@ -521,5 +521,34 @@ app.delete("/api/user/:email/debts/:debtId", async (req, res) => {
   }
 })
 
+// --- Инициализация таблицы debts ---
+async function initDebtsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS debts (
+        id SERIAL PRIMARY KEY,
+        user_email VARCHAR(255) NOT NULL,
+        type VARCHAR(10) NOT NULL,
+        person VARCHAR(255) NOT NULL,
+        amount DECIMAL(12, 2) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `)
+    
+    // Создаем индекс если не существует
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_debts_user_email ON debts(user_email)
+    `)
+    
+    console.log('✅ Таблица debts инициализирована')
+  } catch (e) {
+    console.error('❌ Ошибка инициализации таблицы debts:', e.message)
+  }
+}
+
 const PORT = process.env.PORT || 10000
-app.listen(PORT, () => console.log(`Сервер на порту ${PORT}`))
+app.listen(PORT, async () => {
+  console.log(`Сервер на порту ${PORT}`)
+  await initDebtsTable()
+})

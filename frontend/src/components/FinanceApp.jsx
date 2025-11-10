@@ -117,6 +117,20 @@ const categoriesMeta = {
     textColor: "text-indigo-700",
     chartColor: "#6366f1",
   },
+  Долги: {
+    color: "from-red-400 to-rose-400",
+    icon: "📤",
+    bgColor: "bg-red-100",
+    textColor: "text-red-700",
+    chartColor: "#ef4444",
+  },
+  "Возврат долга": {
+    color: "from-green-400 to-emerald-400",
+    icon: "📥",
+    bgColor: "bg-green-100",
+    textColor: "text-green-700",
+    chartColor: "#10b981",
+  },
   Отпуск: {
     color: "from-blue-300 to-sky-300",
     icon: "🖼️",
@@ -1449,6 +1463,77 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  const repayDebt = async (debt) => {
+    if (!user || !user.email) return
+
+    // Спрашиваем, хочет ли пользователь внести деньги в бюджет
+    const shouldAddToBudget = window.confirm(
+      `Долг погашен!\n\nВнести ${formatCurrency(debt.amount)} в общий бюджет?\n\n` +
+      `ДА - деньги будут добавлены как ${debt.type === 'owe' ? 'расход' : 'доход'}\n` +
+      `НЕТ - долг просто удалится`
+    )
+
+    if (shouldAddToBudget) {
+      // Создаем транзакцию
+      const transactionData = {
+        amount: debt.amount,
+        type: debt.type === 'owe' ? 'expense' : 'income', // Если я должен - расход, если мне должны - доход
+        category: debt.type === 'owe' ? 'Долги' : 'Возврат долга',
+        description: `Погашение долга: ${debt.person}${debt.description ? ' - ' + debt.description : ''}`,
+        date: new Date().toISOString(),
+        user_email: user.email,
+        currency: currency
+      }
+
+      try {
+        // Добавляем транзакцию
+        const txRes = await fetch(`${API_BASE}/api/user/${user.email}/transactions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(transactionData)
+        })
+
+        const txData = await txRes.json()
+        
+        if (txData.transaction) {
+          // Обновляем баланс
+          const newBalance = debt.type === 'owe' 
+            ? balance - debt.amount  // Я должен - уменьшаем баланс
+            : balance + debt.amount  // Мне должны - увеличиваем баланс
+
+          const newIncome = debt.type === 'owed' ? income + debt.amount : income
+          const newExpenses = debt.type === 'owe' ? expenses + debt.amount : expenses
+
+          setBalance(newBalance)
+          setIncome(newIncome)
+          setExpenses(newExpenses)
+          setTransactions([txData.transaction, ...transactions])
+
+          // Сохраняем на сервер
+          await fetch(`${API_BASE}/api/user/${user.email}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              balance: newBalance,
+              income: newIncome,
+              expenses: newExpenses,
+              savings: savings,
+              goalSavings: goalSavings
+            })
+          })
+        }
+      } catch (e) {
+        console.error('Failed to add transaction', e)
+        vibrateError()
+        alert('Ошибка при добавлении транзакции')
+        return
+      }
+    }
+
+    // Удаляем долг в любом случае
+    await deleteDebt(debt.id)
+  }
+
   const saveBudgetToServer = async (newBudgets) => {
     if (user && user.email) {
       try {
@@ -2607,11 +2692,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           )}
                           <div className="flex gap-2 mt-3">
                             <button
-                              onClick={() => {
-                                if (window.confirm('Отметить долг как погашенный?')) {
-                                  deleteDebt(debt.id)
-                                }
-                              }}
+                              onClick={() => repayDebt(debt)}
                               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
                                 theme === "dark"
                                   ? "bg-green-700 hover:bg-green-600 text-white"
