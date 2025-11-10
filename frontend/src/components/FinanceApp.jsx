@@ -3621,10 +3621,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <button
                   onClick={async () => {
                     if (!window.confirm('Удалить этот бюджет?')) return
+                    
+                    // Удаляем только бюджет, транзакции остаются в истории
                     const newBudgets = { ...budgets }
                     delete newBudgets[selectedBudgetCategory]
                     setBudgets(newBudgets)
+                    
+                    // Сохраняем на сервер
                     await saveBudgetToServer(newBudgets)
+                    
                     setSelectedBudgetCategory('')
                     setBudgetLimitInput('')
                     setShowBudgetKeyboard(false)
