@@ -1535,6 +1535,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     await deleteDebt(debt.id)
   }
 
+  // Функция транслитерации для PDF
+  const transliterate = (text) => {
+    const map = {
+      'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+      'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+      'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+      'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+      'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh',
+      'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
+      'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'Ts',
+      'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
+    }
+    return text.split('').map(char => map[char] || char).join('')
+  }
+
   const exportToPDF = async () => {
     try {
       vibrateSelect()
@@ -1550,52 +1565,53 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       // Заголовок
       doc.setFontSize(20)
       doc.setTextColor(59, 130, 246) // Синий цвет
-      doc.text('История операций', pageWidth / 2, yPos, { align: 'center' })
+      doc.text('Transaction History', pageWidth / 2, yPos, { align: 'center' })
       
       yPos += 10
       
       // Информация о пользователе
       doc.setFontSize(10)
       doc.setTextColor(100, 100, 100)
-      doc.text(`Пользователь: ${user?.first_name || user?.email || 'Гость'}`, 20, yPos)
+      const userName = transliterate(user?.first_name || user?.email || 'Guest')
+      doc.text(`User: ${userName}`, 20, yPos)
       yPos += 5
-      doc.text(`Дата экспорта: ${new Date().toLocaleDateString('ru-RU')}`, 20, yPos)
+      doc.text(`Export Date: ${new Date().toLocaleDateString('en-US')}`, 20, yPos)
       
       yPos += 15
       
       // Сводка
       doc.setFontSize(14)
       doc.setTextColor(0, 0, 0)
-      doc.text('Сводка:', 20, yPos)
+      doc.text('Summary:', 20, yPos)
       yPos += 8
       
       doc.setFontSize(10)
       doc.setTextColor(34, 197, 94) // Зеленый
-      doc.text(`Доходы: ${formatCurrency(income)}`, 20, yPos)
+      doc.text(`Income: ${formatCurrency(income)}`, 20, yPos)
       yPos += 6
       
       doc.setTextColor(239, 68, 68) // Красный
-      doc.text(`Расходы: ${formatCurrency(expenses)}`, 20, yPos)
+      doc.text(`Expenses: ${formatCurrency(expenses)}`, 20, yPos)
       yPos += 6
       
       doc.setTextColor(59, 130, 246) // Синий
-      doc.text(`Баланс: ${formatCurrency(balance)}`, 20, yPos)
+      doc.text(`Balance: ${formatCurrency(balance)}`, 20, yPos)
       
       yPos += 15
       
       // Заголовок таблицы транзакций
       doc.setFontSize(14)
       doc.setTextColor(0, 0, 0)
-      doc.text('Транзакции:', 20, yPos)
+      doc.text('Transactions:', 20, yPos)
       yPos += 10
       
       // Заголовки колонок
       doc.setFontSize(9)
       doc.setTextColor(100, 100, 100)
-      doc.text('Дата', 20, yPos)
-      doc.text('Категория', 50, yPos)
-      doc.text('Описание', 90, yPos)
-      doc.text('Сумма', 160, yPos)
+      doc.text('Date', 20, yPos)
+      doc.text('Category', 50, yPos)
+      doc.text('Description', 90, yPos)
+      doc.text('Amount', 160, yPos)
       
       yPos += 5
       doc.setLineWidth(0.5)
@@ -1615,9 +1631,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           yPos = 20
         }
         
-        const date = new Date(tx.date || tx.created_at).toLocaleDateString('ru-RU')
-        const category = tx.category || 'Без категории'
-        const description = (tx.description || '').substring(0, 30)
+        const date = new Date(tx.date || tx.created_at).toLocaleDateString('en-US')
+        const category = transliterate(tx.category || 'Other')
+        const description = transliterate((tx.description || '').substring(0, 30))
         const amount = formatCurrency(tx.amount)
         
         doc.setFontSize(8)
@@ -1648,7 +1664,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         doc.setFontSize(8)
         doc.setTextColor(150, 150, 150)
         doc.text(
-          `Страница ${i} из ${totalPages}`,
+          `Page ${i} of ${totalPages}`,
           pageWidth / 2,
           pageHeight - 10,
           { align: 'center' }
@@ -1656,7 +1672,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
       
       // Сохранение
-      const fileName = `История_операций_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.pdf`
+      const fileName = `Transaction_History_${new Date().toLocaleDateString('en-US').replace(/\//g, '-')}.pdf`
       doc.save(fileName)
       
       vibrateSuccess()
