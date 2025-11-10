@@ -3617,6 +3617,72 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </button>
               
               {budgets[selectedBudgetCategory] && (
+                <>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('Очистить прогресс бюджета? Лимит останется, но текущие расходы сбросятся.')) return
+                    
+                    // Не удаляем бюджет, только сбрасываем прогресс (удаляем транзакции этой категории)
+                    const category = selectedBudgetCategory
+                    const budget = budgets[category]
+                    
+                    // Определяем дату начала периода
+                    const now = new Date()
+                    let startDate = new Date()
+                    if (budget.period === 'week') {
+                      startDate.setDate(now.getDate() - 7)
+                    } else if (budget.period === 'month') {
+                      startDate.setMonth(now.getMonth() - 1)
+                    } else if (budget.period === 'year') {
+                      startDate.setFullYear(now.getFullYear() - 1)
+                    }
+                    
+                    // Удаляем транзакции этой категории за период
+                    const transactionsToDelete = transactions.filter(tx => 
+                      tx.type === 'expense' && 
+                      tx.category === category &&
+                      new Date(tx.date || tx.created_at) >= startDate
+                    )
+                    
+                    // Возвращаем суммы на баланс
+                    let totalToReturn = 0
+                    transactionsToDelete.forEach(tx => {
+                      totalToReturn += Number(tx.amount || 0)
+                    })
+                    
+                    // Удаляем транзакции
+                    const newTransactions = transactions.filter(tx => 
+                      !(tx.type === 'expense' && 
+                        tx.category === category &&
+                        new Date(tx.date || tx.created_at) >= startDate)
+                    )
+                    
+                    setTransactions(newTransactions)
+                    setBalance(balance + totalToReturn)
+                    setExpenses(expenses - totalToReturn)
+                    
+                    // Сохраняем на сервер
+                    if (user && user.email) {
+                      await saveToServer({
+                        balance: balance + totalToReturn,
+                        income,
+                        expenses: expenses - totalToReturn,
+                        savings,
+                        transactions: newTransactions,
+                      })
+                    }
+                    
+                    vibrateSuccess()
+                    alert(`Прогресс очищен! Удалено ${transactionsToDelete.length} транзакций на сумму ${totalToReturn}`)
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-orange-700 hover:bg-orange-600 text-white"
+                      : "bg-orange-500 hover:bg-orange-600 text-white"
+                  }`}
+                >
+                  Очистить
+                </button>
                 <button
                   onClick={async () => {
                     if (!window.confirm('Удалить этот бюджет?')) return
@@ -3625,6 +3691,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setBudgets(newBudgets)
                     await saveBudgetToServer(newBudgets)
                     setSelectedBudgetCategory('')
+                    setBudgetLimitInput('')
+                    setShowBudgetKeyboard(false)
                     vibrateSuccess()
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
@@ -3635,6 +3703,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 >
                   Удалить
                 </button>
+                </>
               )}
               
               <button
