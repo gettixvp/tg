@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, memo } from "react"
+import { useEffect, useState, useRef, memo, useMemo } from "react"
 import {
   Wallet,
   TrendingUp,
@@ -633,6 +633,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [selectedBudgetCategory, setSelectedBudgetCategory] = useState('')
   const [budgetLimitInput, setBudgetLimitInput] = useState('')
   const [budgetPeriod, setBudgetPeriod] = useState('month') // 'week', 'month', 'year'
+  const [showBudgetKeyboard, setShowBudgetKeyboard] = useState(false)
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -1337,6 +1338,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  // Кэшируем статусы бюджетов для автоматического обновления при изменении транзакций
+  const budgetStatuses = useMemo(() => {
+    const statuses = {}
+    Object.keys(budgets).forEach(category => {
+      statuses[category] = getBudgetStatus(category)
+    })
+    return statuses
+  }, [budgets, transactions])
+
   const handleAuth = async () => {
     blurAll()
     if (!email || !password) {
@@ -1818,7 +1828,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                   <div className="space-y-3">
                     {Object.entries(budgets).map(([category, budget]) => {
-                      const status = getBudgetStatus(category)
+                      const status = budgetStatuses[category]
                       if (!status) return null
                       
                       const meta = categoriesMeta[category] || {}
@@ -3331,6 +3341,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setSelectedBudgetCategory(category)
                         setBudgetLimitInput(budget ? String(budget.limit) : '')
                         setBudgetPeriod(budget ? budget.period : 'month')
+                        setShowBudgetKeyboard(false)
                         vibrate()
                       }}
                       className={`w-full p-3 rounded-xl border text-left transition-colors ${
@@ -3421,10 +3432,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   Лимит расходов (USD)
                 </label>
                 <div
-                  className={`w-full p-4 border rounded-xl text-center text-3xl font-bold ${
+                  onClick={() => {
+                    setShowBudgetKeyboard(true)
+                    vibrate()
+                  }}
+                  className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
                     theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100"
-                      : "bg-gray-50 border-gray-200 text-gray-900"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-650"
+                      : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
                   }`}
                   style={{ minHeight: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
@@ -3468,6 +3483,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </div>
 
             {/* Кастомная клавиатура */}
+            {showBudgetKeyboard && (
             <NumericKeyboard
               onNumberPress={(num) => {
                 setBudgetLimitInput((prev) => {
@@ -3490,6 +3506,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               }}
               theme={theme}
             />
+            )}
 
             {/* Кнопки внизу */}
             <div className="p-4 border-t flex gap-2" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
