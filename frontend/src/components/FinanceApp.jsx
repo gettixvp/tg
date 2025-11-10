@@ -3293,11 +3293,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       )}
 
-      {/* Модальное окно настройки бюджетов */}
-      {showBudgetModal && (
+      {/* Модальное окно списка бюджетов */}
+      {showBudgetModal && !selectedBudgetCategory && (
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center z-50"
-          style={{ paddingTop: isFullscreen ? '48px' : '16px' }}
+          style={{ paddingTop: isFullscreen ? '64px' : '32px' }}
           onClick={() => {
             setShowBudgetModal(false)
             vibrate()
@@ -3307,7 +3307,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             onClick={(e) => e.stopPropagation()}
             className={`w-[90%] max-w-md rounded-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
             style={{ 
-              maxHeight: "80vh",
+              maxHeight: "75vh",
               height: "auto",
               display: "flex", 
               flexDirection: "column",
@@ -3317,7 +3317,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             {/* Заголовок - фиксированный */}
             <div className="px-4 py-3 border-b flex-shrink-0" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
               <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                {selectedBudgetCategory ? 'Редактировать бюджет' : 'Управление бюджетами'}
+                Управление бюджетами
               </h3>
             </div>
 
@@ -3388,160 +3388,174 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   )
                 })}
               </div>
-            ) : (
-              // Форма редактирования бюджета
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-2xl">{categoriesMeta[selectedBudgetCategory]?.icon}</span>
-                  <h4 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    {selectedBudgetCategory}
-                  </h4>
-                </div>
-
-                <div>
-                  <label
-                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                  >
-                    Лимит расходов (USD)
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={budgetLimitInput}
-                    onChange={(e) => setBudgetLimitInput(e.target.value)}
-                    placeholder="Введите сумму"
-                    className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                  >
-                    Период
-                  </label>
-                  <div className="flex gap-2">
-                    {[
-                      { value: 'week', label: 'Неделя' },
-                      { value: 'month', label: 'Месяц' },
-                      { value: 'year', label: 'Год' }
-                    ].map((period) => (
-                      <button
-                        key={period.value}
-                        onClick={() => {
-                          setBudgetPeriod(period.value)
-                          vibrateSelect()
-                        }}
-                        className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
-                          budgetPeriod === period.value
-                            ? theme === "dark"
-                              ? "bg-blue-600 text-white"
-                              : "bg-blue-500 text-white"
-                            : theme === "dark"
-                              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {period.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedBudgetCategory('')
-                      setBudgetLimitInput('')
-                      vibrate()
-                    }}
-                    className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                      theme === "dark"
-                        ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Назад
-                  </button>
-                  
-                  {budgets[selectedBudgetCategory] && (
-                    <button
-                      onClick={async () => {
-                        const newBudgets = { ...budgets }
-                        delete newBudgets[selectedBudgetCategory]
-                        setBudgets(newBudgets)
-                        await saveBudgetToServer(newBudgets)
-                        setSelectedBudgetCategory('')
-                        vibrateSuccess()
-                      }}
-                      className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-red-700 hover:bg-red-600 text-white"
-                          : "bg-red-500 hover:bg-red-600 text-white"
-                      }`}
-                    >
-                      Удалить
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={async () => {
-                      const limit = Number(budgetLimitInput)
-                      if (!limit || limit <= 0) {
-                        vibrateError()
-                        alert('Введите корректную сумму')
-                        return
-                      }
-                      
-                      const newBudgets = {
-                        ...budgets,
-                        [selectedBudgetCategory]: {
-                          limit,
-                          period: budgetPeriod
-                        }
-                      }
-                      
-                      setBudgets(newBudgets)
-                      await saveBudgetToServer(newBudgets)
-                      setSelectedBudgetCategory('')
-                      setBudgetLimitInput('')
-                      vibrateSuccess()
-                    }}
-                    className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                      theme === "dark"
-                        ? "bg-blue-700 hover:bg-blue-600 text-white"
-                        : "bg-blue-500 hover:bg-blue-600 text-white"
-                    }`}
-                  >
-                    Сохранить
-                  </button>
-                </div>
-              </div>
-            )}
             </div>
 
             {/* Футер - фиксированный */}
-            {!selectedBudgetCategory && (
-              <div className="px-4 py-3 border-t flex-shrink-0" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
-                <button
-                  onClick={() => {
-                    setShowBudgetModal(false)
-                    vibrate()
-                  }}
-                  className={`w-full py-2.5 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+            <div className="px-4 py-3 border-t flex-shrink-0" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
+              <button
+                onClick={() => {
+                  setShowBudgetModal(false)
+                  vibrate()
+                }}
+                className={`w-full py-2.5 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно редактирования бюджета */}
+      {showBudgetModal && selectedBudgetCategory && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
+          style={{ touchAction: "none" }}
+        >
+          <div
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+          >
+            <div
+              className="p-4 overflow-y-auto flex-1"
+              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl">{categoriesMeta[selectedBudgetCategory]?.icon}</span>
+                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  {selectedBudgetCategory}
+                </h3>
+              </div>
+
+              <div className="mb-4">
+                <label
+                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Лимит расходов (USD)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={budgetLimitInput}
+                  onChange={(e) => setBudgetLimitInput(e.target.value)}
+                  placeholder="Введите сумму"
+                  className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
                     theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                      : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  }`}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label
+                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  Период
+                </label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'week', label: 'Неделя' },
+                    { value: 'month', label: 'Месяц' },
+                    { value: 'year', label: 'Год' }
+                  ].map((period) => (
+                    <button
+                      key={period.value}
+                      onClick={() => {
+                        setBudgetPeriod(period.value)
+                        vibrateSelect()
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none active:scale-95 ${
+                        budgetPeriod === period.value
+                          ? theme === "dark"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Кнопки внизу */}
+            <div className="p-4 border-t flex gap-2" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
+              <button
+                onClick={() => {
+                  setSelectedBudgetCategory('')
+                  setBudgetLimitInput('')
+                  vibrate()
+                }}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Отмена
+              </button>
+              
+              {budgets[selectedBudgetCategory] && (
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('Удалить этот бюджет?')) return
+                    const newBudgets = { ...budgets }
+                    delete newBudgets[selectedBudgetCategory]
+                    setBudgets(newBudgets)
+                    await saveBudgetToServer(newBudgets)
+                    setSelectedBudgetCategory('')
+                    vibrateSuccess()
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-red-700 hover:bg-red-600 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
                   }`}
                 >
-                  Закрыть
+                  Удалить
                 </button>
-              </div>
-            )}
+              )}
+              
+              <button
+                onClick={async () => {
+                  const limit = Number(budgetLimitInput)
+                  if (!limit || limit <= 0) {
+                    vibrateError()
+                    alert('Введите корректную сумму')
+                    return
+                  }
+                  
+                  const newBudgets = {
+                    ...budgets,
+                    [selectedBudgetCategory]: {
+                      limit,
+                      period: budgetPeriod
+                    }
+                  }
+                  
+                  setBudgets(newBudgets)
+                  await saveBudgetToServer(newBudgets)
+                  setSelectedBudgetCategory('')
+                  setBudgetLimitInput('')
+                  vibrateSuccess()
+                }}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
+              >
+                Сохранить
+              </button>
+            </div>
           </div>
         </div>
       )}
