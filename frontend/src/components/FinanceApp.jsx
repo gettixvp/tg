@@ -1342,7 +1342,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const budgetStatuses = useMemo(() => {
     const statuses = {}
     Object.keys(budgets).forEach(category => {
-      statuses[category] = getBudgetStatus(category)
+      const budget = budgets[category]
+      if (!budget) return
+      
+      const spent = getCategorySpending(category, budget.period)
+      const limit = Number(budget.limit)
+      const percentage = limit > 0 ? (spent / limit) * 100 : 0
+      const remaining = limit - spent
+      
+      statuses[category] = {
+        spent,
+        limit,
+        percentage: Math.min(percentage, 100),
+        remaining,
+        isOverBudget: spent > limit,
+        isNearLimit: percentage >= 80 && percentage < 100
+      }
     })
     return statuses
   }, [budgets, transactions])
@@ -2281,7 +2296,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             setShowLinkedUsersDropdown(!showLinkedUsersDropdown)
                             vibrate()
                           }}
-                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all touch-none ${
+                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
                             theme === "dark" 
                               ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
                               : "bg-gray-50 border-gray-200 hover:bg-gray-100"
@@ -2457,7 +2472,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setBudgetLimitInput('')
                     vibrate()
                   }}
-                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm touch-none active:scale-95 flex items-center justify-center gap-2 ${
+                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm active:scale-95 flex items-center justify-center gap-2 ${
                     theme === "dark"
                       ? "bg-blue-700 hover:bg-blue-600 text-white"
                       : "bg-blue-500 hover:bg-blue-600 text-white"
@@ -3502,7 +3517,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 vibrate()
               }}
               onDone={() => {
-                // Не нужно, так как есть кнопка "Сохранить"
+                setShowBudgetKeyboard(false)
+                vibrate()
               }}
               theme={theme}
             />
