@@ -1320,10 +1320,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const categoryTransactions = transactions.filter(tx => 
       tx.type === 'expense' && 
       tx.category === category &&
-      new Date(tx.created_at) >= startDate
+      new Date(tx.date || tx.created_at) >= startDate
     )
     
-    return categoryTransactions.reduce((sum, tx) => sum + Number(tx.converted_amount_usd || 0), 0)
+    return categoryTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
   }
 
   const getBudgetStatus = (category) => {
@@ -1361,6 +1361,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   // Кэшируем статусы бюджетов для автоматического обновления при изменении транзакций
   const budgetStatuses = useMemo(() => {
+    console.log('[BUDGET DEBUG] Пересчет бюджетов...')
+    console.log('[BUDGET DEBUG] Всего транзакций:', transactions.length)
+    console.log('[BUDGET DEBUG] Бюджеты:', budgets)
+    
     const statuses = {}
     Object.keys(budgets).forEach(category => {
       const budget = budgets[category]
@@ -1378,16 +1382,46 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         startDate.setFullYear(now.getFullYear() - 1)
       }
       
-      const categoryTransactions = transactions.filter(tx => 
-        tx.type === 'expense' && 
-        tx.category === category &&
-        new Date(tx.created_at) >= startDate
-      )
+      console.log(`[BUDGET DEBUG] Категория: ${category}, Период: ${budget.period}`)
+      console.log(`[BUDGET DEBUG] Дата начала периода:`, startDate)
       
-      const spent = categoryTransactions.reduce((sum, tx) => sum + Number(tx.converted_amount_usd || 0), 0)
+      const categoryTransactions = transactions.filter(tx => {
+        const txDate = new Date(tx.date || tx.created_at)
+        const isExpense = tx.type === 'expense'
+        const isCategory = tx.category === category
+        const isInPeriod = txDate >= startDate
+        
+        console.log(`[BUDGET DEBUG] Транзакция:`, {
+          category: tx.category,
+          type: tx.type,
+          amount: tx.amount,
+          date: tx.date || tx.created_at,
+          isExpense,
+          isCategory,
+          isInPeriod
+        })
+        
+        return isExpense && isCategory && isInPeriod
+      })
+      
+      console.log(`[BUDGET DEBUG] Найдено транзакций для ${category}:`, categoryTransactions.length)
+      
+      const spent = categoryTransactions.reduce((sum, tx) => {
+        const amount = Number(tx.amount || 0)
+        console.log(`[BUDGET DEBUG] Добавляем к сумме: ${amount}`)
+        return sum + amount
+      }, 0)
+      
       const limit = Number(budget.limit)
       const percentage = limit > 0 ? (spent / limit) * 100 : 0
       const remaining = limit - spent
+      
+      console.log(`[BUDGET DEBUG] Итого для ${category}:`, {
+        spent,
+        limit,
+        percentage,
+        remaining
+      })
       
       statuses[category] = {
         spent,
@@ -1398,6 +1432,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         isNearLimit: percentage >= 80 && percentage < 100
       }
     })
+    
+    console.log('[BUDGET DEBUG] Финальные статусы:', statuses)
     return statuses
   }, [budgets, transactions])
 
