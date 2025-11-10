@@ -29,8 +29,6 @@ import {
   PieChart,
   BarChart2,
   TrendingUpIcon,
-  Filter,
-  Calendar,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
@@ -666,13 +664,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   
   // Вкладка копилки (Копилка / Долги)
   const [savingsTab, setSavingsTab] = useState('savings') // 'savings', 'debts'
-  
-  // Фильтры истории
-  const [showFilters, setShowFilters] = useState(false)
-  const [filterType, setFilterType] = useState('all') // 'all', 'income', 'expense', 'savings'
-  const [filterCategory, setFilterCategory] = useState('all')
-  const [filterDateFrom, setFilterDateFrom] = useState('')
-  const [filterDateTo, setFilterDateTo] = useState('')
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -1492,7 +1483,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       if (budget.period === 'week') {
         startDate.setDate(now.getDate() - 7)
       } else if (budget.period === 'month') {
-        startDate.setMonth(now.getMonth() - 1)
+        // Если задан день начала месяца
+        if (budget.startDay) {
+          const currentDay = now.getDate()
+          const startDay = budget.startDay
+          
+          if (currentDay >= startDay) {
+            // Текущий период начался в этом месяце
+            startDate = new Date(now.getFullYear(), now.getMonth(), startDay)
+          } else {
+            // Текущий период начался в прошлом месяце
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, startDay)
+          }
+        } else {
+          startDate.setMonth(now.getMonth() - 1)
+        }
       } else if (budget.period === 'year') {
         startDate.setFullYear(now.getFullYear() - 1)
       }
@@ -2194,20 +2199,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <button
-                    onClick={() => {
-                      setShowFilters(true)
-                      vibrate()
-                    }}
-                    className={`px-4 py-2 rounded-full font-medium transition-all text-sm flex items-center gap-2 ${
-                      theme === "dark"
-                        ? "bg-blue-700 hover:bg-blue-600 text-white"
-                        : "bg-blue-500 hover:bg-blue-600 text-white"
-                    }`}
-                  >
-                    <Filter className="w-4 h-4" />
-                    Фильтры
-                  </button>
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     История операций
                   </h3>
@@ -2259,41 +2250,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "savings" && (
             <div className="space-y-4 animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               {/* Верхние вкладки: Копилка / Долги */}
-              <div className="flex gap-2 px-4">
-                <button
-                  onClick={() => {
-                    setSavingsTab('savings')
-                    vibrateSelect()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    savingsTab === 'savings'
-                      ? theme === "dark"
-                        ? "bg-blue-600 text-white shadow-lg"
-                        : "bg-blue-500 text-white shadow-lg"
-                      : theme === "dark"
-                        ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  💰 Копилка
-                </button>
-                <button
-                  onClick={() => {
-                    setSavingsTab('debts')
-                    vibrateSelect()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    savingsTab === 'debts'
-                      ? theme === "dark"
-                        ? "bg-orange-600 text-white shadow-lg"
-                        : "bg-orange-500 text-white shadow-lg"
-                      : theme === "dark"
-                        ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  📝 Долги
-                </button>
+              <div className={`mx-4 p-1.5 rounded-full ${
+                theme === "dark" ? "bg-gray-800/80" : "bg-gray-200/80"
+              } backdrop-blur-sm`}>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => {
+                      setSavingsTab('savings')
+                      vibrateSelect()
+                    }}
+                    className={`flex-1 py-3 rounded-full font-bold transition-all text-sm ${
+                      savingsTab === 'savings'
+                        ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl scale-105"
+                        : theme === "dark"
+                          ? "text-gray-400 hover:text-gray-200"
+                          : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Копилка
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSavingsTab('debts')
+                      vibrateSelect()
+                    }}
+                    className={`flex-1 py-3 rounded-full font-bold transition-all text-sm ${
+                      savingsTab === 'debts'
+                        ? "bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white shadow-xl scale-105"
+                        : theme === "dark"
+                          ? "text-gray-400 hover:text-gray-200"
+                          : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Долги
+                  </button>
+                </div>
               </div>
 
               {savingsTab === 'savings' && (
@@ -3928,6 +3919,44 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   ))}
                 </div>
               </div>
+
+              {budgetPeriod === 'month' && (
+                <div className="mb-4">
+                  <label
+                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    День начала месяца (для автообнуления)
+                  </label>
+                  <select
+                    value={budgets[selectedBudgetCategory]?.startDay || 1}
+                    onChange={(e) => {
+                      const newBudgets = {
+                        ...budgets,
+                        [selectedBudgetCategory]: {
+                          ...budgets[selectedBudgetCategory],
+                          startDay: Number(e.target.value)
+                        }
+                      }
+                      setBudgets(newBudgets)
+                      vibrateSelect()
+                    }}
+                    className={`w-full p-3 border rounded-xl text-sm font-medium ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-gray-100"
+                        : "bg-gray-50 border-gray-200 text-gray-900"
+                    }`}
+                  >
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                      <option key={day} value={day}>
+                        {day} число каждого месяца
+                      </option>
+                    ))}
+                  </select>
+                  <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Бюджет будет автоматически обнуляться в этот день каждого месяца
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Кастомная клавиатура */}
@@ -4046,7 +4075,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     [selectedBudgetCategory]: {
                       limit,
                       period: budgetPeriod,
-                      createdAt: budgets[selectedBudgetCategory]?.createdAt || new Date().toISOString()
+                      createdAt: budgets[selectedBudgetCategory]?.createdAt || new Date().toISOString(),
+                      startDay: budgets[selectedBudgetCategory]?.startDay || 1
                     }
                   }
                   
