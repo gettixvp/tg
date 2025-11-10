@@ -1782,23 +1782,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       // Кодируем email в base64 для реферальной ссылки
       const startParam = btoa(user.email).replace(/=/g, '')
       
-      // Получаем URL текущего Mini App
-      let appUrl = ''
-      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param !== undefined) {
-        // Получаем URL из Telegram WebApp
-        appUrl = window.location.href.split('?')[0]
-      } else {
-        // Fallback для разработки
-        appUrl = window.location.origin
-      }
+      // ВАЖНО: Замените 'YOUR_BOT_USERNAME' на имя вашего бота (без @)
+      // Например: 'myfinancebot' или 'wallet_tracker_bot'
+      const botUsername = 'YOUR_BOT_USERNAME'
       
-      // Формируем ссылку для приглашения с параметром tgWebAppStartParam
-      const inviteUrl = `${appUrl}?tgWebAppStartParam=${startParam}`
+      // Формируем ссылку для открытия бота с параметром start
+      // Это откроет бота внутри Telegram, а не в браузере
+      const inviteUrl = `https://t.me/${botUsername}?start=${startParam}`
       
       // Текст приглашения
       const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
         `Я использую этот финансовый трекер для управления бюджетом. ` +
         `Нажми на ссылку, чтобы автоматически подключиться к моему аккаунту и следить за общими расходами!`
+      
+      console.log('Invite URL:', inviteUrl)
+      console.log('Start param:', startParam)
       
       // Проверяем, работаем ли в Telegram WebApp
       if (tg && tg.openTelegramLink) {
