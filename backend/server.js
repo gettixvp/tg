@@ -163,6 +163,45 @@ app.post("/api/user/:email/reset", async (req, res) => {
   }
 })
 
+// --- Смена пароля ---
+app.post("/api/user/:email/change-password", async (req, res) => {
+  const { email } = req.params
+  const { oldPassword, newPassword } = req.body
+
+  if (!email || !oldPassword || !newPassword) {
+    return res.status(400).json({ error: "Email, старый и новый пароль обязательны" })
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: "Новый пароль должен быть не менее 6 символов" })
+  }
+
+  try {
+    // Проверяем существующего пользователя и старый пароль
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [email])
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Пользователь не найден" })
+    }
+
+    const user = result.rows[0]
+
+    // Проверяем старый пароль
+    if (user.password !== oldPassword) {
+      return res.status(401).json({ error: "Неверный старый пароль" })
+    }
+
+    // Обновляем пароль
+    await pool.query("UPDATE users SET password = $1 WHERE email = $2", [newPassword, email])
+
+    console.log(`✅ Password changed for user: ${email}`)
+    res.json({ success: true, message: "Пароль успешно изменен" })
+  } catch (e) {
+    console.error("Change password error:", e)
+    res.status(500).json({ error: "Не удалось изменить пароль: " + e.message })
+  }
+})
+
 // --- Добавить транзакцию ---
 app.post("/api/transactions", async (req, res) => {
   const { user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name, savings_goal } = req.body

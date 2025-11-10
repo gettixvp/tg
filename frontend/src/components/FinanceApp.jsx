@@ -636,6 +636,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false) // Declare rememberMe here
   const [authCurrency, setAuthCurrency] = useState("BYN")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [oldPassword, setOldPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showOldPassword, setShowOldPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
   const [contentSafeAreaInset, setContentSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
@@ -2128,6 +2136,79 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  const handleChangePassword = async () => {
+    blurAll()
+    
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      vibrateError()
+      alert("Заполните все поля")
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      vibrateError()
+      alert("Новые пароли не совпадают")
+      return
+    }
+
+    if (newPassword.length < 6) {
+      vibrateError()
+      alert("Пароль должен быть не менее 6 символов")
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          oldPassword,
+          newPassword
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Ошибка сервера" }))
+        alert(err.error || "Ошибка смены пароля")
+        vibrateError()
+        return
+      }
+
+      // Обновляем сохраненные данные
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          email: user.email,
+          token: btoa(newPassword),
+        }),
+      )
+
+      const savedCreds = localStorage.getItem("savedCredentials")
+      if (savedCreds) {
+        localStorage.setItem("savedCredentials", JSON.stringify({ 
+          email: user.email, 
+          password: btoa(newPassword) 
+        }))
+      }
+
+      setShowChangePasswordModal(false)
+      setOldPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      alert("✅ Пароль успешно изменен!")
+      vibrateSuccess()
+    } catch (e) {
+      console.error("Change password error:", e)
+      alert("Ошибка смены пароля")
+      vibrateError()
+    }
+  }
+
+  const handleForgotPassword = () => {
+    vibrateSelect()
+    alert("🔜 Функция восстановления пароля будет доступна в следующем обновлении.\n\nПожалуйста, обратитесь к администратору или создайте новый аккаунт.")
+  }
+
   const handleResetAll = async () => {
     if (!window.confirm("Сбросить данные? Это удалит баланс, доходы, расходы, копилку и операции.")) return
 
@@ -3212,6 +3293,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <UserPlus className="w-4 h-4" />
                       Пригласить пользователя
                     </button>
+                    
+                    {/* Кнопка смены пароля (только для пользователей с email) */}
+                    {user && user.email && (
+                      <button
+                        onClick={() => {
+                          setShowChangePasswordModal(true)
+                          vibrateSelect()
+                        }}
+                        className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                          theme === "dark"
+                            ? "bg-blue-700 hover:bg-blue-600 text-white"
+                            : "bg-blue-500 hover:bg-blue-600 text-white"
+                        }`}
+                      >
+                        <Settings className="w-4 h-4" />
+                        Сменить пароль
+                      </button>
+                    )}
                     
                     <button
                       onClick={handleLogout}
@@ -5230,17 +5329,43 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               }`}
             />
-            <input
-              type="password"
-              placeholder="Пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              }`}
-            />
+            
+            <div className="relative mb-3">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
+                  theme === "dark" 
+                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {authMode === "login" && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className={`text-xs mb-3 hover:underline transition-colors touch-none active:scale-95 text-left ${
+                  theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"
+                }`}
+              >
+                Забыли пароль?
+              </button>
+            )}
 
             <label
               className={`flex items-center gap-2 mb-3 cursor-pointer ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
@@ -5295,6 +5420,131 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }`}
               >
                 {authMode === "login" ? "Войти" : "Зарегистрироваться"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно смены пароля */}
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
+            }`}
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Смена пароля
+            </h3>
+
+            {/* Старый пароль */}
+            <div className="relative mb-3">
+              <input
+                type={showOldPassword ? "text" : "password"}
+                placeholder="Старый пароль"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowOldPassword(!showOldPassword)}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
+                  theme === "dark" 
+                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {showOldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* Новый пароль */}
+            <div className="relative mb-3">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                placeholder="Новый пароль (минимум 6 символов)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
+                  theme === "dark" 
+                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* Подтверждение пароля */}
+            <div className="relative mb-4">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Подтвердите новый пароль"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
+                  theme === "dark" 
+                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowChangePasswordModal(false)
+                  setOldPassword("")
+                  setNewPassword("")
+                  setConfirmPassword("")
+                  setShowOldPassword(false)
+                  setShowNewPassword(false)
+                  setShowConfirmPassword(false)
+                }}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleChangePassword}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
+              >
+                Сменить пароль
               </button>
             </div>
           </div>
