@@ -1671,9 +1671,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         )
       }
       
-      // Сохранение
+      // Сохранение PDF с диалогом "Сохранить как"
       const fileName = `Transaction_History_${new Date().toLocaleDateString('en-US').replace(/\//g, '-')}.pdf`
-      doc.save(fileName)
+      
+      // Создаем Blob из PDF
+      const pdfBlob = doc.output('blob')
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      
+      // Создаем временную ссылку для скачивания
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = fileName
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      
+      // Запускаем скачивание (откроется диалог "Сохранить как")
+      link.click()
+      
+      // Очищаем через несколько секунд
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(pdfUrl)
+      }, 1000)
       
       vibrateSuccess()
     } catch (e) {
