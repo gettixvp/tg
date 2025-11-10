@@ -26,11 +26,14 @@ import {
   MessageCircle,
   Send,
   RefreshCw,
+  PieChart,
+  BarChart2,
+  TrendingUpIcon,
 } from "lucide-react"
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js"
-import { Pie } from "react-chartjs-2"
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
+import { Pie, Bar, Line } from "react-chartjs-2"
 
-ChartJS.register(ArcElement, Tooltip, Legend)
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement)
 
 const API_BASE = "https://walletback-aghp.onrender.com"
 const LS_KEY = "finance_settings_v3"
@@ -607,7 +610,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState("login")
   const [showChart, setShowChart] = useState(false)
-  const [chartType, setChartType] = useState("")
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
@@ -656,6 +658,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [budgetLimitInput, setBudgetLimitInput] = useState('')
   const [budgetPeriod, setBudgetPeriod] = useState('month') // 'week', 'month', 'year'
   const [showBudgetKeyboard, setShowBudgetKeyboard] = useState(false)
+  
+  // Вид диаграммы (круговая, столбчатая, линейная)
+  const [chartView, setChartView] = useState('pie') // 'pie', 'bar', 'line'
+  
+  // Вкладка копилки (Копилка / Долги)
+  const [savingsTab, setSavingsTab] = useState('savings') // 'savings', 'debts'
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -838,6 +846,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }),
     )
   }, [currency, goalSavings, theme, balanceVisible, fullscreenEnabled])
+
+  // Немедленное применение темы при изменении
+  useEffect(() => {
+    // Применяем тему к body для мгновенного эффекта
+    document.body.style.backgroundColor = theme === 'dark' ? '#111827' : '#ffffff'
+    document.body.style.color = theme === 'dark' ? '#f3f4f6' : '#111827'
+    
+    // Форсируем ре-рендер через небольшую задержку
+    const timer = setTimeout(() => {
+      // Триггерим обновление компонента
+      setActiveTab(prev => prev)
+    }, 10)
+    
+    return () => clearTimeout(timer)
+  }, [theme])
 
   useEffect(() => {
     const keepAlive = async () => {
@@ -2212,6 +2235,46 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "savings" && (
             <div className="space-y-4 animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+              {/* Верхние вкладки: Копилка / Долги */}
+              <div className="flex gap-2 px-4">
+                <button
+                  onClick={() => {
+                    setSavingsTab('savings')
+                    vibrateSelect()
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
+                    savingsTab === 'savings'
+                      ? theme === "dark"
+                        ? "bg-blue-600 text-white shadow-lg"
+                        : "bg-blue-500 text-white shadow-lg"
+                      : theme === "dark"
+                        ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  💰 Копилка
+                </button>
+                <button
+                  onClick={() => {
+                    setSavingsTab('debts')
+                    vibrateSelect()
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
+                    savingsTab === 'debts'
+                      ? theme === "dark"
+                        ? "bg-orange-600 text-white shadow-lg"
+                        : "bg-orange-500 text-white shadow-lg"
+                      : theme === "dark"
+                        ? "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  📝 Долги
+                </button>
+              </div>
+
+              {savingsTab === 'savings' && (
+                <>
               <div
                 className={`rounded-2xl p-4 text-white shadow-2xl ${
                   theme === "dark"
@@ -2369,6 +2432,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 )}
               </div>
+              </>
+              )}
+
+              {savingsTab === 'debts' && (
+                <div className={`rounded-2xl p-8 text-center ${
+                  theme === "dark" ? "bg-gray-800" : "bg-white"
+                }`}>
+                  <div className="text-6xl mb-4">📝</div>
+                  <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Учет долгов
+                  </h3>
+                  <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Функция в разработке
+                  </p>
+                  <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+                    Скоро здесь появится возможность отслеживать долги
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -3265,49 +3347,185 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 {chartType === "income" ? "Доходы" : chartType === "expense" ? "Расходы" : "Копилка"} по категориям
               </h3>
-              <button onClick={() => setShowChart(false)} className="touch-none">
-                <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Кнопки переключения вида диаграммы */}
+                <button
+                  onClick={() => {
+                    setChartView('pie')
+                    vibrate()
+                  }}
+                  className={`p-2 rounded-lg transition-all ${
+                    chartView === 'pie'
+                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+                      : theme === "dark" ? "bg-gray-700 text-gray-400 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  <PieChart className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setChartView('bar')
+                    vibrate()
+                  }}
+                  className={`p-2 rounded-lg transition-all ${
+                    chartView === 'bar'
+                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+                      : theme === "dark" ? "bg-gray-700 text-gray-400 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  <BarChart2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setChartView('line')
+                    vibrate()
+                  }}
+                  className={`p-2 rounded-lg transition-all ${
+                    chartView === 'line'
+                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+                      : theme === "dark" ? "bg-gray-700 text-gray-400 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  <TrendingUpIcon className="w-4 h-4" />
+                </button>
+                <button onClick={() => setShowChart(false)} className="touch-none">
+                  <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
+                </button>
+              </div>
             </div>
             {transactions.filter((t) => t.type === chartType).length > 0 ? (
               <div className="w-full aspect-square">
-                <Pie
-                  data={getChartData(chartType)}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                      legend: {
-                        position: "bottom",
-                        labels: {
-                          color: theme === "dark" ? "#e5e7eb" : "#1f2937",
-                          padding: 15,
-                          font: { size: 13, weight: '500' },
-                          usePointStyle: true,
-                          pointStyle: 'circle',
+                {chartView === 'pie' && (
+                  <Pie
+                    data={getChartData(chartType)}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          position: "bottom",
+                          labels: {
+                            color: theme === "dark" ? "#e5e7eb" : "#1f2937",
+                            padding: 15,
+                            font: { size: 13, weight: '500' },
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                          },
+                        },
+                        tooltip: {
+                          backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
+                          titleColor: theme === "dark" ? "#f3f4f6" : "#111827",
+                          bodyColor: theme === "dark" ? "#e5e7eb" : "#374151",
+                          borderColor: theme === "dark" ? "#374151" : "#e5e7eb",
+                          borderWidth: 1,
+                          padding: 12,
+                          displayColors: true,
+                          callbacks: {
+                            label: function(context) {
+                              const label = context.label || '';
+                              const value = context.parsed || 0;
+                              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                              const percentage = ((value / total) * 100).toFixed(1);
+                              return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                            }
+                          }
                         },
                       },
-                      tooltip: {
-                        backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
-                        titleColor: theme === "dark" ? "#f3f4f6" : "#111827",
-                        bodyColor: theme === "dark" ? "#e5e7eb" : "#374151",
-                        borderColor: theme === "dark" ? "#374151" : "#e5e7eb",
-                        borderWidth: 1,
-                        padding: 12,
-                        displayColors: true,
-                        callbacks: {
-                          label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed || 0;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                    }}
+                  />
+                )}
+                {chartView === 'bar' && (
+                  <Bar
+                    data={getChartData(chartType)}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          display: false,
+                        },
+                        tooltip: {
+                          backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
+                          titleColor: theme === "dark" ? "#f3f4f6" : "#111827",
+                          bodyColor: theme === "dark" ? "#e5e7eb" : "#374151",
+                          borderColor: theme === "dark" ? "#374151" : "#e5e7eb",
+                          borderWidth: 1,
+                          padding: 12,
+                          callbacks: {
+                            label: function(context) {
+                              return `${context.label}: ${formatCurrency(context.parsed.y)}`;
+                            }
+                          }
+                        },
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            color: theme === "dark" ? "#e5e7eb" : "#1f2937",
+                          },
+                          grid: {
+                            color: theme === "dark" ? "#374151" : "#e5e7eb",
+                          }
+                        },
+                        x: {
+                          ticks: {
+                            color: theme === "dark" ? "#e5e7eb" : "#1f2937",
+                          },
+                          grid: {
+                            display: false,
                           }
                         }
+                      }
+                    }}
+                  />
+                )}
+                {chartView === 'line' && (
+                  <Line
+                    data={getChartData(chartType)}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          display: false,
+                        },
+                        tooltip: {
+                          backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
+                          titleColor: theme === "dark" ? "#f3f4f6" : "#111827",
+                          bodyColor: theme === "dark" ? "#e5e7eb" : "#374151",
+                          borderColor: theme === "dark" ? "#374151" : "#e5e7eb",
+                          borderWidth: 1,
+                          padding: 12,
+                          callbacks: {
+                            label: function(context) {
+                              return `${context.label}: ${formatCurrency(context.parsed.y)}`;
+                            }
+                          }
+                        },
                       },
-                    },
-                  }}
-                />
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            color: theme === "dark" ? "#e5e7eb" : "#1f2937",
+                          },
+                          grid: {
+                            color: theme === "dark" ? "#374151" : "#e5e7eb",
+                          }
+                        },
+                        x: {
+                          ticks: {
+                            color: theme === "dark" ? "#e5e7eb" : "#1f2937",
+                          },
+                          grid: {
+                            display: false,
+                          }
+                        }
+                      }
+                    }}
+                  />
+                )}
               </div>
             ) : (
               <div className={`text-center py-8 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
