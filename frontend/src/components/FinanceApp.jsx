@@ -3159,38 +3159,40 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "settings" && (
             <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              {/* Приветствие с аватаркой */}
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  {tgPhotoUrl ? (
-                    <img
-                      src={tgPhotoUrl}
-                      alt="Avatar"
-                      className="w-14 h-14 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
-                    />
-                  ) : (
-                    <div
-                      className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                      }`}
-                    >
-                      <User className={`w-7 h-7 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+              {/* Приветствие с аватаркой - только для незалогиненных */}
+              {!isAuthenticated && (
+                <div
+                  className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                    theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {tgPhotoUrl ? (
+                      <img
+                        src={tgPhotoUrl}
+                        alt="Avatar"
+                        className="w-14 h-14 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
+                      />
+                    ) : (
+                      <div
+                        className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                        }`}
+                      >
+                        <User className={`w-7 h-7 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+                      </div>
+                    )}
+                    <div>
+                      <h2 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                        Привет, {displayName}! 👋
+                      </h2>
+                      <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        Добро пожаловать в ваш финансовый помощник
+                      </p>
                     </div>
-                  )}
-                  <div>
-                    <h2 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                      Привет, {(user && user.first_name) || displayName}! 👋
-                    </h2>
-                    <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      Добро пожаловать в ваш финансовый помощник
-                    </p>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
@@ -3293,24 +3295,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <UserPlus className="w-4 h-4" />
                       Пригласить пользователя
                     </button>
-                    
-                    {/* Кнопка смены пароля (только для пользователей с email) */}
-                    {user && user.email && (
-                      <button
-                        onClick={() => {
-                          setShowChangePasswordModal(true)
-                          vibrateSelect()
-                        }}
-                        className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                          theme === "dark"
-                            ? "bg-blue-700 hover:bg-blue-600 text-white"
-                            : "bg-blue-500 hover:bg-blue-600 text-white"
-                        }`}
-                      >
-                        <Settings className="w-4 h-4" />
-                        Сменить пароль
-                      </button>
-                    )}
                     
                     <button
                       onClick={handleLogout}
@@ -3532,6 +3516,36 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 
                 {showSystemSettings && (
                   <div className="space-y-3 mt-3">
+                    {/* Смена пароля (только для пользователей с email) */}
+                    {user && user.email && (
+                      <div
+                        className={`rounded-xl p-3 border ${
+                          theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
+                        }`}
+                      >
+                        <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-blue-300" : "text-blue-900"}`}>
+                          Безопасность
+                        </h4>
+                        <button
+                          onClick={() => {
+                            setShowChangePasswordModal(true)
+                            vibrateSelect()
+                          }}
+                          className={`w-full py-2 rounded-lg font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${
+                            theme === "dark"
+                              ? "bg-blue-700 hover:bg-blue-600 text-white"
+                              : "bg-blue-500 hover:bg-blue-600 text-white"
+                          }`}
+                        >
+                          <Settings className="w-3 h-3" />
+                          Сменить пароль
+                        </button>
+                        <p className={`text-xs mt-2 ${theme === "dark" ? "text-blue-400" : "text-blue-700"}`}>
+                          Измените пароль для входа в аккаунт через email.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Исправление данных */}
                     <div
                       className={`rounded-xl p-3 border ${
