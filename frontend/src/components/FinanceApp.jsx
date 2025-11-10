@@ -257,6 +257,8 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
   const startX = useRef(0)
+  const startY = useRef(0)
+  const isHorizontalSwipe = useRef(false)
 
   const handleTouchStart = (e) => {
     const now = Date.now()
@@ -272,6 +274,8 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
     
     setLastTap(now)
     startX.current = e.touches[0].clientX
+    startY.current = e.touches[0].clientY
+    isHorizontalSwipe.current = false
     setIsSwiping(true)
   }
 
@@ -283,16 +287,33 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
   const handleTouchMove = (e) => {
     if (!isSwiping) return
-    const diff = e.touches[0].clientX - startX.current
-    if (diff < 0) {
-      setSwipeX(Math.max(diff, -80))
+    
+    const diffX = e.touches[0].clientX - startX.current
+    const diffY = e.touches[0].clientY - startY.current
+    
+    // Определяем направление свайпа только один раз
+    if (!isHorizontalSwipe.current && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
+      isHorizontalSwipe.current = Math.abs(diffX) > Math.abs(diffY)
+    }
+    
+    // Если свайп вертикальный - не обрабатываем
+    if (!isHorizontalSwipe.current) {
+      return
+    }
+    
+    // Блокируем вертикальную прокрутку при горизонтальном свайпе
+    e.preventDefault()
+    
+    if (diffX < 0) {
+      setSwipeX(Math.max(diffX, -80))
     } else if (swipeX < 0) {
-      setSwipeX(Math.min(0, swipeX + diff / 2))
+      setSwipeX(Math.min(0, swipeX + diffX / 2))
     }
   }
 
   const handleTouchEnd = () => {
     setIsSwiping(false)
+    isHorizontalSwipe.current = false
     if (swipeX < -40) {
       setSwipeX(-80)
     } else {
@@ -1345,7 +1366,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const budget = budgets[category]
       if (!budget) return
       
-      const spent = getCategorySpending(category, budget.period)
+      // Рассчитываем расходы за период
+      const now = new Date()
+      let startDate = new Date()
+      
+      if (budget.period === 'week') {
+        startDate.setDate(now.getDate() - 7)
+      } else if (budget.period === 'month') {
+        startDate.setMonth(now.getMonth() - 1)
+      } else if (budget.period === 'year') {
+        startDate.setFullYear(now.getFullYear() - 1)
+      }
+      
+      const categoryTransactions = transactions.filter(tx => 
+        tx.type === 'expense' && 
+        tx.category === category &&
+        new Date(tx.created_at) >= startDate
+      )
+      
+      const spent = categoryTransactions.reduce((sum, tx) => sum + Number(tx.converted_amount_usd || 0), 0)
       const limit = Number(budget.limit)
       const percentage = limit > 0 ? (spent / limit) * 100 : 0
       const remaining = limit - spent
