@@ -29,6 +29,7 @@ import {
   PieChart,
   BarChart2,
   TrendingUpIcon,
+  Download,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
@@ -1534,6 +1535,138 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     await deleteDebt(debt.id)
   }
 
+  const exportToPDF = async () => {
+    try {
+      vibrateSelect()
+      
+      // Динамический импорт jsPDF
+      const { jsPDF } = await import('jspdf')
+      
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.width
+      const pageHeight = doc.internal.pageSize.height
+      let yPos = 20
+      
+      // Заголовок
+      doc.setFontSize(20)
+      doc.setTextColor(59, 130, 246) // Синий цвет
+      doc.text('История операций', pageWidth / 2, yPos, { align: 'center' })
+      
+      yPos += 10
+      
+      // Информация о пользователе
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Пользователь: ${user?.first_name || user?.email || 'Гость'}`, 20, yPos)
+      yPos += 5
+      doc.text(`Дата экспорта: ${new Date().toLocaleDateString('ru-RU')}`, 20, yPos)
+      
+      yPos += 15
+      
+      // Сводка
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      doc.text('Сводка:', 20, yPos)
+      yPos += 8
+      
+      doc.setFontSize(10)
+      doc.setTextColor(34, 197, 94) // Зеленый
+      doc.text(`Доходы: ${formatCurrency(income)}`, 20, yPos)
+      yPos += 6
+      
+      doc.setTextColor(239, 68, 68) // Красный
+      doc.text(`Расходы: ${formatCurrency(expenses)}`, 20, yPos)
+      yPos += 6
+      
+      doc.setTextColor(59, 130, 246) // Синий
+      doc.text(`Баланс: ${formatCurrency(balance)}`, 20, yPos)
+      
+      yPos += 15
+      
+      // Заголовок таблицы транзакций
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      doc.text('Транзакции:', 20, yPos)
+      yPos += 10
+      
+      // Заголовки колонок
+      doc.setFontSize(9)
+      doc.setTextColor(100, 100, 100)
+      doc.text('Дата', 20, yPos)
+      doc.text('Категория', 50, yPos)
+      doc.text('Описание', 90, yPos)
+      doc.text('Сумма', 160, yPos)
+      
+      yPos += 5
+      doc.setLineWidth(0.5)
+      doc.setDrawColor(200, 200, 200)
+      doc.line(20, yPos, pageWidth - 20, yPos)
+      
+      yPos += 5
+      
+      // Транзакции
+      const sortedTransactions = [...transactions].sort((a, b) => 
+        new Date(b.date || b.created_at) - new Date(a.date || a.created_at)
+      )
+      
+      for (const tx of sortedTransactions) {
+        if (yPos > pageHeight - 30) {
+          doc.addPage()
+          yPos = 20
+        }
+        
+        const date = new Date(tx.date || tx.created_at).toLocaleDateString('ru-RU')
+        const category = tx.category || 'Без категории'
+        const description = (tx.description || '').substring(0, 30)
+        const amount = formatCurrency(tx.amount)
+        
+        doc.setFontSize(8)
+        doc.setTextColor(0, 0, 0)
+        doc.text(date, 20, yPos)
+        doc.text(category, 50, yPos)
+        doc.text(description, 90, yPos)
+        
+        // Цвет суммы в зависимости от типа
+        if (tx.type === 'income') {
+          doc.setTextColor(34, 197, 94) // Зеленый
+          doc.text(`+${amount}`, 160, yPos)
+        } else if (tx.type === 'expense') {
+          doc.setTextColor(239, 68, 68) // Красный
+          doc.text(`-${amount}`, 160, yPos)
+        } else {
+          doc.setTextColor(59, 130, 246) // Синий
+          doc.text(amount, 160, yPos)
+        }
+        
+        yPos += 6
+      }
+      
+      // Футер
+      const totalPages = doc.internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        doc.setFontSize(8)
+        doc.setTextColor(150, 150, 150)
+        doc.text(
+          `Страница ${i} из ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        )
+      }
+      
+      // Сохранение
+      const fileName = `История_операций_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.pdf`
+      doc.save(fileName)
+      
+      vibrateSuccess()
+    } catch (e) {
+      console.error('Export error:', e)
+      vibrateError()
+      alert('Ошибка при экспорте. Попробуйте еще раз.')
+    }
+  }
+
   const saveBudgetToServer = async (newBudgets) => {
     if (user && user.email) {
       try {
@@ -2367,17 +2500,31 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     История операций
                   </h3>
-                  <button
-                    onClick={() => {
-                      setShowChart(true)
-                      setChartType("expense")
-                    }}
-                    className={`p-2 rounded-lg transition-colors touch-none ${
-                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                    }`}
-                  >
-                    <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Кнопка экспорта в PDF */}
+                    <button
+                      onClick={exportToPDF}
+                      className={`p-2 rounded-lg transition-colors touch-none ${
+                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
+                      }`}
+                      title="Экспорт в PDF"
+                    >
+                      <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
+                    </button>
+                    {/* Кнопка диаграммы */}
+                    <button
+                      onClick={() => {
+                        setShowChart(true)
+                        setChartType("expense")
+                      }}
+                      className={`p-2 rounded-lg transition-colors touch-none ${
+                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
+                      }`}
+                      title="Показать диаграмму"
+                    >
+                      <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                    </button>
+                  </div>
                 </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
