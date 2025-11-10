@@ -1784,7 +1784,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       
       // ВАЖНО: Замените 'YOUR_BOT_USERNAME' на имя вашего бота (без @)
       // Например: 'myfinancebot' или 'wallet_tracker_bot'
-      const botUsername = 'YOUR_BOT_USERNAME'
+      const botUsername = 'kvpoiskby_bot'
       
       // Формируем ссылку для открытия бота с параметром start
       // Это откроет бота внутри Telegram, а не в браузере
