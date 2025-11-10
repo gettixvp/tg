@@ -610,6 +610,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState("login")
   const [showChart, setShowChart] = useState(false)
+  const [chartType, setChartType] = useState("expense") // Тип транзакции для диаграммы
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
@@ -664,6 +665,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   
   // Вкладка копилки (Копилка / Долги)
   const [savingsTab, setSavingsTab] = useState('savings') // 'savings', 'debts'
+  
+  // Система долгов
+  const [debts, setDebts] = useState([]) // Список долгов
+  const [showAddDebtModal, setShowAddDebtModal] = useState(false)
+  const [debtType, setDebtType] = useState('owe') // 'owe' (я должен) или 'owed' (мне должны)
+  const [debtPerson, setDebtPerson] = useState('')
+  const [debtAmount, setDebtAmount] = useState('')
+  const [debtDescription, setDebtDescription] = useState('')
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -1915,7 +1924,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           {activeTab === "overview" && (
-            <div className="space-y-3 animate-fadeIn">
+            <div className="space-y-3">
               <div className="flex gap-3">
                 {/* Основная копилка */}
                 <div
@@ -2192,7 +2201,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "history" && (
-            <div className="animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+            <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
                   theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
@@ -2248,7 +2257,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "savings" && (
-            <div className="space-y-4 animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+            <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               {/* Верхние вкладки: Копилка / Долги */}
               <div className={`mx-4 p-1.5 rounded-full ${
                 theme === "dark" ? "bg-gray-800/80" : "bg-gray-200/80"
@@ -2450,26 +2459,124 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               {savingsTab === 'debts' && (
-                <div className={`rounded-2xl p-8 text-center ${
-                  theme === "dark" ? "bg-gray-800" : "bg-white"
-                }`}>
-                  <div className="text-6xl mb-4">📝</div>
-                  <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Учет долгов
-                  </h3>
-                  <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                    Функция в разработке
-                  </p>
-                  <p className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-                    Скоро здесь появится возможность отслеживать долги
-                  </p>
+                <div className="space-y-4">
+                  {/* Кнопка добавления долга */}
+                  <button
+                    onClick={() => {
+                      setShowAddDebtModal(true)
+                      vibrate()
+                    }}
+                    className={`w-full mx-4 py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 shadow-lg ${
+                      theme === "dark"
+                        ? "bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-500 hover:to-red-500"
+                        : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600"
+                    }`}
+                    style={{ maxWidth: 'calc(100% - 2rem)' }}
+                  >
+                    <Plus className="w-5 h-5" />
+                    Добавить долг
+                  </button>
+
+                  {/* Список долгов */}
+                  {debts.length === 0 ? (
+                    <div className={`rounded-2xl p-8 text-center mx-4 ${
+                      theme === "dark" ? "bg-gray-800" : "bg-white"
+                    }`}>
+                      <div className="text-6xl mb-4">💰</div>
+                      <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        Нет долгов
+                      </h3>
+                      <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        Нажмите "Добавить долг" чтобы начать учет
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 px-4">
+                      {debts.map((debt) => (
+                        <div
+                          key={debt.id}
+                          className={`rounded-xl p-4 border ${
+                            debt.type === 'owe'
+                              ? theme === "dark"
+                                ? "bg-red-900/20 border-red-700/30"
+                                : "bg-red-50 border-red-200"
+                              : theme === "dark"
+                                ? "bg-green-900/20 border-green-700/30"
+                                : "bg-green-50 border-green-200"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">
+                                {debt.type === 'owe' ? '📤' : '📥'}
+                              </span>
+                              <div>
+                                <h4 className={`font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                                  {debt.person}
+                                </h4>
+                                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                  {debt.type === 'owe' ? 'Я должен' : 'Мне должны'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-lg font-bold ${
+                                debt.type === 'owe'
+                                  ? theme === "dark" ? "text-red-400" : "text-red-600"
+                                  : theme === "dark" ? "text-green-400" : "text-green-600"
+                              }`}>
+                                {formatCurrency(debt.amount)}
+                              </p>
+                            </div>
+                          </div>
+                          {debt.description && (
+                            <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                              {debt.description}
+                            </p>
+                          )}
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Отметить долг как погашенный?')) {
+                                  setDebts(debts.filter(d => d.id !== debt.id))
+                                  vibrateSuccess()
+                                }
+                              }}
+                              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                                theme === "dark"
+                                  ? "bg-green-700 hover:bg-green-600 text-white"
+                                  : "bg-green-500 hover:bg-green-600 text-white"
+                              }`}
+                            >
+                              Погашено
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Удалить этот долг?')) {
+                                  setDebts(debts.filter(d => d.id !== debt.id))
+                                  vibrate()
+                                }
+                              }}
+                              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                                theme === "dark"
+                                  ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                              }`}
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
 
           {activeTab === "settings" && (
-            <div className="space-y-4 animate-fadeIn" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+            <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               {/* Приветствие с аватаркой */}
               <div
                 className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
@@ -3357,10 +3464,59 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                {chartType === "income" ? "Доходы" : chartType === "expense" ? "Расходы" : "Копилка"} по категориям
+            <div className="mb-4">
+              <h3 className={`text-lg font-bold text-center mb-3 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Диаграмма расходов
               </h3>
+              
+              {/* Кнопки переключения типа транзакции */}
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => {
+                    setChartType('income')
+                    vibrateSelect()
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                    chartType === 'income'
+                      ? theme === "dark" ? "bg-green-600 text-white" : "bg-green-500 text-white"
+                      : theme === "dark" ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  Доходы
+                </button>
+                <button
+                  onClick={() => {
+                    setChartType('expense')
+                    vibrateSelect()
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                    chartType === 'expense'
+                      ? theme === "dark" ? "bg-red-600 text-white" : "bg-red-500 text-white"
+                      : theme === "dark" ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  Расходы
+                </button>
+                <button
+                  onClick={() => {
+                    setChartType('savings')
+                    vibrateSelect()
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                    chartType === 'savings'
+                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+                      : theme === "dark" ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  Копилка
+                </button>
+              </div>
+              
+              {/* Кнопки переключения вида диаграммы */}
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Вид:
+                </span>
               <div className="flex items-center gap-2">
                 {/* Кнопки переключения вида диаграммы */}
                 <button
@@ -3405,6 +3561,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <button onClick={() => setShowChart(false)} className="touch-none">
                   <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
                 </button>
+              </div>
               </div>
             </div>
             {transactions.filter((t) => t.type === chartType).length > 0 ? (
@@ -4093,6 +4250,170 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }`}
               >
                 Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно добавления долга */}
+      {showAddDebtModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
+          <div
+            className={`w-full max-w-md rounded-t-2xl p-6 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            style={{ maxHeight: "85vh" }}
+          >
+            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Добавить долг
+            </h3>
+
+            {/* Тип долга */}
+            <div className="mb-4">
+              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                Тип долга
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setDebtType('owe')
+                    vibrateSelect()
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
+                    debtType === 'owe'
+                      ? theme === "dark"
+                        ? "bg-red-600 text-white"
+                        : "bg-red-500 text-white"
+                      : theme === "dark"
+                        ? "bg-gray-700 text-gray-300"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  📤 Я должен
+                </button>
+                <button
+                  onClick={() => {
+                    setDebtType('owed')
+                    vibrateSelect()
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
+                    debtType === 'owed'
+                      ? theme === "dark"
+                        ? "bg-green-600 text-white"
+                        : "bg-green-500 text-white"
+                      : theme === "dark"
+                        ? "bg-gray-700 text-gray-300"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  📥 Мне должны
+                </button>
+              </div>
+            </div>
+
+            {/* Кто должен */}
+            <div className="mb-4">
+              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                {debtType === 'owe' ? 'Кому я должен' : 'Кто мне должен'}
+              </label>
+              <input
+                type="text"
+                value={debtPerson}
+                onChange={(e) => setDebtPerson(e.target.value)}
+                placeholder="Имя человека"
+                className={`w-full p-3 border rounded-xl ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100"
+                    : "bg-gray-50 border-gray-200 text-gray-900"
+                }`}
+              />
+            </div>
+
+            {/* Сумма */}
+            <div className="mb-4">
+              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                Сумма (USD)
+              </label>
+              <input
+                type="number"
+                value={debtAmount}
+                onChange={(e) => setDebtAmount(e.target.value)}
+                placeholder="0"
+                className={`w-full p-3 border rounded-xl text-lg font-bold ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100"
+                    : "bg-gray-50 border-gray-200 text-gray-900"
+                }`}
+              />
+            </div>
+
+            {/* Описание */}
+            <div className="mb-4">
+              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                Описание (необязательно)
+              </label>
+              <textarea
+                value={debtDescription}
+                onChange={(e) => setDebtDescription(e.target.value)}
+                placeholder="За что долг..."
+                rows={3}
+                className={`w-full p-3 border rounded-xl resize-none ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100"
+                    : "bg-gray-50 border-gray-200 text-gray-900"
+                }`}
+              />
+            </div>
+
+            {/* Кнопки */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowAddDebtModal(false)
+                  setDebtPerson('')
+                  setDebtAmount('')
+                  setDebtDescription('')
+                  vibrate()
+                }}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  const amount = Number(debtAmount)
+                  if (!debtPerson.trim() || !amount || amount <= 0) {
+                    vibrateError()
+                    alert('Заполните все обязательные поля')
+                    return
+                  }
+
+                  const newDebt = {
+                    id: Date.now(),
+                    type: debtType,
+                    person: debtPerson,
+                    amount: amount,
+                    description: debtDescription,
+                    createdAt: new Date().toISOString()
+                  }
+
+                  setDebts([...debts, newDebt])
+                  setShowAddDebtModal(false)
+                  setDebtPerson('')
+                  setDebtAmount('')
+                  setDebtDescription('')
+                  vibrateSuccess()
+                }}
+                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
+              >
+                Добавить
               </button>
             </div>
           </div>
