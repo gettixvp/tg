@@ -454,30 +454,55 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
       {/* Последние 2 комментария */}
       {tx.comments && tx.comments.length > 0 && (
-        <div className="mt-2 px-2 space-y-1.5">
-          {tx.comments.slice(-2).map((comment, idx) => {
-            const isAuthor = comment.telegram_id === tx.created_by_telegram_id
-            return (
-              <div key={comment.id || idx} className={`flex ${isAuthor ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] ${isAuthor ? 'ml-auto' : 'mr-auto'}`}>
-                  <div
-                    className={`px-3 py-1.5 rounded-2xl ${
-                      theme === "dark"
-                        ? "bg-blue-600 text-white"
-                        : "bg-blue-500 text-white"
-                    }`}
-                  >
-                    <p className="text-[10px] font-medium opacity-70">{comment.author}</p>
-                    <p className="text-xs leading-tight">{comment.text}</p>
-                  </div>
+        <div className="mt-1.5 px-3 space-y-1">
+          {tx.comments.slice(-2).map((comment, idx) => (
+            <div key={comment.id || idx} className="flex items-start gap-1.5">
+              {/* Аватар автора комментария */}
+              {comment.telegram_photo_url ? (
+                <img
+                  src={comment.telegram_photo_url}
+                  alt={comment.author}
+                  className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
+                />
+              ) : (
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  theme === "dark" ? "bg-gray-600" : "bg-gray-300"
+                }`}>
+                  <User className="w-3 h-3 text-white" />
+                </div>
+              )}
+              
+              {/* Текст комментария */}
+              <div className="flex-1 min-w-0">
+                <div
+                  className={`inline-block px-2.5 py-1.5 rounded-xl ${
+                    theme === "dark"
+                      ? "bg-gray-700/80 text-gray-100"
+                      : "bg-gray-100 text-gray-900"
+                  }`}
+                >
+                  <p className={`text-[10px] font-medium mb-0.5 ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    {comment.author}
+                  </p>
+                  <p className="text-xs leading-snug break-words">{comment.text}</p>
                 </div>
               </div>
-            )
-          })}
+            </div>
+          ))}
           {tx.comments.length > 2 && (
-            <p className={`text-[10px] text-center ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-              +{tx.comments.length - 2} комментариев
-            </p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenDetails && onOpenDetails(tx)
+              }}
+              className={`text-[10px] font-medium ml-6 ${
+                theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"
+              }`}
+            >
+              Ещё {tx.comments.length - 2} {tx.comments.length - 2 === 1 ? 'комментарий' : 'комментария'}
+            </button>
           )}
         </div>
       )}
