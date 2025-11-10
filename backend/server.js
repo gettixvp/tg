@@ -521,9 +521,63 @@ app.delete("/api/user/:email/debts/:debtId", async (req, res) => {
   }
 })
 
-// --- Инициализация таблицы debts ---
-async function initDebtsTable() {
+// --- Связывание пользователей (совместный кошелек) ---
+app.post("/api/user/:email/link", async (req, res) => {
+  const { email } = req.params
+  const { linkedEmail } = req.body
+
+  if (!linkedEmail) {
+    return res.status(400).json({ error: "linkedEmail обязателен" })
+  }
+
   try {
+    // Проверяем, существует ли связь
+    const existing = await pool.query(
+      `SELECT * FROM linked_users WHERE user_email = $1 AND linked_email = $2`,
+      [email, linkedEmail]
+    )
+
+    if (existing.rows.length > 0) {
+      return res.json({ success: true, message: "Пользователи уже связаны" })
+    }
+
+    // Создаем двустороннюю связь
+    await pool.query(
+      `INSERT INTO linked_users (user_email, linked_email) VALUES ($1, $2)`,
+      [email, linkedEmail]
+    )
+    await pool.query(
+      `INSERT INTO linked_users (user_email, linked_email) VALUES ($1, $2)`,
+      [linkedEmail, email]
+    )
+
+    res.json({ success: true, message: "Пользователи успешно связаны" })
+  } catch (e) {
+    console.error("Link users error:", e)
+    res.status(500).json({ error: "Не удалось связать пользователей: " + e.message })
+  }
+})
+
+// --- Получить связанных пользователей ---
+app.get("/api/user/:email/linked", async (req, res) => {
+  const { email } = req.params
+
+  try {
+    const result = await pool.query(
+      `SELECT linked_email, created_at FROM linked_users WHERE user_email = $1`,
+      [email]
+    )
+    res.json({ linkedUsers: result.rows })
+  } catch (e) {
+    console.error("Get linked users error:", e)
+    res.status(500).json({ error: "Не удалось получить связанных пользователей: " + e.message })
+  }
+})
+
+// --- Инициализация таблиц ---
+async function initTables() {
+  try {
+    // Таблица debts
     await pool.query(`
       CREATE TABLE IF NOT EXISTS debts (
         id SERIAL PRIMARY KEY,
@@ -536,19 +590,35 @@ async function initDebtsTable() {
       )
     `)
     
-    // Создаем индекс если не существует
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_debts_user_email ON debts(user_email)
     `)
     
     console.log('✅ Таблица debts инициализирована')
+    
+    // Таблица linked_users
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS linked_users (
+        id SERIAL PRIMARY KEY,
+        user_email VARCHAR(255) NOT NULL,
+        linked_email VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_email, linked_email)
+      )
+    `)
+    
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_linked_users_email ON linked_users(user_email)
+    `)
+    
+    console.log('✅ Таблица linked_users инициализирована')
   } catch (e) {
-    console.error('❌ Ошибка инициализации таблицы debts:', e.message)
+    console.error('❌ Ошибка инициализации таблиц:', e.message)
   }
 }
 
 const PORT = process.env.PORT || 10000
 app.listen(PORT, async () => {
   console.log(`Сервер на порту ${PORT}`)
-  await initDebtsTable()
+  await initTables()
 })

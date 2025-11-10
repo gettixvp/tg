@@ -30,6 +30,8 @@ import {
   BarChart2,
   TrendingUpIcon,
   Download,
+  UserPlus,
+  Users,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
@@ -886,6 +888,69 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     return () => clearTimeout(timer)
   }, [theme])
 
+  // Обработка реферальной ссылки при запуске
+  useEffect(() => {
+    const handleReferralLink = async () => {
+      try {
+        // Проверяем, есть ли start параметр в Telegram WebApp
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+          const startParam = tg.initDataUnsafe.start_param
+          
+          try {
+            // Декодируем email из base64
+            const referrerEmail = atob(startParam)
+            
+            console.log('Referral link detected:', referrerEmail)
+            
+            // Если пользователь уже вошел, связываем аккаунты
+            if (user && user.email && user.email !== referrerEmail) {
+              // Отправляем запрос на связывание аккаунтов
+              const response = await fetch(`${API_BASE}/api/user/${user.email}/link`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ linkedEmail: referrerEmail })
+              })
+              
+              if (response.ok) {
+                alert(`✅ Вы успешно подключились к кошельку пользователя!\n\nТеперь вы можете видеть общие расходы и доходы.`)
+                vibrateSuccess()
+              }
+            } else if (!user) {
+              // Сохраняем реферальную ссылку для использования после входа
+              sessionStorage.setItem('referral_email', referrerEmail)
+              alert('👋 Добро пожаловать!\n\nВойдите в аккаунт, чтобы подключиться к совместному кошельку.')
+            }
+          } catch (e) {
+            console.error('Failed to decode referral link:', e)
+          }
+        }
+        
+        // Проверяем, есть ли сохраненная реферальная ссылка после входа
+        if (user && user.email) {
+          const savedReferral = sessionStorage.getItem('referral_email')
+          if (savedReferral && savedReferral !== user.email) {
+            // Связываем аккаунты
+            const response = await fetch(`${API_BASE}/api/user/${user.email}/link`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ linkedEmail: savedReferral })
+            })
+            
+            if (response.ok) {
+              sessionStorage.removeItem('referral_email')
+              alert(`✅ Вы успешно подключились к кошельку!\n\nТеперь вы можете видеть общие расходы и доходы.`)
+              vibrateSuccess()
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Referral link handling error:', e)
+      }
+    }
+    
+    handleReferralLink()
+  }, [user, tg])
+
   useEffect(() => {
     const keepAlive = async () => {
       try {
@@ -1699,6 +1764,60 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       console.error('Export error:', e)
       vibrateError()
       alert('Ошибка при экспорте. Попробуйте еще раз.')
+    }
+  }
+
+  const inviteUser = () => {
+    try {
+      vibrateSelect()
+      
+      if (!user || !user.email) {
+        alert('Сначала войдите в аккаунт, чтобы пригласить пользователей')
+        return
+      }
+      
+      // Получаем текущий URL Mini App
+      const botUsername = 'your_bot_username' // Замените на имя вашего бота
+      const startParam = btoa(user.email) // Кодируем email в base64 для реферальной ссылки
+      
+      // Формируем реферальную ссылку
+      const inviteUrl = `https://t.me/${botUsername}?start=${startParam}`
+      
+      // Текст приглашения
+      const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
+        `Я использую этот финансовый трекер для управления бюджетом. ` +
+        `Нажми на ссылку, чтобы автоматически подключиться к моему аккаунту и следить за общими расходами!\n\n` +
+        `${inviteUrl}`
+      
+      // Проверяем, работаем ли в Telegram WebApp
+      if (tg && tg.openTelegramLink) {
+        // Используем Telegram WebApp API для открытия диалога выбора контакта
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(inviteText)}`
+        tg.openTelegramLink(shareUrl)
+      } else if (navigator.share) {
+        // Fallback: используем Web Share API
+        navigator.share({
+          title: 'Приглашение в кошелек',
+          text: inviteText,
+          url: inviteUrl
+        }).catch(err => {
+          console.log('Share cancelled', err)
+        })
+      } else {
+        // Fallback: копируем в буфер обмена
+        navigator.clipboard.writeText(inviteText).then(() => {
+          alert('Ссылка-приглашение скопирована в буфер обмена!\n\nОтправьте её другу в Telegram.')
+          vibrateSuccess()
+        }).catch(() => {
+          alert(`Скопируйте эту ссылку и отправьте другу:\n\n${inviteUrl}`)
+        })
+      }
+      
+      vibrateSuccess()
+    } catch (e) {
+      console.error('Invite error:', e)
+      vibrateError()
+      alert('Ошибка при создании приглашения')
     }
   }
 
@@ -3068,6 +3187,37 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <LogIn className="w-4 h-4" />
                       Войти через Email
                     </button>
+                    
+                    {/* Кнопка приглашения пользователя */}
+                    <button
+                      onClick={inviteUser}
+                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 mt-3 ${
+                        theme === "dark"
+                          ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
+                          : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                      }`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Пригласить пользователя
+                    </button>
+                    
+                    {/* Описание функции приглашения */}
+                    <div className={`mt-3 p-3 rounded-xl border ${
+                      theme === "dark" ? "bg-purple-900/20 border-purple-700/30" : "bg-purple-50 border-purple-200"
+                    }`}>
+                      <div className="flex items-start gap-2">
+                        <Users className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+                        <div>
+                          <p className={`text-xs font-medium mb-1 ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>
+                            Совместный кошелек
+                          </p>
+                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Пригласите друзей или членов семьи для совместного управления бюджетом. 
+                            Они автоматически подключатся к вашему аккаунту и смогут видеть общие расходы и доходы.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
