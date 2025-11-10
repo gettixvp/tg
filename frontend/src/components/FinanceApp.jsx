@@ -202,13 +202,13 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
   const startX = useRef(0)
 
   const handleTouchStart = (e) => {
-    if (comment.telegram_id !== tgUserId) return
+    if (String(comment.telegram_id) !== String(tgUserId)) return
     startX.current = e.touches[0].clientX
     setIsSwiping(true)
   }
 
   const handleTouchMove = (e) => {
-    if (!isSwiping || comment.telegram_id !== tgUserId) return
+    if (!isSwiping || String(comment.telegram_id) !== String(tgUserId)) return
     const diff = e.touches[0].clientX - startX.current
     if (diff < 0) {
       setSwipeX(Math.max(diff, -80))
@@ -228,7 +228,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
 
   return (
     <div className="relative overflow-hidden">
-      {comment.telegram_id === tgUserId && (
+      {String(comment.telegram_id) === String(tgUserId) && (
         <div
           onClick={() => {
             if (swipeX === -80) {
@@ -253,7 +253,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={`p-3 rounded-2xl relative z-10 ${
-          comment.telegram_id === tgUserId
+          String(comment.telegram_id) === String(tgUserId)
             ? theme === "dark"
               ? "bg-blue-600 text-white ml-8"
               : "bg-blue-500 text-white ml-8"
@@ -656,7 +656,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
-  const [category, setCategory] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false) // Declare rememberMe here
@@ -1195,7 +1194,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           try {
             const resp = await fetch(`${API_BASE}/api/transactions/${tx.id}/comments`)
             if (resp.ok) {
-              const comments = await resp.json()
+              const data = await resp.json()
+              const comments = data.comments || []
               if (comments.length > 0) {
                 return { id: tx.id, comments }
               }
@@ -1224,7 +1224,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               try {
                 const resp = await fetch(`${API_BASE}/api/transactions/${tx.id}/comments`)
                 if (resp.ok) {
-                  const comments = await resp.json()
+                  const data = await resp.json()
+                  const comments = data.comments || []
                   if (comments.length > 0) {
                     return { id: tx.id, comments }
                   }
