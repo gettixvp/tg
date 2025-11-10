@@ -1359,6 +1359,88 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  // Функция пересчета баланса на основе транзакций
+  const recalculateBalance = async () => {
+    if (!window.confirm('Пересчитать баланс на основе всех транзакций? Это исправит любые ошибки в балансе.')) return
+    
+    console.log('[RECALCULATE] Начинаем пересчет...')
+    console.log('[RECALCULATE] Текущий баланс:', balance)
+    console.log('[RECALCULATE] Текущие доходы:', income)
+    console.log('[RECALCULATE] Текущие расходы:', expenses)
+    console.log('[RECALCULATE] Текущая копилка:', savings)
+    console.log('[RECALCULATE] Всего транзакций:', transactions.length)
+    
+    // Пересчитываем на основе транзакций
+    let newIncome = 0
+    let newExpenses = 0
+    let newSavingsUSD = 0
+    let savingsInRUB = 0
+    
+    transactions.forEach(tx => {
+      const amount = Number(tx.amount || 0)
+      const convertedUSD = Number(tx.converted_amount_usd || 0)
+      
+      console.log('[RECALCULATE] Транзакция:', {
+        type: tx.type,
+        category: tx.category,
+        amount,
+        convertedUSD,
+        savings_goal: tx.savings_goal
+      })
+      
+      if (tx.type === 'income') {
+        newIncome += amount
+      } else if (tx.type === 'expense') {
+        newExpenses += amount
+      } else if (tx.type === 'savings') {
+        savingsInRUB += amount
+        if (tx.savings_goal !== 'second') {
+          newSavingsUSD += convertedUSD
+        }
+      }
+    })
+    
+    // Баланс = доходы - расходы - копилка (в рублях)
+    const newBalance = newIncome - newExpenses - savingsInRUB
+    
+    console.log('[RECALCULATE] Пересчитанные значения:')
+    console.log('[RECALCULATE] Новый баланс:', newBalance)
+    console.log('[RECALCULATE] Новые доходы:', newIncome)
+    console.log('[RECALCULATE] Новые расходы:', newExpenses)
+    console.log('[RECALCULATE] Новая копилка USD:', newSavingsUSD)
+    console.log('[RECALCULATE] Копилка в RUB:', savingsInRUB)
+    
+    // Обновляем состояния
+    setBalance(newBalance)
+    setIncome(newIncome)
+    setExpenses(newExpenses)
+    setSavings(newSavingsUSD)
+    
+    // Сохраняем на сервер
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/user/${user.email}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            balance: newBalance,
+            income: newIncome,
+            expenses: newExpenses,
+            savings: newSavingsUSD,
+            goalSavings,
+          }),
+        })
+        
+        vibrateSuccess()
+        alert(`Баланс пересчитан!\n\nБаланс: ${newBalance} ₽\nДоходы: ${newIncome} ₽\nРасходы: ${newExpenses} ₽\nКопилка: ${newSavingsUSD} USD`)
+      } catch (e) {
+        console.error('[RECALCULATE] Ошибка сохранения:', e)
+        vibrateError()
+        alert('Ошибка сохранения на сервер')
+      }
+    }
+  }
+
   // Кэшируем статусы бюджетов для автоматического обновления при изменении транзакций
   const budgetStatuses = useMemo(() => {
     console.log('[BUDGET DEBUG] Пересчет бюджетов...')
@@ -2561,6 +2643,31 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     Активных бюджетов: {Object.keys(budgets).length}
                   </p>
                 )}
+              </div>
+
+              {/* Пересчет баланса */}
+              <div
+                className={`rounded-2xl p-4 border ${
+                  theme === "dark" ? "bg-orange-900/30 border-orange-700/30" : "bg-orange-50 border-orange-200"
+                }`}
+              >
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-orange-300" : "text-orange-900"}`}>
+                  Исправление данных
+                </h3>
+                <button
+                  onClick={recalculateBalance}
+                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm active:scale-95 flex items-center justify-center gap-2 ${
+                    theme === "dark"
+                      ? "bg-orange-700 hover:bg-orange-600 text-white"
+                      : "bg-orange-500 hover:bg-orange-600 text-white"
+                  }`}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Пересчитать баланс
+                </button>
+                <p className={`text-xs mt-2 text-center ${theme === "dark" ? "text-orange-400" : "text-orange-700"}`}>
+                  Пересчитывает баланс на основе всех транзакций. Используйте, если баланс некорректен.
+                </p>
               </div>
 
               <div

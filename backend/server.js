@@ -379,6 +379,73 @@ app.put("/api/user/:email/budgets", async (req, res) => {
   }
 })
 
+// --- Пересчитать баланс пользователя на основе транзакций ---
+app.post("/api/user/:email/recalculate", async (req, res) => {
+  const { email } = req.params
+
+  if (!email) return res.status(400).json({ error: "Email обязателен" })
+
+  try {
+    // Получаем все транзакции пользователя
+    const txResult = await pool.query(
+      `SELECT * FROM transactions WHERE user_email = $1 ORDER BY created_at ASC`,
+      [email]
+    )
+
+    const transactions = txResult.rows
+
+    // Пересчитываем баланс, доходы, расходы и копилку
+    let income = 0
+    let expenses = 0
+    let savingsUSD = 0
+
+    transactions.forEach(tx => {
+      const amount = Number(tx.amount || 0)
+      const convertedUSD = Number(tx.converted_amount_usd || 0)
+
+      if (tx.type === 'income') {
+        income += amount
+      } else if (tx.type === 'expense') {
+        expenses += amount
+      } else if (tx.type === 'savings') {
+        // Для копилки используем converted_amount_usd
+        if (tx.savings_goal === 'second') {
+          // Вторая цель - не трогаем, она отдельно
+        } else {
+          savingsUSD += convertedUSD
+        }
+      }
+    })
+
+    // Баланс = доходы - расходы - копилка (в рублях)
+    const savingsInRUB = transactions
+      .filter(tx => tx.type === 'savings')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+    
+    const balance = income - expenses - savingsInRUB
+
+    // Обновляем пользователя
+    await pool.query(
+      `UPDATE users SET balance = $1, income = $2, expenses = $3, savings_usd = $4 WHERE email = $5`,
+      [balance, income, expenses, savingsUSD, email]
+    )
+
+    res.json({
+      success: true,
+      recalculated: {
+        balance,
+        income,
+        expenses,
+        savings_usd: savingsUSD,
+        total_transactions: transactions.length
+      }
+    })
+  } catch (e) {
+    console.error("Recalculate error:", e)
+    res.status(500).json({ error: "Не удалось пересчитать баланс: " + e.message })
+  }
+})
+
 // --- Helper ---
 function convertUser(u) {
   return {
