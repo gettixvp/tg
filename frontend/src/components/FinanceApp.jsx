@@ -3297,20 +3297,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showBudgetModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-sm rounded-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              {selectedBudgetCategory ? 'Редактировать бюджет' : 'Управление бюджетами'}
-            </h3>
+            {/* Заголовок - фиксированный */}
+            <div className="p-4 border-b" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
+              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                {selectedBudgetCategory ? 'Редактировать бюджет' : 'Управление бюджетами'}
+              </h3>
+            </div>
 
-            {!selectedBudgetCategory ? (
-              // Список существующих бюджетов
-              <div className="space-y-3 mb-4">
-                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  Установите лимиты расходов для категорий
-                </p>
-                
-                {Object.keys(categoriesMeta).map((category) => {
+            {/* Контент - прокручиваемый */}
+            <div 
+              className="flex-1 overflow-y-auto p-4"
+              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+            >
+              {!selectedBudgetCategory ? (
+                // Список существующих бюджетов
+                <div className="space-y-3">
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Установите лимиты расходов для категорий
+                  </p>
+                  
+                  {Object.keys(categoriesMeta).map((category) => {
                   const budget = budgets[category]
                   const meta = categoriesMeta[category]
                   
@@ -3494,21 +3503,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               </div>
             )}
+            </div>
 
+            {/* Футер - фиксированный */}
             {!selectedBudgetCategory && (
-              <button
-                onClick={() => {
-                  setShowBudgetModal(false)
-                  vibrate()
-                }}
-                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 mt-3 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Закрыть
-              </button>
+              <div className="p-4 border-t" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
+                <button
+                  onClick={() => {
+                    setShowBudgetModal(false)
+                    vibrate()
+                  }}
+                  className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  Закрыть
+                </button>
+              </div>
             )}
           </div>
         </div>
