@@ -466,5 +466,60 @@ function convertUser(u) {
   }
 }
 
+// --- Получить долги пользователя ---
+app.get("/api/user/:email/debts", async (req, res) => {
+  const { email } = req.params
+  
+  try {
+    const result = await pool.query(
+      `SELECT * FROM debts WHERE user_email = $1 ORDER BY created_at DESC`,
+      [email]
+    )
+    res.json({ debts: result.rows })
+  } catch (e) {
+    console.error("Get debts error:", e)
+    res.status(500).json({ error: "Не удалось получить долги: " + e.message })
+  }
+})
+
+// --- Добавить долг ---
+app.post("/api/user/:email/debts", async (req, res) => {
+  const { email } = req.params
+  const { type, person, amount, description } = req.body
+  
+  if (!type || !person || !amount) {
+    return res.status(400).json({ error: "Заполните все обязательные поля" })
+  }
+  
+  try {
+    const result = await pool.query(
+      `INSERT INTO debts (user_email, type, person, amount, description, created_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW()) 
+       RETURNING *`,
+      [email, type, person, amount, description || '']
+    )
+    res.json({ debt: result.rows[0] })
+  } catch (e) {
+    console.error("Add debt error:", e)
+    res.status(500).json({ error: "Не удалось добавить долг: " + e.message })
+  }
+})
+
+// --- Удалить долг ---
+app.delete("/api/user/:email/debts/:debtId", async (req, res) => {
+  const { email, debtId } = req.params
+  
+  try {
+    await pool.query(
+      `DELETE FROM debts WHERE id = $1 AND user_email = $2`,
+      [debtId, email]
+    )
+    res.json({ success: true })
+  } catch (e) {
+    console.error("Delete debt error:", e)
+    res.status(500).json({ error: "Не удалось удалить долг: " + e.message })
+  }
+})
+
 const PORT = process.env.PORT || 10000
 app.listen(PORT, () => console.log(`Сервер на порту ${PORT}`))

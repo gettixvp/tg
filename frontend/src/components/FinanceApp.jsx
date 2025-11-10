@@ -1034,6 +1034,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
+      loadDebts(u.email)
     }
 
     // Отложенная загрузка комментариев (не блокирует UI)
@@ -1375,6 +1376,76 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       remaining,
       isOverBudget: spent > limit,
       isNearLimit: percentage >= 80 && percentage < 100
+    }
+  }
+
+  // Функции для работы с долгами
+  const loadDebts = async (email) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${email}/debts`)
+      const data = await res.json()
+      if (data.debts) {
+        setDebts(data.debts)
+      }
+    } catch (e) {
+      console.error('Failed to load debts', e)
+    }
+  }
+
+  const addDebt = async () => {
+    const amount = Number(debtAmount)
+    if (!debtPerson.trim() || !amount || amount <= 0) {
+      vibrateError()
+      alert('Заполните все обязательные поля')
+      return
+    }
+
+    if (!user || !user.email) {
+      vibrateError()
+      alert('Необходимо войти в систему')
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/debts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: debtType,
+          person: debtPerson,
+          amount: amount,
+          description: debtDescription
+        })
+      })
+
+      const data = await res.json()
+      if (data.debt) {
+        setDebts([data.debt, ...debts])
+        setShowAddDebtModal(false)
+        setDebtPerson('')
+        setDebtAmount('')
+        setDebtDescription('')
+        vibrateSuccess()
+      }
+    } catch (e) {
+      console.error('Failed to add debt', e)
+      vibrateError()
+      alert('Ошибка при добавлении долга')
+    }
+  }
+
+  const deleteDebt = async (debtId) => {
+    if (!user || !user.email) return
+
+    try {
+      await fetch(`${API_BASE}/api/user/${user.email}/debts/${debtId}`, {
+        method: 'DELETE'
+      })
+      setDebts(debts.filter(d => d.id !== debtId))
+      vibrateSuccess()
+    } catch (e) {
+      console.error('Failed to delete debt', e)
+      vibrateError()
     }
   }
 
@@ -2538,8 +2609,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             <button
                               onClick={() => {
                                 if (window.confirm('Отметить долг как погашенный?')) {
-                                  setDebts(debts.filter(d => d.id !== debt.id))
-                                  vibrateSuccess()
+                                  deleteDebt(debt.id)
                                 }
                               }}
                               className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
@@ -2553,8 +2623,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             <button
                               onClick={() => {
                                 if (window.confirm('Удалить этот долг?')) {
-                                  setDebts(debts.filter(d => d.id !== debt.id))
-                                  vibrate()
+                                  deleteDebt(debt.id)
                                 }
                               }}
                               className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
@@ -4258,14 +4327,35 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* Модальное окно добавления долга */}
       {showAddDebtModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
+          onClick={() => {
+            setShowAddDebtModal(false)
+            setDebtPerson('')
+            setDebtAmount('')
+            setDebtDescription('')
+          }}
+        >
           <div
-            className={`w-full max-w-md rounded-t-2xl p-6 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh" }}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            style={{ 
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column"
+            }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Добавить долг
-            </h3>
+            {/* Контент - прокручиваемый */}
+            <div 
+              className="p-6 overflow-y-auto flex-1"
+              style={{ 
+                WebkitOverflowScrolling: "touch", 
+                touchAction: "pan-y"
+              }}
+            >
+              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Добавить долг
+              </h3>
 
             {/* Тип долга */}
             <div className="mb-4">
@@ -4383,30 +4473,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Отмена
               </button>
               <button
-                onClick={() => {
-                  const amount = Number(debtAmount)
-                  if (!debtPerson.trim() || !amount || amount <= 0) {
-                    vibrateError()
-                    alert('Заполните все обязательные поля')
-                    return
-                  }
-
-                  const newDebt = {
-                    id: Date.now(),
-                    type: debtType,
-                    person: debtPerson,
-                    amount: amount,
-                    description: debtDescription,
-                    createdAt: new Date().toISOString()
-                  }
-
-                  setDebts([...debts, newDebt])
-                  setShowAddDebtModal(false)
-                  setDebtPerson('')
-                  setDebtAmount('')
-                  setDebtDescription('')
-                  vibrateSuccess()
-                }}
+                onClick={addDebt}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
                   theme === "dark"
                     ? "bg-blue-700 hover:bg-blue-600 text-white"
@@ -4415,6 +4482,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               >
                 Добавить
               </button>
+            </div>
             </div>
           </div>
         </div>
