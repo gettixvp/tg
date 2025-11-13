@@ -656,6 +656,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
+  const [category, setCategory] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false) // Declare rememberMe here
