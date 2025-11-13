@@ -5237,11 +5237,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   value={amount}
                   onClick={() => {
                     setShowNumKeyboard(true)
+                    setIsKeyboardOpen(true)
                     // Убираем фокус с других полей
                     document.activeElement?.blur()
                   }}
                   onFocus={() => {
                     setShowNumKeyboard(true)
+                    setIsKeyboardOpen(true)
                     // Убираем фокус сразу, чтобы не показывалась системная клавиатура
                     setTimeout(() => document.activeElement?.blur(), 0)
                   }}
@@ -5258,7 +5260,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 type="text"
                 placeholder="Описание (необязательно)"
                 value={description}
-                onFocus={() => setShowNumKeyboard(false)}
+                onFocus={() => {
+                  setShowNumKeyboard(false)
+                  setIsKeyboardOpen(true)
+                }}
+                onBlur={() => setIsKeyboardOpen(false)}
                 onChange={(e) => setDescription(e.target.value)}
                 className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
                   theme === "dark"
@@ -5269,7 +5275,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                onFocus={() => setShowNumKeyboard(false)}
+                onFocus={() => {
+                  setShowNumKeyboard(false)
+                  setIsKeyboardOpen(true)
+                }}
+                onBlur={() => setIsKeyboardOpen(false)}
                 className={`w-full p-3 border rounded-xl mb-4 transition-all text-sm ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -5289,6 +5299,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   onClick={() => {
                     setShowAddModal(false)
                     setShowNumKeyboard(false)
+                    setIsKeyboardOpen(false)
                     blurAll()
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
@@ -5300,7 +5311,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   Отмена
                 </button>
                 <button
-                  onClick={addTransaction}
+                  onClick={() => {
+                    setShowNumKeyboard(false)
+                    setIsKeyboardOpen(false)
+                    addTransaction()
+                  }}
                   className={`flex-1 py-3 rounded-xl text-white font-medium transition-all text-sm touch-none active:scale-95 ${
                     transactionType === "income"
                       ? "bg-emerald-500 hover:bg-emerald-600"
@@ -5321,7 +5336,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setAmount((prev) => prev + num)
                 }}
                 onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
-                onDone={() => setShowNumKeyboard(false)}
+                onDone={() => {
+                  setShowNumKeyboard(false)
+                  setIsKeyboardOpen(false)
+                }}
                 theme={theme}
               />
             )}
