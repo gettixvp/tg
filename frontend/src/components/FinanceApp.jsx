@@ -5235,7 +5235,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   inputMode="none"
                   placeholder="Сумма"
                   value={amount}
-                  onClick={() => setShowNumKeyboard(true)}
+                  onClick={() => {
+                    setShowNumKeyboard(true)
+                    // Убираем фокус с других полей
+                    document.activeElement?.blur()
+                  }}
+                  onFocus={() => {
+                    setShowNumKeyboard(true)
+                    // Убираем фокус сразу, чтобы не показывалась системная клавиатура
+                    setTimeout(() => document.activeElement?.blur(), 0)
+                  }}
                   readOnly
                   className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm cursor-pointer ${
                     theme === "dark"
