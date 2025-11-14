@@ -4298,7 +4298,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       key={w.key}
                       onClick={() => {
                         setActiveWalletKey(w.key)
-                        setEditingWallet(w)
+                        setEditingWalletKey(w.key)
                         setShowAddWalletForm(false)
                         vibrateSelect()
                       }}
@@ -6420,7 +6420,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("history")
                   vibrate()
                 }}
-                icon={<History className="h-4 w-[4px28]" />}
+                icon={<History className="h-4 w-7" />}
                 theme={theme}
               />
               <button
@@ -6440,7 +6440,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("savings")
                   vibrate()
                 }}
-                icon={<PiggyBank className="h-4 w-[4px28]" />}
+                icon={<PiggyBank className="h-4 w-7" />}
                 theme={theme}
               />
               <NavButton
@@ -6449,7 +6449,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("settings")
                   vibrate()
                 }}
-                icon={<Settings className="h-4 w-[px8]" />}
+                icon={<Settings className="h-4 w-7" />}
                 theme={theme}
               />
             </div>
