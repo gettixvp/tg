@@ -87,8 +87,8 @@ async function initDB() {
       );`)
     }
 
-    // Добавляем столбец, если его нет
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS converted_amount_usd NUMERIC;`)
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS wallet_key TEXT DEFAULT 'main';`)
 
     await pool.query(`CREATE TABLE IF NOT EXISTS linked_telegram_users (
       id SERIAL PRIMARY KEY,

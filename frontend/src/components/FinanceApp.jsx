@@ -42,6 +42,46 @@ const API_BASE = "https://walletback-aghp.onrender.com"
 const LS_KEY = "finance_settings_v3"
 const SESSION_KEY = "finance_session_v2"
 
+const DEFAULT_WALLETS = [
+  {
+    key: "main",
+    name: "Общий кошелёк",
+    icon: "💳",
+    color: "indigo",
+  },
+]
+
+const WALLET_COLOR_PRESETS = ["indigo", "emerald", "amber", "rose", "violet"]
+
+const WALLET_ICON_PRESETS = ["💳", "💰", "🏦", "💵", "✈️", "🎯"]
+
+function getWalletGradient(color, theme) {
+  if (color === "emerald") {
+    return theme === "dark"
+      ? "bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600"
+      : "bg-gradient-to-br from-emerald-500 to-teal-500"
+  }
+  if (color === "amber") {
+    return theme === "dark"
+      ? "bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600"
+      : "bg-gradient-to-br from-amber-400 to-orange-500"
+  }
+  if (color === "rose") {
+    return theme === "dark"
+      ? "bg-gradient-to-br from-rose-600 via-pink-600 to-fuchsia-600"
+      : "bg-gradient-to-br from-rose-500 to-pink-500"
+  }
+  if (color === "violet") {
+    return theme === "dark"
+      ? "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600"
+      : "bg-gradient-to-br from-violet-500 to-indigo-500"
+  }
+  // indigo / default
+  return theme === "dark"
+    ? "bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600"
+    : "bg-gradient-to-br from-blue-500 to-indigo-500"
+}
+
 const categoriesMeta = {
   Еда: {
     color: "from-orange-400 to-red-400",
@@ -634,6 +674,7 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
 export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
+  const walletSwipeStartYRef = useRef(null)
 
   // UseState hooks should be at the top level of the component
   const [user, setUser] = useState(null)
@@ -648,7 +689,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [expenses, setExpenses] = useState(0)
   const [savings, setSavings] = useState(0)
   const [transactions, setTransactions] = useState([])
+  const [wallets, setWallets] = useState(DEFAULT_WALLETS)
+  const [activeWalletKey, setActiveWalletKey] = useState("main")
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showWalletSettingsModal, setShowWalletSettingsModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState("login")
   const [showChart, setShowChart] = useState(false)
@@ -679,6 +723,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [initialSavingsAmount, setInitialSavingsAmount] = useState(0)
   const [initialSavingsInput, setInitialSavingsInput] = useState("0")
   const [balanceVisible, setBalanceVisible] = useState(true)
+  const [walletDraftName, setWalletDraftName] = useState("")
+  const [walletDraftIcon, setWalletDraftIcon] = useState("💳")
+  const [walletDraftColor, setWalletDraftColor] = useState("indigo")
+  const [transactionWalletKey, setTransactionWalletKey] = useState("main")
+  const [showWalletSelectorInAdd, setShowWalletSelectorInAdd] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [fullscreenEnabled, setFullscreenEnabled] = useState(true)
   const [isReady, setIsReady] = useState(false)
@@ -864,6 +913,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }
           if (data.balanceVisible !== undefined) setBalanceVisible(data.balanceVisible)
           if (data.fullscreenEnabled !== undefined) setFullscreenEnabled(data.fullscreenEnabled)
+          if (Array.isArray(data.wallets) && data.wallets.length > 0) {
+            setWallets(data.wallets)
+          }
+          if (data.activeWalletKey) {
+            setActiveWalletKey(data.activeWalletKey)
+          }
         }
       }
 
@@ -905,9 +960,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         theme,
         balanceVisible,
         fullscreenEnabled,
+        wallets,
+        activeWalletKey,
       }),
     )
-  }, [currency, goalSavings, theme, balanceVisible, fullscreenEnabled])
+  }, [currency, goalSavings, theme, balanceVisible, fullscreenEnabled, wallets, activeWalletKey])
 
   // Немедленное применение темы при изменении
   useEffect(() => {
@@ -1337,6 +1394,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const addTransaction = async () => {
     blurAll()
     setShowNumKeyboard(false)
+    setShowWalletSelectorInAdd(false)
     const n = Number(amount)
     if (!isFinite(n) || n <= 0) {
       vibrateError()
@@ -1362,6 +1420,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       created_by_name: displayName || null,
       telegram_photo_url: tgPhotoUrl || null,
       savings_goal: transactionType === 'savings' ? selectedSavingsGoal : null,
+      wallet_key: transactionWalletKey || "main",
     }
 
     setTransactions((p) => [newTx, ...p])
@@ -1414,6 +1473,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             created_by_telegram_id: tgUserId || null,
             created_by_name: displayName || null,
             savings_goal: newTx.savings_goal,
+            wallet_key: newTx.wallet_key,
           }),
         })
 
@@ -2413,6 +2473,112 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  const activeWallet = useMemo(
+    () => wallets.find((w) => w.key === activeWalletKey) || wallets[0] || DEFAULT_WALLETS[0],
+    [wallets, activeWalletKey],
+  )
+
+  const activeWalletIndex = useMemo(
+    () => wallets.findIndex((w) => w.key === activeWalletKey),
+    [wallets, activeWalletKey],
+  )
+
+  const nextWallet = useMemo(() => {
+    if (wallets.length <= 1 || activeWalletIndex < 0) return null
+    return wallets[(activeWalletIndex + 1) % wallets.length]
+  }, [wallets, activeWalletIndex])
+
+  const transactionsForActiveWallet = useMemo(() => {
+    if (activeWalletKey === "main") {
+      return transactions
+    }
+    return transactions.filter((tx) => (tx.wallet_key || "main") === activeWalletKey)
+  }, [transactions, activeWalletKey])
+
+  const transactionWallet = useMemo(
+    () => wallets.find((w) => w.key === transactionWalletKey) || activeWallet,
+    [wallets, transactionWalletKey, activeWallet],
+  )
+
+  const walletStats = useMemo(() => {
+    let incomeSum = 0
+    let expensesSum = 0
+    let savingsRub = 0
+
+    transactionsForActiveWallet.forEach((tx) => {
+      const amount = Number(tx.amount || 0)
+      if (tx.type === "income") {
+        incomeSum += amount
+      } else if (tx.type === "expense") {
+        expensesSum += amount
+      } else if (tx.type === "savings") {
+        savingsRub += amount
+      }
+    })
+
+    const balanceCalc = incomeSum - expensesSum - savingsRub
+
+    return {
+      income: incomeSum,
+      expenses: expensesSum,
+      balance: balanceCalc,
+    }
+  }, [transactionsForActiveWallet])
+
+  const displayBalance = walletStats.balance
+  const displayIncome = walletStats.income
+  const displayExpenses = walletStats.expenses
+
+  const handleWalletTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return
+    walletSwipeStartYRef.current = e.touches[0].clientY
+  }
+
+  const handleWalletTouchEnd = (e) => {
+    const startY = walletSwipeStartYRef.current
+    walletSwipeStartYRef.current = null
+    if (startY == null || !e.changedTouches || e.changedTouches.length === 0) return
+    const endY = e.changedTouches[0].clientY
+    const diff = endY - startY
+    if (Math.abs(diff) < 40 || wallets.length <= 1) return
+
+    const currentIndex = wallets.findIndex((w) => w.key === activeWalletKey)
+    if (currentIndex < 0) return
+
+    if (diff < 0) {
+      const nextIndex = (currentIndex + 1) % wallets.length
+      setActiveWalletKey(wallets[nextIndex].key)
+    } else {
+      const prevIndex = (currentIndex - 1 + wallets.length) % wallets.length
+      setActiveWalletKey(wallets[prevIndex].key)
+    }
+  }
+
+  const handleAddWallet = () => {
+    if (wallets.length >= 4) {
+      return
+    }
+    const name = (walletDraftName || "").trim() || `Кошелёк ${wallets.length}`
+    const baseKey = name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "wallet"
+    let key = baseKey
+    let i = 1
+    while (wallets.some((w) => w.key === key)) {
+      key = `${baseKey}-${i++}`
+    }
+    const newWallet = {
+      key,
+      name,
+      icon: walletDraftIcon,
+      color: walletDraftColor,
+    }
+    setWallets((prev) => [...prev, newWallet])
+    setActiveWalletKey(newWallet.key)
+    setWalletDraftName("")
+    setWalletDraftIcon("💳")
+    setWalletDraftColor("indigo")
+    if (vibrateSuccess) vibrateSuccess()
+  }
+
   if (!isReady || isLoading) {
     return (
       <div
@@ -2459,29 +2625,46 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
           />
           <div
-            className="relative overflow-hidden rounded-2xl p-4 z-10"
-            style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
+            className={`relative overflow-hidden rounded-2xl p-4 z-10 ${getWalletGradient(activeWallet.color, theme)}`}
+            onTouchStart={handleWalletTouchStart}
+            onTouchEnd={handleWalletTouchEnd}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
-                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
-                  <CreditCard className="w-5 h-5 text-white" />
+                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <span className="text-xl leading-none">{activeWallet.icon}</span>
                 </div>
                 <div>
-                  <p className="text-xs text-white/80">Общий баланс</p>
-                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                  <p className="text-xs text-white/80">
+                    {activeWalletKey === "main" ? "Общий баланс" : activeWallet.name}
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {balanceVisible ? formatCurrency(displayBalance) : "••••••"}
+                  </p>
                 </div>
               </div>
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
-              >
-                {balanceVisible ? (
-                  <Eye className="w-4 h-4 text-white" />
-                ) : (
-                  <EyeOff className="w-4 h-4 text-white" />
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowWalletSettingsModal(true)
+                    setTransactionWalletKey(activeWalletKey)
+                    vibrateSelect()
+                  }}
+                  className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
+                >
+                  <Settings className="w-4 h-4 text-white" />
+                </button>
+                <button
+                  onClick={() => setBalanceVisible(!balanceVisible)}
+                  className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
+                >
+                  {balanceVisible ? (
+                    <Eye className="w-4 h-4 text-white" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-white" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
@@ -2490,16 +2673,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <TrendingUp className="w-3 h-3 text-emerald-300" />
                   <span className="text-xs text-white/90">Доходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(displayIncome) : "••••••"}</p>
               </div>
               <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingDown className="w-3 h-3 text-rose-300" />
                   <span className="text-xs text-white/90">Расходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(displayExpenses) : "••••••"}</p>
               </div>
             </div>
+
+            {nextWallet && (
+              <div className="absolute -bottom-6 left-4 right-4 opacity-80 pointer-events-none">
+                <div className="rounded-2xl px-4 py-2 bg-white/15 backdrop-blur-sm border border-white/30 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg leading-none">{nextWallet.icon}</span>
+                    <span className="text-xs text-white/90 truncate max-w-[140px]">{nextWallet.name}</span>
+                  </div>
+                  <span className="text-[10px] text-white/80">Свайпните вверх/вниз</span>
+                </div>
+              </div>
+            )}
           </div>
         </header>
       )}
@@ -2763,7 +2958,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     Все →
                   </button>
                 </div>
-                {transactions.length === 0 ? (
+                {transactionsForActiveWallet.length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -2781,7 +2976,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 ) : (
                   <div>
-                    {transactions.slice(0, 4).map((tx) => (
+                    {transactionsForActiveWallet.slice(0, 4).map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -2838,7 +3033,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </button>
                   </div>
                 </div>
-                {transactions.length === 0 ? (
+                {transactionsForActiveWallet.length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -2851,7 +3046,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 ) : (
                   <div>
-                    {transactions.map((tx) => (
+                    {transactionsForActiveWallet.map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -3011,6 +3206,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <button
                     onClick={() => {
                       setTransactionType("savings")
+                      setTransactionWalletKey(activeWalletKey)
                       setShowAddModal(true)
                       setShowNumKeyboard(false)
                       vibrate()
@@ -3760,6 +3956,213 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               >
                 Сохранить
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWalletSettingsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div
+            className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <div className="p-4 space-y-4">
+              <div className={`rounded-2xl p-3 text-white ${getWalletGradient(activeWallet.color, theme)}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                      <span className="text-xl leading-none">{activeWallet.icon}</span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/80">
+                        {activeWalletKey === "main" ? "Общий кошелёк" : activeWallet.name}
+                      </p>
+                      <p className="text-lg font-bold">
+                        {balanceVisible ? formatCurrency(displayBalance) : "••••••"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right text-[11px] text-white/80">
+                    <p>Доходы: {balanceVisible ? formatCurrency(displayIncome) : "••••••"}</p>
+                    <p>Расходы: {balanceVisible ? formatCurrency(displayExpenses) : "••••••"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3
+                  className={`text-sm font-semibold mb-2 ${
+                    theme === "dark" ? "text-gray-100" : "text-gray-900"
+                  }`}
+                >
+                  Мои кошельки
+                </h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {wallets.map((w) => (
+                    <div
+                      key={w.key}
+                      onClick={() => {
+                        setActiveWalletKey(w.key)
+                        vibrateSelect()
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-800 border border-gray-700"
+                          : "bg-gray-50 border border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-gray-900/10 flex items-center justify-center">
+                          <span className="text-lg leading-none">{w.icon}</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium">
+                            {w.key === "main" ? "Общий кошелёк" : w.name}
+                          </p>
+                          <p className="text-[11px] text-gray-400">
+                            {w.key === activeWalletKey ? "Активный" : "Нажмите на карте, чтобы выбрать"}
+                          </p>
+                        </div>
+                      </div>
+                      {w.key === "main" ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600">
+                          Базовый
+                        </span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className={`rounded-2xl p-3 ${
+                  theme === "dark" ? "bg-gray-800/80 border border-gray-700" : "bg-gray-50 border border-gray-200"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3
+                    className={`text-sm font-semibold ${
+                      theme === "dark" ? "text-gray-100" : "text-gray-900"
+                    }`}
+                  >
+                    Новый кошелёк
+                  </h3>
+                  <span className={`text-[11px] ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                    {wallets.length - 1}/3
+                  </span>
+                </div>
+
+                {wallets.length >= 4 ? (
+                  <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Вы уже создали максимум дополнительных кошельков.
+                  </p>
+                ) : (
+                  <>
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        value={walletDraftName}
+                        onChange={(e) => setWalletDraftName(e.target.value)}
+                        placeholder="Название кошелька"
+                        className={`w-full p-2.5 border rounded-xl text-sm ${
+                          theme === "dark"
+                            ? "bg-gray-900/40 border-gray-700 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                            : "bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                        Иконка
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {WALLET_ICON_PRESETS.map((icon) => (
+                          <button
+                            key={icon}
+                            type="button"
+                            onClick={() => {
+                              setWalletDraftIcon(icon)
+                              vibrateSelect()
+                            }}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl touch-none active:scale-95 ${
+                              walletDraftIcon === icon
+                                ? theme === "dark"
+                                  ? "bg-blue-600"
+                                  : "bg-blue-500"
+                                : theme === "dark"
+                                  ? "bg-gray-800"
+                                  : "bg-gray-100"
+                            }`}
+                          >
+                            <span>{icon}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                        Цвет
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {WALLET_COLOR_PRESETS.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => {
+                              setWalletDraftColor(color)
+                              vibrateSelect()
+                            }}
+                            className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center text-xs font-medium capitalize touch-none active:scale-95 ${
+                              walletDraftColor === color ? "border-white" : "border-transparent"
+                            } ${getWalletGradient(color, theme)}`}
+                          >
+                            <span className="text-[10px] text-white drop-shadow-sm">{color}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleAddWallet()
+                      }}
+                      disabled={wallets.length >= 4}
+                      className={`w-full py-2.5 rounded-xl text-sm font-medium mt-1 touch-none active:scale-95 ${
+                        wallets.length >= 4
+                          ? theme === "dark"
+                            ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                            : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          : theme === "dark"
+                            ? "bg-blue-600 hover:bg-blue-500 text-white"
+                            : "bg-blue-500 hover:bg-blue-600 text-white"
+                      }`}
+                    >
+                      Создать кошелёк
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowWalletSettingsModal(false)
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-gray-800 border border-gray-700 text-gray-100 hover:bg-gray-700"
+                      : "bg-gray-50 border border-gray-200 text-gray-800 hover:bg-gray-100"
+                  }`}
+                >
+                  Готово
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -5154,9 +5557,64 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Новая операция
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  Новая операция
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (wallets.length <= 1) return
+                    setShowWalletSelectorInAdd((prev) => !prev)
+                    vibrateSelect()
+                  }}
+                  className={`ml-2 px-3 py-2 rounded-xl text-xs font-medium border flex items-center gap-1 touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "border-gray-600 bg-gray-700 text-gray-100 hover:bg-gray-600"
+                      : "border-gray-200 bg-gray-50 text-gray-800 hover:bg-gray-100"
+                  } ${wallets.length <= 1 ? "opacity-60 cursor-default" : ""}`}
+                >
+                  <span className="text-lg leading-none">{transactionWallet.icon}</span>
+                  <span className="max-w-[120px] truncate">
+                    {transactionWalletKey === "main" ? "Общий кошелёк" : transactionWallet.name}
+                  </span>
+                  {wallets.length > 1 && (
+                    showWalletSelectorInAdd ? (
+                      <ChevronUp className="w-3 h-3" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3" />
+                    )
+                  )}
+                </button>
+              </div>
+
+              {showWalletSelectorInAdd && wallets.length > 1 && (
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
+                  {wallets.map((w) => (
+                    <button
+                      key={w.key}
+                      type="button"
+                      onClick={() => {
+                        setTransactionWalletKey(w.key)
+                        setShowWalletSelectorInAdd(false)
+                        vibrateSelect()
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap touch-none active:scale-95 ${
+                        transactionWalletKey === w.key
+                          ? theme === "dark"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                      }`}
+                    >
+                      <span className="text-lg leading-none">{w.icon}</span>
+                      <span className="max-w-[100px] truncate">{w.key === "main" ? "Общий кошелёк" : w.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="flex gap-2 mb-4">
                 {["expense", "income", "savings"].map((type) => (
@@ -5300,6 +5758,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowAddModal(false)
                     setShowNumKeyboard(false)
                     setIsKeyboardOpen(false)
+                    setShowWalletSelectorInAdd(false)
                     blurAll()
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
@@ -5654,6 +6113,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               />
               <button
                 onClick={() => {
+                  setTransactionWalletKey(activeWalletKey)
                   setShowAddModal(true)
                   setShowNumKeyboard(false)
                   vibrate()
