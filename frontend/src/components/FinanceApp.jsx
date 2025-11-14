@@ -810,7 +810,6 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
 export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
-  const walletSwipeStartYRef = useRef(null)
   const walletDropdownRef = useRef(null)
 
   // UseState hooks should be at the top level of the component
@@ -871,6 +870,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [walletEditorColor, setWalletEditorColor] = useState("indigo")
   const [showNewWalletForm, setShowNewWalletForm] = useState(false)
   const [walletDropdownOpen, setWalletDropdownOpen] = useState(false)
+  const [currentWalletIndex, setCurrentWalletIndex] = useState(0)
+  const [walletSwipeOffset, setWalletSwipeOffset] = useState(0)
+  const [walletSwipeStartX, setWalletSwipeStartX] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [fullscreenEnabled, setFullscreenEnabled] = useState(true)
   const [isReady, setIsReady] = useState(false)
@@ -2623,84 +2625,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   
   // Обновляем индекс активного кошелька при изменении activeWalletKey
   useEffect(() => {
-    const index = wallets.findIndex(w => w.key === activeWalletKey)
+    const index = wallets.findIndex((w) => w.key === activeWalletKey)
     if (index !== -1) {
       setCurrentWalletIndex(index)
     }
   }, [activeWalletKey, wallets])
-  
-  // Получаем предыдущий и следующий кошельки для превью
-  const prevWallet = useMemo(() => {
-    if (wallets.length <= 1) return null
-    const prevIndex = currentWalletIndex > 0 ? currentWalletIndex - 1 : wallets.length - 1
-    return wallets[prevIndex]
-  }, [wallets, currentWalletIndex])
-  
-  const nextWallet = useMemo(() => {
-    if (wallets.length <= 1) return null
-    const nextIndex = currentWalletIndex < wallets.length - 1 ? currentWalletIndex + 1 : 0
-    return wallets[nextIndex]
-  }, [wallets, currentWalletIndex])
-  
-  // Обработчики свайпа кошелька с улучшенной анимацией
-  const handleWalletTouchStart = useCallback((e) => {
-    setWalletSwipeStartX(e.touches[0].clientX)
-    setWalletSwipeOffset(0)
-    // Легкая вибрация при начале свайпа
-    vibrate()
-  }, [])
-  
-  const handleWalletTouchMove = useCallback((e) => {
-    if (wallets.length <= 1 || walletSwipeStartX === null) return
-    
-    const touchX = e.touches[0].clientX
-    const diff = touchX - walletSwipeStartX
-    
-    // Ограничиваем смещение для лучшего UX
-    const maxOffset = 120
-    const limitedDiff = Math.max(-maxOffset, Math.min(maxOffset, diff))
-    
-    setWalletSwipeOffset(limitedDiff)
-  }, [wallets.length, walletSwipeStartX])
-  
-  const handleWalletTouchEnd = useCallback((e) => {
-    if (wallets.length <= 1 || walletSwipeStartX === null) {
-      setWalletSwipeStartX(null)
-      setWalletSwipeOffset(0)
-      return
-    }
-    
-    const touchEndX = e.changedTouches[0].clientX
-    const diff = touchEndX - walletSwipeStartX
-    
-    // Если свайп достаточно большой (больше 60px) - переключаем кошелек
-    if (Math.abs(diff) > 60) {
-      const direction = diff > 0 ? -1 : 1
-      let newIndex = currentWalletIndex + direction
-      
-      // Зацикливаем индекс
-      if (newIndex < 0) newIndex = wallets.length - 1
-      if (newIndex >= wallets.length) newIndex = 0
-      
-      setCurrentWalletIndex(newIndex)
-      setActiveWalletKey(wallets[newIndex].key)
-      vibrateSelect()
-    } else {
-      // Легкая вибрация при отмене свайпа
-      vibrateError()
-    }
-    
-    // Плавно возвращаем на место
-    setTimeout(() => {
-      setWalletSwipeStartX(null)
-      setWalletSwipeOffset(0)
-    }, 300)
-  }, [wallets, currentWalletIndex, walletSwipeStartX])
 
   const editingWallet = useMemo(
     () => wallets.find((w) => w.key === editingWalletKey) || wallets[0] || DEFAULT_WALLETS[0],
     [wallets, editingWalletKey],
   )
+
+  const prevWallet = useMemo(() => {
+    if (wallets.length <= 1 || currentWalletIndex < 0) return null
+    const prevIndex = currentWalletIndex > 0 ? currentWalletIndex - 1 : wallets.length - 1
+    return wallets[prevIndex]
+  }, [wallets, currentWalletIndex])
 
   const activeWalletIndex = useMemo(
     () => wallets.findIndex((w) => w.key === activeWalletKey),
@@ -2708,9 +2648,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   )
 
   const nextWallet = useMemo(() => {
-    if (wallets.length <= 1 || activeWalletIndex < 0) return null
-    return wallets[(activeWalletIndex + 1) % wallets.length]
-  }, [wallets, activeWalletIndex])
+    if (wallets.length <= 1 || currentWalletIndex < 0) return null
+    return wallets[(currentWalletIndex + 1) % wallets.length]
+  }, [wallets, currentWalletIndex])
 
   const transactionsForActiveWallet = useMemo(() => {
     if (activeWalletKey === "main") {
@@ -2759,32 +2699,53 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const displayIncome = walletStats.income
   const displayExpenses = walletStats.expenses
 
-  const handleWalletTouchStart = (e) => {
-    if (!e.touches || e.touches.length === 0) return
-    walletSwipeStartYRef.current = e.touches[0].clientY
-  }
+  const handleWalletTouchStart = useCallback((e) => {
+    if (wallets.length <= 1 || !e.touches || e.touches.length === 0) return
+    setWalletSwipeStartX(e.touches[0].clientX)
+    setWalletSwipeOffset(0)
+    vibrate()
+  }, [wallets.length])
 
-  const handleWalletTouchEnd = (e) => {
-    const startY = walletSwipeStartYRef.current
-    walletSwipeStartYRef.current = null
-    if (startY == null || !e.changedTouches || e.changedTouches.length === 0) return
-    const endY = e.changedTouches[0].clientY
-    const diff = endY - startY
-    if (Math.abs(diff) < 40 || wallets.length <= 1) return
+  const handleWalletTouchMove = useCallback((e) => {
+    if (wallets.length <= 1 || walletSwipeStartX === null || !e.touches || e.touches.length === 0) return
+    const touchX = e.touches[0].clientX
+    const diff = touchX - walletSwipeStartX
+    const maxOffset = 120
+    const limitedDiff = Math.max(-maxOffset, Math.min(maxOffset, diff))
+    setWalletSwipeOffset(limitedDiff)
+  }, [wallets.length, walletSwipeStartX])
 
-    const currentIndex = wallets.findIndex((w) => w.key === activeWalletKey)
-    if (currentIndex < 0) return
-
-    if (diff < 0) {
-      const nextIndex = (currentIndex + 1) % wallets.length
-      setActiveWalletKey(wallets[nextIndex].key)
-    } else {
-      const prevIndex = (currentIndex - 1 + wallets.length) % wallets.length
-      setActiveWalletKey(wallets[prevIndex].key)
+  const handleWalletTouchEnd = useCallback((e) => {
+    if (wallets.length <= 1 || walletSwipeStartX === null) {
+      setWalletSwipeStartX(null)
+      setWalletSwipeOffset(0)
+      return
     }
 
-    vibrateSelect()
-  }
+    const touchEndX = e.changedTouches?.[0]?.clientX
+    if (typeof touchEndX !== "number") {
+      setWalletSwipeStartX(null)
+      setWalletSwipeOffset(0)
+      return
+    }
+
+    const diff = touchEndX - walletSwipeStartX
+
+    if (Math.abs(diff) > 60) {
+      const direction = diff > 0 ? -1 : 1
+      let newIndex = currentWalletIndex + direction
+      if (newIndex < 0) newIndex = wallets.length - 1
+      if (newIndex >= wallets.length) newIndex = 0
+      setCurrentWalletIndex(newIndex)
+      setActiveWalletKey(wallets[newIndex].key)
+      vibrateSelect()
+    } else {
+      vibrateError()
+    }
+
+    setWalletSwipeStartX(null)
+    setWalletSwipeOffset(0)
+  }, [wallets, currentWalletIndex, walletSwipeStartX, vibrateSelect, vibrateError, setActiveWalletKey])
 
   const handleAddWallet = () => {
     if (wallets.length >= 4) {
@@ -3016,11 +2977,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               {nextWallet && (
-              <div className="mt-[-4px] mb-2">
-                    <span className="text-xs text-white/90 truncate max-w-[200px]">
-                      {nextWallet.key === "main" ? "Общий кошелёк" : nextWallet.name}
-                    </span>
-                  </div>
+                <div className="mt-[-4px] mb-2">
+                  <span className="text-xs text-white/90 truncate max-w-[200px]">
+                    {nextWallet.key === "main" ? "Общий кошелёк" : nextWallet.name}
+                  </span>
                 </div>
               )}
               <div className="flex gap-3">
