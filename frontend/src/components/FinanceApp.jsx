@@ -2964,25 +2964,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           {activeTab === "overview" && (
-            <div className="space-y-3 relative">
-              {/* Превью предыдущего кошелька (слева) */}
-              {prevWallet && prevWallet.key !== activeWallet.key && (
-                <div 
-                  className={`absolute left-0 top-0 w-full h-full rounded-2xl opacity-60 ${getWalletGradient(prevWallet.color, theme)}`}
-                  style={{
-                    transform: `translateX(${Math.max(-100, walletSwipeOffset - 50)}px) scale(0.95)`,
-                    transition: walletSwipeStartX === null ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
-                    zIndex: 5,
-                  }}
-                ></div>
-              )}
-
+            <div className="space-y-3">
               {/* Активный кошелек */}
               <div
                 className={`relative rounded-2xl p-4 ${getWalletGradient(activeWallet.color, theme)}`}
                 style={{
-                  transform: `translateX(${walletSwipeOffset}px) scale(1)`,
-                  transition: walletSwipeStartX === null ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
                   touchAction: 'pan-y',
                   zIndex: 10,
                   position: 'relative',
@@ -3010,40 +2996,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </p>
                     </div>
                   </div>
-                  
-                  {/* Индикатор свайпа */}
-                  {wallets.length > 1 && (
-                    <div className="flex justify-center gap-1.5 mt-3">
-                      {wallets.map((_, index) => (
-                        <div 
-                          key={index}
-                          className={`h-1.5 rounded-full transition-all ${index === currentWalletIndex 
-                            ? 'w-4 bg-white/80' 
-                            : 'w-1.5 bg-white/40'}`}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Превью следующего кошелька (справа) */}
-              {nextWallet && nextWallet.key !== activeWallet.key && (
-                <div 
-                  className={`absolute right-0 top-0 w-full h-full rounded-2xl opacity-60 ${getWalletGradient(nextWallet.color, theme)}`}
-                  style={{
-                    transform: `translateX(${Math.min(100, walletSwipeOffset + 50)}px) scale(0.95)`,
-                    transition: walletSwipeStartX === null ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
-                    zIndex: 5,
-                  }}
-                ></div>
-              )}
-
-              {nextWallet && (
-                <div className="mt-[-4px] mb-2">
-                  <span className="text-xs text-white/90 truncate max-w-[200px]">
-                    {nextWallet.key === "main" ? "Общий кошелёк" : nextWallet.name}
-                  </span>
+              {/* Индикатор свайпа - внизу по центру */}
+              {wallets.length > 1 && (
+                <div className="flex justify-center gap-1.5 pb-2">
+                  {wallets.map((_, index) => (
+                    <div 
+                      key={index}
+                      className={`h-1.5 rounded-full transition-all ${index === currentWalletIndex 
+                        ? 'w-4 bg-gray-400' 
+                        : 'w-1.5 bg-gray-300'}`}
+                    />
+                  ))}
                 </div>
               )}
               <div className="flex gap-3">
@@ -4287,13 +4253,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showWalletSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 overflow-y-auto">
           <div
-            className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${
+            className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden my-auto ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
           >
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
               {/* Предпросмотр карты кошелька */}
               <div className={`rounded-2xl p-4 text-white transition-all duration-300 ${getWalletGradient(editingWallet.key === "main" && walletEditorColor ? walletEditorColor : editingWallet.color, theme)}`}>
                 <div className="flex items-center justify-between">
@@ -4583,221 +4549,126 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSavingsSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
-            <div className="p-4">
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Настройки копилки
-            </h3>
-            {secondGoalName && secondGoalAmount > 0 && (
-              <div className="mb-3">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 overflow-y-auto">
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden my-auto ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
+            <div className="p-4 max-h-[80vh] overflow-y-auto">
+              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Настройки копилки
+              </h3>
+              {secondGoalName && secondGoalAmount > 0 && (
+                <div className="mb-3">
+                  <label
+                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Выберите копилку
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedSavingsGoal('main')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                        selectedSavingsGoal === 'main'
+                          ? theme === "dark"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {goalName}
+                    </button>
+                    <button
+                      onClick={() => setSelectedSavingsGoal('second')}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                        selectedSavingsGoal === 'second'
+                          ? theme === "dark"
+                            ? "bg-purple-600 text-white"
+                            : "bg-purple-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {secondGoalName}
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="mb-4">
                 <label
                   className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
                 >
-                  Выберите копилку
+                  Начальная сумма (USD)
                 </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSelectedSavingsGoal('main')}
-                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
-                      selectedSavingsGoal === 'main'
-                        ? theme === "dark"
-                          ? "bg-blue-600 text-white"
-                          : "bg-blue-500 text-white"
-                        : theme === "dark"
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {goalName}
-                  </button>
-                  <button
-                    onClick={() => setSelectedSavingsGoal('second')}
-                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
-                      selectedSavingsGoal === 'second'
-                        ? theme === "dark"
-                          ? "bg-purple-600 text-white"
-                          : "bg-purple-500 text-white"
-                        : theme === "dark"
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {secondGoalName}
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="mb-4">
-              <label
-                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-              >
-                Начальная сумма (USD)
-              </label>
-              <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Укажите сумму, которая уже есть вне общего бюджета
-              </p>
-              <input
-                type="text"
-                inputMode="none"
-                value={selectedSavingsGoal === 'main' ? (initialSavingsInput || initialSavingsAmount.toString()) : (initialSavingsInput || secondGoalInitialAmount.toString())}
-                readOnly
-                onClick={() => {
-                  // Устанавливаем текущее значение в поле при открытии клавиатуры
-                  if (selectedSavingsGoal === 'main') {
-                    setInitialSavingsInput(initialSavingsAmount.toString())
-                  } else {
-                    setInitialSavingsInput(secondGoalInitialAmount.toString())
-                  }
-                  setShowNumKeyboard(true)
-                }}
-                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-                placeholder="Например: 1000"
-              />
-            </div>
-            
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowSavingsSettingsModal(false)}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={async () => {
-                  const inputVal = initialSavingsInput.trim()
-                  if (!inputVal) {
-                    alert('Введите сумму')
-                    return
-                  }
-                  
-                  const n = Number.parseFloat(inputVal)
-                  if (Number.isNaN(n) || n < 0) {
-                    alert('Введите корректную сумму')
-                    return
-                  }
-                  
-                  let newSavings = savings
-                  
-                  if (selectedSavingsGoal === 'main') {
-                    // Для основной цели
-                    const diff = n - initialSavingsAmount
-                    setInitialSavingsAmount(n)
-                    newSavings = savings + diff
-                    setSavings(newSavings)
-                    // Сохранение на сервер
-                    await saveToServer(balance, income, expenses, newSavings)
-                  } else {
-                    // Для второй цели - устанавливаем начальную сумму и обновляем прогресс
-                    const diff = n - secondGoalInitialAmount
-                    setSecondGoalInitialAmount(n)
-                    const newSecondGoalSavings = secondGoalSavings + diff
-                    setSecondGoalSavings(newSecondGoalSavings)
-                    
-                    // Сохраняем напрямую с новыми значениями
-                    if (user && user.email) {
-                      try {
-                        await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            goalName,
-                            initialSavingsAmount,
-                            secondGoalName,
-                            secondGoalAmount,
-                            secondGoalSavings: newSecondGoalSavings,
-                            secondGoalInitialAmount: n,
-                          }),
-                        })
-                      } catch (e) {
-                        console.warn("Failed to save to server", e)
-                      }
-                    }
-                  }
-                  
-                  setInitialSavingsInput('')
-                  setShowSavingsSettingsModal(false)
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  selectedSavingsGoal === 'main'
-                    ? theme === "dark"
-                      ? "bg-blue-700 hover:bg-blue-600 text-white"
-                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                    : theme === "dark"
-                      ? "bg-purple-700 hover:bg-purple-600 text-white"
-                      : "bg-purple-500 hover:bg-purple-600 text-white"
-                }`}
-              >
-                Сохранить
-              </button>
-            </div>
-
-            {/* Кнопка сброса прогресса */}
-            <div className="mt-3">
-              <button
-                onClick={async () => {
-                  const goalNameToReset = selectedSavingsGoal === 'main' ? goalName : secondGoalName
-                  if (confirm(`Вы уверены, что хотите сбросить прогресс копилки "${goalNameToReset}"?\n\nЭто обнулит накопленную сумму, но сохранит название и цель.`)) {
+                <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Укажите сумму, которая уже есть вне общего бюджета
+                </p>
+                <input
+                  type="text"
+                  inputMode="none"
+                  value={selectedSavingsGoal === 'main' ? (initialSavingsInput || initialSavingsAmount.toString()) : (initialSavingsInput || secondGoalInitialAmount.toString())}
+                  readOnly
+                  onClick={() => {
+                    // Устанавливаем текущее значение в поле при открытии клавиатуры
                     if (selectedSavingsGoal === 'main') {
-                      // Сброс основной копилки
-                      const newSavings = 0
-                      const newInitialAmount = 0
-                      setSavings(newSavings)
-                      setInitialSavingsAmount(newInitialAmount)
-                      
-                      // Сохраняем на сервер
-                      if (user && user.email) {
-                        try {
-                          await fetch(`${API_BASE}/api/user/${user.email}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              balance,
-                              income,
-                              expenses,
-                              savings: newSavings,
-                              goalSavings,
-                            }),
-                          })
-                          
-                          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              goalName,
-                              initialSavingsAmount: newInitialAmount,
-                              secondGoalName,
-                              secondGoalAmount,
-                              secondGoalSavings,
-                              secondGoalInitialAmount,
-                            }),
-                          })
-                          
-                          vibrateSuccess()
-                          alert('Прогресс копилки сброшен!')
-                        } catch (e) {
-                          console.warn("Failed to reset main goal", e)
-                          alert("Ошибка при сбросе прогресса")
-                          vibrateError()
-                        }
-                      }
+                      setInitialSavingsInput(initialSavingsAmount.toString())
                     } else {
-                      // Сброс второй копилки
-                      const newSecondSavings = 0
-                      const newSecondInitialAmount = 0
-                      setSecondGoalSavings(newSecondSavings)
-                      setSecondGoalInitialAmount(newSecondInitialAmount)
+                      setInitialSavingsInput(secondGoalInitialAmount.toString())
+                    }
+                    setShowNumKeyboard(true)
+                  }}
+                  className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                      : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  }`}
+                  placeholder="Например: 1000"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowSavingsSettingsModal(false)}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={async () => {
+                    const inputVal = initialSavingsInput.trim()
+                    if (!inputVal) {
+                      alert('Введите сумму')
+                      return
+                    }
+                    
+                    const n = Number.parseFloat(inputVal)
+                    if (Number.isNaN(n) || n < 0) {
+                      alert('Введите корректную сумму')
+                      return
+                    }
+                    
+                    let newSavings = savings
+                    
+                    if (selectedSavingsGoal === 'main') {
+                      // Для основной цели
+                      const diff = n - initialSavingsAmount
+                      setInitialSavingsAmount(n)
+                      newSavings = savings + diff
+                      setSavings(newSavings)
+                      // Сохранение на сервер
+                      await saveToServer(balance, income, expenses, newSavings)
+                    } else {
+                      // Для второй цели - устанавливаем начальную сумму и обновляем прогресс
+                      const diff = n - secondGoalInitialAmount
+                      setSecondGoalInitialAmount(n)
+                      const newSecondGoalSavings = secondGoalSavings + diff
+                      setSecondGoalSavings(newSecondGoalSavings)
                       
-                      // Сохраняем на сервер
+                      // Сохраняем напрямую с новыми значениями
                       if (user && user.email) {
                         try {
                           await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
@@ -4808,96 +4679,190 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               initialSavingsAmount,
                               secondGoalName,
                               secondGoalAmount,
-                              secondGoalSavings: newSecondSavings,
-                              secondGoalInitialAmount: newSecondInitialAmount,
+                              secondGoalSavings: newSecondGoalSavings,
+                              secondGoalInitialAmount: n,
                             }),
                           })
-                          
-                          vibrateSuccess()
-                          alert('Прогресс копилки сброшен!')
                         } catch (e) {
-                          console.warn("Failed to reset second goal", e)
-                          alert("Ошибка при сбросе прогресса")
-                          vibrateError()
+                          console.warn("Failed to save to server", e)
+                        }
+                      }
+                    }
+                    
+                    setInitialSavingsInput('')
+                    setShowSavingsSettingsModal(false)
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    selectedSavingsGoal === 'main'
+                      ? theme === "dark"
+                        ? "bg-blue-700 hover:bg-blue-600 text-white"
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                      : theme === "dark"
+                        ? "bg-purple-700 hover:bg-purple-600 text-white"
+                        : "bg-purple-500 hover:bg-purple-600 text-white"
+                  }`}
+                >
+                  Сохранить
+                </button>
+              </div>
+
+              {/* Кнопка сброса прогресса */}
+              <div className="mt-3">
+                <button
+                  onClick={async () => {
+                    const goalNameToReset = selectedSavingsGoal === 'main' ? goalName : secondGoalName
+                    if (confirm(`Вы уверены, что хотите сбросить прогресс копилки "${goalNameToReset}"?\n\nЭто обнулит накопленную сумму, но сохранит название и цель.`)) {
+                      if (selectedSavingsGoal === 'main') {
+                        // Сброс основной копилки
+                        const newSavings = 0
+                        const newInitialAmount = 0
+                        setSavings(newSavings)
+                        setInitialSavingsAmount(newInitialAmount)
+                        
+                        // Сохраняем на сервер
+                        if (user && user.email) {
+                          try {
+                            await fetch(`${API_BASE}/api/user/${user.email}`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                balance,
+                                income,
+                                expenses,
+                                savings: newSavings,
+                                goalSavings,
+                              }),
+                            })
+                            
+                            await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                goalName,
+                                initialSavingsAmount: newInitialAmount,
+                                secondGoalName,
+                                secondGoalAmount,
+                                secondGoalSavings,
+                                secondGoalInitialAmount,
+                              }),
+                            })
+                            
+                            vibrateSuccess()
+                            alert('Прогресс копилки сброшен!')
+                          } catch (e) {
+                            console.warn("Failed to reset main goal", e)
+                            alert("Ошибка при сбросе прогресса")
+                            vibrateError()
+                          }
+                        }
+                      } else {
+                        // Сброс второй копилки
+                        const newSecondSavings = 0
+                        const newSecondInitialAmount = 0
+                        setSecondGoalSavings(newSecondSavings)
+                        setSecondGoalInitialAmount(newSecondInitialAmount)
+                        
+                        // Сохраняем на сервер
+                        if (user && user.email) {
+                          try {
+                            await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                goalName,
+                                initialSavingsAmount,
+                                secondGoalName,
+                                secondGoalAmount,
+                                secondGoalSavings: newSecondSavings,
+                                secondGoalInitialAmount: newSecondInitialAmount,
+                              }),
+                            })
+                            
+                            vibrateSuccess()
+                            alert('Прогресс копилки сброшен!')
+                          } catch (e) {
+                            console.warn("Failed to reset second goal", e)
+                            alert("Ошибка при сбросе прогресса")
+                            vibrateError()
+                          }
                         }
                       }
                     }
                     
                     setShowSavingsSettingsModal(false)
-                  }
-                }}
-                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-orange-700 hover:bg-orange-600 text-white"
-                    : "bg-orange-500 hover:bg-orange-600 text-white"
-                }`}
-              >
-                🔄 Сбросить прогресс
-              </button>
-            </div>
-
-            {/* Кнопка удаления копилки */}
-            {selectedSavingsGoal === 'second' && secondGoalName && (
-              <div className="mt-3">
-                <button
-                  onClick={async () => {
-                    if (confirm(`Вы уверены, что хотите удалить копилку "${secondGoalName}"?`)) {
-                      // Сохраняем на сервер напрямую с пустыми значениями
-                      if (user && user.email) {
-                        try {
-                          // Обновляем настройки копилки
-                          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              goalName,
-                              initialSavingsAmount,
-                              secondGoalName: '',
-                              secondGoalAmount: 0,
-                              secondGoalSavings: 0,
-                              secondGoalInitialAmount: 0,
-                            }),
-                          })
-                          
-                          // Обновляем основные данные пользователя
-                          await fetch(`${API_BASE}/api/user/${user.email}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              balance,
-                              income,
-                              expenses,
-                              savings,
-                              goalSavings,
-                            }),
-                          })
-                        } catch (e) {
-                          console.warn("Failed to delete second goal", e)
-                          alert("Ошибка при удалении копилки")
-                        }
-                      }
-                      
-                      // Очищаем данные второй копилки в UI
-                      setSecondGoalName('')
-                      setSecondGoalAmount(0)
-                      setSecondGoalSavings(0)
-                      setSecondGoalInitialAmount(0)
-                      setSecondGoalInput('0')
-                      setSelectedSavingsGoal('main')
-                      setShowSavingsSettingsModal(false)
-                    }
                   }}
                   className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                     theme === "dark"
-                      ? "bg-red-700 hover:bg-red-600 text-white"
-                      : "bg-red-500 hover:bg-red-600 text-white"
+                      ? "bg-orange-700 hover:bg-orange-600 text-white"
+                      : "bg-orange-500 hover:bg-orange-600 text-white"
                   }`}
                 >
-                  Удалить копилку
+                  🔄 Сбросить прогресс
                 </button>
               </div>
-            )}
-          </div>
+
+              {/* Кнопка удаления копилки */}
+              {selectedSavingsGoal === 'second' && secondGoalName && (
+                <div className="mt-3">
+                  <button
+                    onClick={async () => {
+                      if (confirm(`Вы уверены, что хотите удалить копилку "${secondGoalName}"?`)) {
+                        // Сохраняем на сервер напрямую с пустыми значениями
+                        if (user && user.email) {
+                          try {
+                            // Обновляем настройки копилки
+                            await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                goalName,
+                                initialSavingsAmount,
+                                secondGoalName: '',
+                                secondGoalAmount: 0,
+                                secondGoalSavings: 0,
+                                secondGoalInitialAmount: 0,
+                              }),
+                            })
+                            
+                            // Обновляем основные данные пользователя
+                            await fetch(`${API_BASE}/api/user/${user.email}`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                balance,
+                                income,
+                                expenses,
+                                savings,
+                                goalSavings,
+                              }),
+                            })
+                          } catch (e) {
+                            console.warn("Failed to delete second goal", e)
+                            alert("Ошибка при удалении копилки")
+                          }
+                        }
+                        
+                        // Очищаем данные второй копилки в UI
+                        setSecondGoalName('')
+                        setSecondGoalAmount(0)
+                        setSecondGoalSavings(0)
+                        setSecondGoalInitialAmount(0)
+                        setSecondGoalInput('0')
+                        setSelectedSavingsGoal('main')
+                        setShowSavingsSettingsModal(false)
+                      }
+                    }}
+                    className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-red-700 hover:bg-red-600 text-white"
+                        : "bg-red-500 hover:bg-red-600 text-white"
+                    }`}
+                  >
+                    Удалить копилку
+                  </button>
+                </div>
+              )}
+            </div>
 
             {showNumKeyboard && (
               <NumericKeyboard
