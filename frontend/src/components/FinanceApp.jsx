@@ -4380,7 +4380,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               className={`w-full aspect-square rounded-xl flex items-center justify-center text-2xl touch-none active:scale-95 transition-transform ${
                                 walletDraftIcon === icon
                                   ? 'ring-2 ring-offset-2 ring-blue-500'
-                                  : theme === "dark" ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'
+                                  : theme === "dark" ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
                               }`}
                             >
                               {icon}
