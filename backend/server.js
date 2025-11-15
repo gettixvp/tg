@@ -204,7 +204,18 @@ app.post("/api/user/:email/change-password", async (req, res) => {
 
 // --- Добавить транзакцию ---
 app.post("/api/transactions", async (req, res) => {
-  const { user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name, savings_goal } = req.body
+  const {
+    user_email,
+    type,
+    amount,
+    converted_amount_usd,
+    description,
+    category,
+    created_by_telegram_id,
+    created_by_name,
+    savings_goal,
+    wallet_key,
+  } = req.body
 
   if (!user_email) {
     return res.status(400).json({ error: "Email пользователя обязателен" })
@@ -212,8 +223,19 @@ app.post("/api/transactions", async (req, res) => {
 
   try {
     const r = await pool.query(
-      `INSERT INTO transactions (user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name, savings_goal)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      `INSERT INTO transactions (
+         user_email,
+         type,
+         amount,
+         converted_amount_usd,
+         description,
+         category,
+         created_by_telegram_id,
+         created_by_name,
+         savings_goal,
+         wallet_key
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [
         user_email,
         type,
@@ -224,6 +246,7 @@ app.post("/api/transactions", async (req, res) => {
         created_by_telegram_id,
         created_by_name,
         savings_goal || 'main',
+        wallet_key || 'main',
       ],
     )
     res.json(r.rows[0])
