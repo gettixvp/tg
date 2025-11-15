@@ -102,6 +102,26 @@ const WALLET_COLOR_GRADIENTS = {
     light: "bg-gradient-to-br from-orange-400 via-pink-500 to-purple-500",
     dark: "bg-gradient-to-br from-orange-600 via-pink-700 to-purple-800",
   },
+  red: {
+    light: "bg-gradient-to-br from-red-400 to-red-500",
+    dark: "bg-gradient-to-br from-red-600 via-red-700 to-rose-700",
+  },
+  green: {
+    light: "bg-gradient-to-br from-green-400 to-emerald-500",
+    dark: "bg-gradient-to-br from-green-600 via-emerald-600 to-teal-700",
+  },
+  pink: {
+    light: "bg-gradient-to-br from-pink-400 to-rose-500",
+    dark: "bg-gradient-to-br from-pink-600 via-rose-600 to-red-700",
+  },
+  orange: {
+    light: "bg-gradient-to-br from-orange-400 to-orange-500",
+    dark: "bg-gradient-to-br from-orange-600 via-orange-700 to-amber-700",
+  },
+  purple: {
+    light: "bg-gradient-to-br from-purple-400 to-purple-500",
+    dark: "bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-700",
+  },
 }
 
 function WalletListItem({ wallet, theme, isActive, isEditing, onSelect, onDelete, disableDelete }) {
@@ -211,6 +231,18 @@ const WALLET_ICON_PRESETS = [
   "🎮",
   "📱",
   "🎓",
+  "🏠",
+  "🚗",
+  "🍔",
+  "🎬",
+  "⚽",
+  "🎸",
+  "📚",
+  "🌍",
+  "💎",
+  "🔥",
+  "⭐",
+  "🎁",
 ]
 
 function getWalletGradient(color, theme) {
@@ -2748,6 +2780,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }, [wallets, currentWalletIndex, walletSwipeStartX, vibrateSelect, vibrateError, setActiveWalletKey])
 
   const handleAddWallet = () => {
+    // Если редактируем основной кошелек
+    if (editingWalletKey === "main") {
+      setWallets((prev) => prev.map((w) => 
+        w.key === "main" 
+          ? { ...w, icon: walletEditorIcon, color: walletEditorColor }
+          : w
+      ))
+      setShowAddWalletForm(false)
+      setShowWalletSettingsModal(false)
+      if (vibrateSuccess) vibrateSuccess()
+      return
+    }
+
+    // Если добавляем новый кошелек
     if (wallets.length >= 4) {
       return
     }
@@ -2769,7 +2815,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setWalletDraftName("")
     setWalletDraftIcon("💳")
     setWalletDraftColor("indigo")
+    setShowAddWalletForm(false)
     if (vibrateSuccess) vibrateSuccess()
+  }
+
+  const handleDeleteWallet = (walletKey) => {
+    if (walletKey === "main") {
+      alert("Нельзя удалить основной кошелек!")
+      return
+    }
+    
+    if (window.confirm("Вы уверены? Все транзакции этого кошелька будут удалены!")) {
+      setWallets((prev) => prev.filter((w) => w.key !== walletKey))
+      setTransactions((prev) => prev.filter((t) => t.wallet_key !== walletKey))
+      if (activeWalletKey === walletKey) {
+        setActiveWalletKey("main")
+      }
+      if (vibrateSuccess) vibrateSuccess()
+    }
   }
 
   if (!isReady || isLoading) {
@@ -2905,10 +2968,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Превью предыдущего кошелька (слева) */}
               {prevWallet && prevWallet.key !== activeWallet.key && (
                 <div 
-                  className={`absolute left-0 top-0 w-full h-full rounded-2xl opacity-70 ${getWalletGradient(prevWallet.color, theme)}`}
+                  className={`absolute left-0 top-0 w-full h-full rounded-2xl opacity-60 ${getWalletGradient(prevWallet.color, theme)}`}
                   style={{
-                    transform: `translateX(${Math.max(-100, walletSwipeOffset - 40)}px)`,
-                    transition: walletSwipeStartX === null ? 'transform 0.3s ease' : 'none',
+                    transform: `translateX(${Math.max(-100, walletSwipeOffset - 50)}px) scale(0.95)`,
+                    transition: walletSwipeStartX === null ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
                     zIndex: 5,
                   }}
                 ></div>
@@ -2918,8 +2981,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div
                 className={`relative rounded-2xl p-4 ${getWalletGradient(activeWallet.color, theme)}`}
                 style={{
-                  transform: `translateX(${walletSwipeOffset}px)`,
-                  transition: walletSwipeStartX === null ? 'transform 0.3s ease' : 'none',
+                  transform: `translateX(${walletSwipeOffset}px) scale(1)`,
+                  transition: walletSwipeStartX === null ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
                   touchAction: 'pan-y',
                   zIndex: 10,
                   position: 'relative',
@@ -2967,10 +3030,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Превью следующего кошелька (справа) */}
               {nextWallet && nextWallet.key !== activeWallet.key && (
                 <div 
-                  className={`absolute right-0 top-0 w-full h-full rounded-2xl opacity-70 ${getWalletGradient(nextWallet.color, theme)}`}
+                  className={`absolute right-0 top-0 w-full h-full rounded-2xl opacity-60 ${getWalletGradient(nextWallet.color, theme)}`}
                   style={{
-                    transform: `translateX(${Math.min(100, walletSwipeOffset + 40)}px)`,
-                    transition: walletSwipeStartX === null ? 'transform 0.3s ease' : 'none',
+                    transform: `translateX(${Math.min(100, walletSwipeOffset + 50)}px) scale(0.95)`,
+                    transition: walletSwipeStartX === null ? 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
                     zIndex: 5,
                   }}
                 ></div>
@@ -4232,7 +4295,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           >
             <div className="p-4 space-y-4">
               {/* Предпросмотр карты кошелька */}
-              <div className={`rounded-2xl p-4 text-white ${getWalletGradient(editingWallet.color, theme)}`}>
+              <div className={`rounded-2xl p-4 text-white transition-all duration-300 ${getWalletGradient(editingWallet.key === "main" && walletEditorColor ? walletEditorColor : editingWallet.color, theme)}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -4296,73 +4359,111 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   {wallets.map((w) => (
                     <div
                       key={w.key}
-                      onClick={() => {
-                        setActiveWalletKey(w.key)
-                        setEditingWalletKey(w.key)
-                        setShowAddWalletForm(false)
-                        vibrateSelect()
-                      }}
-                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm cursor-pointer transition-colors ${
-                        w.key === activeWalletKey
-                          ? theme === "dark"
-                            ? 'bg-blue-600 border border-blue-500'
-                            : 'bg-blue-500 border border-blue-400'
-                          : theme === "dark"
-                            ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700'
-                            : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
-                      }`}
+                      className="relative overflow-hidden rounded-xl"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${getWalletGradient(w.color, theme)}`}>
-                          <span className="text-lg">{w.icon}</span>
+                      {w.key !== "main" && (
+                        <button
+                          onClick={() => handleDeleteWallet(w.key)}
+                          className="absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer bg-red-500 hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 text-white" />
+                        </button>
+                      )}
+                      <div
+                        onClick={() => {
+                          setActiveWalletKey(w.key)
+                          setEditingWalletKey(w.key)
+                          setShowAddWalletForm(false)
+                          vibrateSelect()
+                        }}
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm cursor-pointer transition-colors ${
+                          w.key === activeWalletKey
+                            ? theme === "dark"
+                              ? 'bg-green-600 border border-green-500'
+                              : 'bg-green-500 border border-green-400'
+                            : theme === "dark"
+                              ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700'
+                              : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${getWalletGradient(w.color, theme)}`}>
+                            <span className="text-lg">{w.icon}</span>
+                          </div>
+                          <div>
+                            <p className={`text-sm font-medium ${theme === "dark" ? 'text-gray-100' : 'text-gray-900'}`}>
+                              {w.key === "main" ? "Общий кошелёк" : w.name}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className={`text-sm font-medium ${theme === "dark" ? 'text-gray-100' : 'text-gray-900'}`}>
-                            {w.key === "main" ? "Общий кошелёк" : w.name}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          {w.key === activeWalletKey && (
+                            <Check className="w-4 h-4 text-green-500" />
+                          )}
+                          {w.key === "main" && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditingWalletKey("main")
+                                setWalletEditorIcon(w.icon)
+                                setWalletEditorColor(w.color)
+                                setShowAddWalletForm(true)
+                                vibrateSelect()
+                              }}
+                              className={`p-1 rounded-lg transition-colors ${
+                                theme === "dark"
+                                  ? "hover:bg-gray-700 text-gray-400"
+                                  : "hover:bg-gray-200 text-gray-600"
+                              }`}
+                              title="Редактировать основной кошелек"
+                            >
+                              <Settings className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
-                      {w.key === activeWalletKey ? (
-                        <Check className="w-4 h-4 text-blue-500" />
-                      ) : null}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Форма добавления кошелька */}
+              {/* Форма добавления/редактирования кошелька */}
               {(showAddWalletForm || wallets.length === 1) && (
                 <div className={`rounded-2xl p-4 transition-all ${
                   theme === "dark" ? "bg-gray-800/80 border border-gray-700" : "bg-gray-50 border border-gray-200"
                 }`}>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      {wallets.length === 1 ? 'Добавьте свой первый кошелёк' : 'Новый кошелёк'}
+                      {editingWalletKey === "main" ? 'Редактировать основной кошелек' : wallets.length === 1 ? 'Добавьте свой первый кошелёк' : 'Новый кошелёк'}
                     </h3>
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                      {Math.max(0, wallets.length - 1)}/3
-                    </span>
+                    {editingWalletKey !== "main" && (
+                      <span className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                        {Math.max(0, wallets.length - 1)}/3
+                      </span>
+                    )}
                   </div>
 
-                  {wallets.length >= 4 ? (
+                  {editingWalletKey !== "main" && wallets.length >= 4 ? (
                     <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                       Вы уже создали максимум дополнительных кошельков.
                     </p>
                   ) : (
                     <>
-                      <div className="mb-3">
-                        <input
-                          type="text"
-                          value={walletDraftName}
-                          onChange={(e) => setWalletDraftName(e.target.value)}
-                          placeholder="Название кошелька"
-                          className={`w-full p-3 border rounded-xl text-sm ${
-                            theme === "dark"
-                              ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                              : "bg-white border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          }`}
-                        />
-                      </div>
+                      {editingWalletKey !== "main" && (
+                        <div className="mb-3">
+                          <input
+                            type="text"
+                            value={walletDraftName}
+                            onChange={(e) => setWalletDraftName(e.target.value)}
+                            placeholder="Название кошелька"
+                            className={`w-full p-3 border rounded-xl text-sm ${
+                              theme === "dark"
+                                ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                                : "bg-white border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            }`}
+                          />
+                        </div>
+                      )}
 
                       <div className="mb-4">
                         <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
@@ -4374,11 +4475,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               key={icon}
                               type="button"
                               onClick={() => {
-                                setWalletDraftIcon(icon)
+                                if (editingWalletKey === "main") {
+                                  setWalletEditorIcon(icon)
+                                } else {
+                                  setWalletDraftIcon(icon)
+                                }
                                 vibrateSelect()
                               }}
                               className={`w-full aspect-square rounded-xl flex items-center justify-center text-2xl touch-none active:scale-95 transition-transform ${
-                                walletDraftIcon === icon
+                                (editingWalletKey === "main" ? walletEditorIcon : walletDraftIcon) === icon
                                   ? 'ring-2 ring-offset-2 ring-blue-500'
                                   : theme === "dark" ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
                               }`}
@@ -4399,16 +4504,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               key={color}
                               type="button"
                               onClick={() => {
-                                setWalletDraftColor(color)
+                                if (editingWalletKey === "main") {
+                                  setWalletEditorColor(color)
+                                } else {
+                                  setWalletDraftColor(color)
+                                }
                                 vibrateSelect()
                               }}
                               className={`w-full aspect-square rounded-full flex items-center justify-center touch-none active:scale-95 transition-transform ${
-                                walletDraftColor === color
+                                (editingWalletKey === "main" ? walletEditorColor : walletDraftColor) === color
                                   ? (theme === "dark" ? "ring-2 ring-offset-2 ring-blue-500 ring-offset-gray-800" : "ring-2 ring-offset-2 ring-blue-500")
                                   : ''
                               } ${getWalletGradient(color, theme)}`}
                             >
-                              {walletDraftColor === color && (
+                              {(editingWalletKey === "main" ? walletEditorColor : walletDraftColor) === color && (
                                 <Check className="w-4 h-4 text-white" />
                               )}
                             </button>
@@ -4419,7 +4528,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setShowAddWalletForm(false)}
+                          onClick={() => {
+                            setShowAddWalletForm(false)
+                            setEditingWalletKey(null)
+                          }}
                           className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${
                             theme === "dark"
                               ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
@@ -4431,9 +4543,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         <button
                           type="button"
                           onClick={() => handleAddWallet()}
-                          disabled={!walletDraftName.trim() || wallets.length >= 4}
+                          disabled={editingWalletKey !== "main" && (!walletDraftName.trim() || wallets.length >= 4)}
                           className={`flex-1 py-2.5 rounded-xl text-sm font-medium ${
-                            !walletDraftName.trim() || wallets.length >= 4
+                            editingWalletKey !== "main" && (!walletDraftName.trim() || wallets.length >= 4)
                               ? theme === "dark"
                                 ? "bg-gray-700 text-gray-500 cursor-not-allowed"
                                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -4442,7 +4554,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                 : "bg-blue-500 hover:bg-blue-600 text-white"
                           }`}
                         >
-                          {wallets.length === 1 ? 'Создать кошелёк' : 'Добавить'}
+                          {editingWalletKey === "main" ? 'Сохранить' : wallets.length === 1 ? 'Создать кошелёк' : 'Добавить'}
                         </button>
                       </div>
                     </>
@@ -5871,10 +5983,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setShowWalletSelectorInAdd(!showWalletSelectorInAdd)
                       vibrateSelect()
                     }}
-                    className={`w-full p-3 border rounded-xl text-left flex items-center justify-between ${
+                    className={`w-full p-3 rounded-xl text-left flex items-center justify-between ${
                       theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-white border-gray-200 text-gray-900"
+                        ? "bg-gray-700 text-gray-100"
+                        : "bg-gray-50 text-gray-900"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -5888,24 +6000,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   
                   {showWalletSelectorInAdd && wallets.length > 1 && (
                     <div 
-                      className={`absolute z-10 w-full mt-1 rounded-xl shadow-lg overflow-hidden ${
+                      className={`absolute z-10 w-full mt-2 rounded-xl shadow-lg overflow-hidden ${
                         theme === "dark" 
-                          ? "bg-gray-700 border border-gray-600" 
-                          : "bg-white border border-gray-200"
+                          ? "bg-gray-800" 
+                          : "bg-white"
                       }`}
                     >
-                      <div className="max-h-60 overflow-y-auto">
+                      <div className="p-3 grid grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                         {wallets.map((w) => (
-                          <div
+                          <button
                             key={w.key}
-                            className={`px-4 py-3 text-sm cursor-pointer flex items-center gap-2 ${
+                            type="button"
+                            className={`p-3 rounded-xl flex flex-col items-center gap-2 transition-all touch-none active:scale-95 ${
                               transactionWalletKey === w.key
                                 ? theme === "dark"
-                                  ? "bg-blue-600 text-white"
-                                  : "bg-blue-500 text-white"
+                                  ? "bg-green-600 text-white ring-2 ring-green-400"
+                                  : "bg-green-500 text-white ring-2 ring-green-300"
                                 : theme === "dark"
-                                  ? "hover:bg-gray-600 text-gray-100"
-                                  : "hover:bg-gray-100 text-gray-700"
+                                  ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                             onClick={() => {
                               setTransactionWalletKey(w.key)
@@ -5913,14 +6026,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               vibrateSelect()
                             }}
                           >
-                            <span className="text-lg">{w.icon}</span>
-                            <span className="truncate">
-                              {w.key === "main" ? "Общий кошелёк" : w.name}
+                            <span className="text-2xl">{w.icon}</span>
+                            <span className="text-xs font-medium text-center truncate w-full">
+                              {w.key === "main" ? "Основной" : w.name}
                             </span>
-                            {transactionWalletKey === w.key && (
-                              <Check className="ml-auto w-4 h-4" />
-                            )}
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
