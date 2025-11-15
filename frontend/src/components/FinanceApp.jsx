@@ -4448,7 +4448,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </>
                   )}
                 </div>
-              </div>
+              )}
 
               <div className="flex gap-2 pt-1">
                 <button
@@ -4473,7 +4473,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showSavingsSettingsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
-          <div className="p-4">
+            <div className="p-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
             </h3>
