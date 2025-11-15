@@ -778,7 +778,7 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
         onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
         className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
-          theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
+          theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
         }`}
       >
         {linkedUser.telegram_photo_url ? (
@@ -4169,7 +4169,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 value={selectedSavingsGoal === 'main' ? goalInput : secondGoalInput}
                 min={0}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/^0+(?=\d)/, '')
+                  const val = e.target.value.replace(/^0+(?=\d)/g, '')
                   if (selectedSavingsGoal === 'main') {
                     setGoalInput(val || '0')
                   } else {
@@ -4305,10 +4305,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm cursor-pointer transition-colors ${
                         w.key === activeWalletKey
                           ? theme === "dark"
-                            ? 'bg-blue-600/20 border border-blue-500/30'
-                            : 'bg-blue-500/10 border border-blue-400/30'
+                            ? 'bg-blue-600 border border-blue-500'
+                            : 'bg-blue-500 border border-blue-400'
                           : theme === "dark"
-                            ? 'bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50'
+                            ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700'
                             : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
                       }`}
                     >
@@ -4380,7 +4380,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               className={`w-full aspect-square rounded-xl flex items-center justify-center text-2xl touch-none active:scale-95 transition-transform ${
                                 walletDraftIcon === icon
                                   ? 'ring-2 ring-offset-2 ring-blue-500'
-                                  : 'hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                                  : theme === "dark" ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'
                               }`}
                             >
                               {icon}
@@ -4404,7 +4404,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               }}
                               className={`w-full aspect-square rounded-full flex items-center justify-center touch-none active:scale-95 transition-transform ${
                                 walletDraftColor === color
-                                  ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-800'
+                                  ? theme === "dark" ? "ring-2 ring-offset-2 ring-blue-500 ring-offset-gray-800" : "ring-2 ring-offset-2 ring-blue-500"
                                   : ''
                               } ${getWalletGradient(color, theme)}`}
                             >
@@ -4839,7 +4839,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 value={secondGoalInput}
                 min={0}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/^0+(?=\d)/, '')
+                  const val = e.target.value.replace(/^0+(?=\d)/g, '')
                   setSecondGoalInput(val || '0')
                 }}
                 className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
