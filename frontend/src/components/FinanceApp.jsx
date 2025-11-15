@@ -5235,6 +5235,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   inputMode="none"
                   placeholder="Сумма"
                   value={amount}
+                  onTouchStart={(e) => {
+                    // Открываем цифровую клавиатуру максимально рано, предотвращаем системный фокус
+                    e.preventDefault()
+                    setShowNumKeyboard(true)
+                    setIsKeyboardOpen(true)
+                  }}
                   onClick={() => {
                     setShowNumKeyboard(true)
                     setIsKeyboardOpen(true)
@@ -5260,6 +5266,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 type="text"
                 placeholder="Описание (необязательно)"
                 value={description}
+                onTouchStart={() => {
+                  // Устанавливаем флаг заранее, до фокуса, чтобы интерфейс сразу подстроился
+                  setIsKeyboardOpen(true)
+                }}
                 onFocus={() => {
                   setShowNumKeyboard(false)
                   setIsKeyboardOpen(true)
@@ -5275,6 +5285,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                onTouchStart={() => {
+                  // Аналогично описанию — выставляем флаг заранее
+                  setIsKeyboardOpen(true)
+                }}
                 onFocus={() => {
                   setShowNumKeyboard(false)
                   setIsKeyboardOpen(true)
