@@ -4358,7 +4358,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           placeholder="Название кошелька"
                           className={`w-full p-3 border rounded-xl text-sm ${
                             theme === "dark"
-                              ? "bg-gray-700/50 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                              ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                               : "bg-white border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           }`}
                         />
@@ -4404,7 +4404,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               }}
                               className={`w-full aspect-square rounded-full flex items-center justify-center touch-none active:scale-95 transition-transform ${
                                 walletDraftColor === color
-                                  ? theme === "dark" ? "ring-2 ring-offset-2 ring-blue-500 ring-offset-gray-800" : "ring-2 ring-offset-2 ring-blue-500"
+                                  ? (theme === "dark" ? "ring-2 ring-offset-2 ring-blue-500 ring-offset-gray-800" : "ring-2 ring-offset-2 ring-blue-500")
                                   : ''
                               } ${getWalletGradient(color, theme)}`}
                             >
