@@ -3921,6 +3921,30 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <label
                       className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
                     >
+                      Кошельки
+                    </label>
+                    <button
+                      onClick={() => {
+                        setShowWalletSettingsModal(true)
+                        setEditingWalletKey("main")
+                        vibrate()
+                      }}
+                      style={{ touchAction: 'manipulation' }}
+                      className={`w-full p-3 border rounded-xl transition-all text-left text-sm active:scale-95 flex items-center justify-between ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                          : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
+                      }`}
+                    >
+                      <span>💳 Управление кошельками</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                    >
                       Тема
                     </label>
                     <button
@@ -4374,6 +4398,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                 setWalletEditorIcon(w.icon)
                                 setWalletEditorColor(w.color)
                                 setShowAddWalletForm(true)
+                                setShowWalletSettingsModal(false)
                                 vibrateSelect()
                               }}
                               className={`p-1 rounded-lg transition-colors ${
