@@ -4277,14 +4277,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showWalletSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden my-auto ${
+            className={`w-full max-w-sm rounded-2xl shadow-2xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
+            style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
           >
-            <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
+            <div className="p-4 overflow-y-auto flex-1">
+              <h2 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Управление кошельками
+              </h2>
+              <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                Кошельков: {wallets?.length || 0}
+              </p>
               {/* Предпросмотр карты кошелька */}
+              {editingWallet && (
               <div className={`rounded-2xl p-4 text-white transition-all duration-300 ${getWalletGradient(editingWallet.key === "main" && walletEditorColor ? walletEditorColor : editingWallet.color, theme)}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -4317,12 +4325,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     : "Нажмите на карту, чтобы выбрать"}
                 </p>
               </div>
+              )}
 
               {/* Список кошельков */}
+              {wallets && wallets.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className={`text-sm font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Мои кошельки
+                    Мои кошельки ({wallets.length})
                   </h3>
                   {wallets.length < 4 && (
                     <button
@@ -4417,6 +4427,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Форма добавления/редактирования кошелька */}
               {(showAddWalletForm || wallets.length === 1) && (
