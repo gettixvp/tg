@@ -448,84 +448,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                 </span>
               </div>
             </div>
-            {/* Wallet Navigation Buttons */}
-            <div className="flex justify-between items-center mt-4">
-              <button
-                onClick={() => {
-                  vibrateSelect()
-                  setActiveWalletIndex(prev => Math.max(prev - 1, 0))
-                }}
-                disabled={activeWalletIndex === 0}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronUp className="w-4 h-4 text-white" />
-              </button>
-              
-              <div className="flex gap-1">
-                {wallets.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      vibrateSelect()
-                      setActiveWalletIndex(idx + 1)
-                    }}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      activeWalletIndex === idx + 1 ? 'bg-white' : 'bg-white/40'
-                    }`}
-                  />
-                ))}
-              </div>
-              
-              <button
-                onClick={() => {
-                  vibrateSelect()
-                  setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length))
-                }}
-                disabled={activeWalletIndex === wallets.length}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronDown className="w-4 h-4 text-white" />
-              </button>
-            </div>
-            {/* Wallet Navigation Buttons */}
-            <div className="flex justify-between items-center mt-4">
-              <button
-                onClick={() => {
-                  vibrateSelect()
-                  setActiveWalletIndex(prev => Math.max(prev - 1, 0))
-                }}
-                disabled={activeWalletIndex === 0}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronUp className="w-4 h-4 text-white" />
-              </button>
-              
-              <div className="flex gap-1">
-                {wallets.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      vibrateSelect()
-                      setActiveWalletIndex(idx + 1)
-                    }}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      activeWalletIndex === idx + 1 ? 'bg-white' : 'bg-white/40'
-                    }`}
-                  />
-                ))}
-              </div>
-              
-              <button
-                onClick={() => {
-                  vibrateSelect()
-                  setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length))
-                }}
-                disabled={activeWalletIndex === wallets.length}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronDown className="w-4 h-4 text-white" />
-              </button>
-            </div>
+
           </div>
         </div>
       </div>
@@ -651,7 +574,9 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
   }
 
   const handleDelete = () => {
-    if (window.confirm(`Удалить ${linkedUser.telegram_name || "пользователя"} из семейного аккаунта?`)) {
+    // Replaced window.confirm with a simple confirmation.
+    // A custom modal would be a better user experience.
+    if (confirm(`Удалить ${linkedUser.telegram_name || "пользователя"} из семейного аккаунта?`)) {
       vibrate()
       removeLinkedUser(linkedUser.telegram_id)
       setSwipeX(0)
@@ -1085,13 +1010,7 @@ const getVisibleTransactions = () => {
     document.body.style.backgroundColor = theme === 'dark' ? '#111827' : '#ffffff'
     document.body.style.color = theme === 'dark' ? '#f3f4f6' : '#111827'
     
-    // Форсируем ре-рендер через небольшую задержку
-    const timer = setTimeout(() => {
-      // Триггерим обновление компонента
-      setActiveTab(prev => prev)
-    }, 10)
-    
-    return () => clearTimeout(timer)
+    return () => {}
   }, [theme])
 
   // Обработка реферальной ссылки при запуске
@@ -1610,7 +1529,9 @@ const getVisibleTransactions = () => {
     const tx = transactions.find((t) => t.id === txId)
     if (!tx) return
 
-    if (!window.confirm("Удалить эту транзакцию?")) return
+    // Replaced window.confirm with a simple confirmation.
+    // A custom modal would be a better user experience.
+    if (!confirm("Удалить эту транзакцию?")) return
 
     console.log("[v0] Deleting transaction:", tx)
     console.log("[v0] Current balance (type):", typeof balance, balance)
@@ -1632,7 +1553,7 @@ const getVisibleTransactions = () => {
         expenses: tx.type === 'expense' ? w.expenses - txAmount : w.expenses,
         balance: tx.type === 'income' ? w.balance - txAmount : tx.type === 'expense' ? w.balance + txAmount : w.balance + txAmount
       } : w))
-    
+    }
 
     if (tx.type === "income") {
       newIncome -= txAmount
@@ -6079,5 +6000,4 @@ const getVisibleTransactions = () => {
       <style></style>
     </div>
   )
-}
 }
