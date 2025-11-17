@@ -1443,7 +1443,7 @@ const getVisibleTransactions = () => {
       convertedUSD = n * exchangeRate
     }
 
-    const wid = selectedWalletId || (activeWalletIndex > 0 ? (wallets[activeWalletIndex-1]?.id || null) : (wallets[0]?.id || null))
+    const wid = selectedWalletId !== null ? selectedWalletId : (activeWalletIndex > 0 ? (wallets[activeWalletIndex-1]?.id || null) : null)
     const newTx = {
       id: Date.now(),
       user_id: user?.id || null,
@@ -2579,8 +2579,9 @@ const getVisibleTransactions = () => {
             style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
             onTouchStart={(e) => { headerStartY.current = e.touches[0].clientY; headerIsSwiping.current = true }}
             onTouchMove={(e) => { if (!headerIsSwiping.current) return; headerSwipeY.current = e.touches[0].clientY - headerStartY.current }}
-            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dy = headerSwipeY.current || 0; headerIsSwiping.current = false; headerSwipeY.current = 0; if (Math.abs(dy) > 40) { vibrateSelect(); if (dy < 0) { setActiveWalletIndex(prev => Math.max(prev - 1, 0)) } else { setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length)) } } }}
-          >
+            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dy = headerSwipeY.current || 0; headerIsSwiping.current = false; headerSwipeY.current = 0; if (Math.abs(dy) > 40) { vibrateSelect(); if (dy < 0) { setActiveWalletIndex(prev => { const next = prev - 1; return next < 0 ? wallets.length : next }) } else { setActiveWalletIndex(prev => { const next = prev + 1; return next > wallets.length ? 0 : next }) } } }}
+         >
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/60 pulse-once" key={activeWalletIndex} />
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
                 <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
@@ -2600,13 +2601,13 @@ const getVisibleTransactions = () => {
                   <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? balance : (wallets[activeWalletIndex-1]?.balance || 0)) : "••••••"}</p>
                   {activeWalletIndex === 0 ? (
                     <div className="mt-2 grid grid-cols-2 gap-2">
-                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between">
+                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between min-w-0">
                         <div className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-white" /><span className="text-xs text-white/80">Доходы</span></div>
-                        <span className="text-sm font-semibold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</span>
+                        <span className="text-sm font-semibold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(income) : "••••••"}</span>
                       </div>
-                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between">
+                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between min-w-0">
                         <div className="flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-white" /><span className="text-xs text-white/80">Расходы</span></div>
-                        <span className="text-sm font-semibold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</span>
+                        <span className="text-sm font-semibold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(expenses) : "••••••"}</span>
                       </div>
                     </div>
                   ) : (
@@ -4990,8 +4991,9 @@ const getVisibleTransactions = () => {
             <div className="px-4 py-3 border-t flex-shrink-0" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
               <button
                 onClick={() => {
-                  setShowBudgetModal(false)
+                  setClosingBudgetModal(true)
                   vibrate()
+                  setTimeout(() => { setShowBudgetModal(false); setClosingBudgetModal(false) }, 250)
                 }}
                 className={`w-full py-2.5 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                   theme === "dark"
@@ -5267,14 +5269,18 @@ const getVisibleTransactions = () => {
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
           onClick={() => {
-            setShowAddDebtModal(false)
-            setDebtPerson('')
-            setDebtAmount('')
-            setDebtDescription('')
+            setClosingDebtModal(true)
+            setTimeout(() => {
+              setShowAddDebtModal(false)
+              setClosingDebtModal(false)
+              setDebtPerson('')
+              setDebtAmount('')
+              setDebtDescription('')
+            }, 250)
           }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingDebtModal ? 'slide-down' : 'slide-up'}`}
             style={{ 
               maxHeight: "85vh",
               display: "flex",
@@ -5431,7 +5437,7 @@ const getVisibleTransactions = () => {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingAddModal ? 'slide-down' : 'slide-up'}`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
@@ -5444,12 +5450,29 @@ const getVisibleTransactions = () => {
                 </h3>
                 
               </div>
-              {wallets.length > 0 && (
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  Новая операция
+                </h3>
+                <button
+                  onClick={() => setShowWalletSelect(!showWalletSelect)}
+                  className={`py-2 px-3 rounded-xl text-sm font-medium ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900'}`}
+                >
+                  {(() => { const label = selectedWalletId === null ? (commonWallet.name || 'Общий баланс') : (wallets.find(x => x.id === selectedWalletId)?.name || 'Кошелек'); return label })()}
+                </button>
+              </div>
+              {showWalletSelect && (
                 <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => { setSelectedWalletId(null); setShowWalletSelect(false) }}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium ${selectedWalletId === null ? (theme==='dark'?'bg-blue-700 text-white':'bg-blue-500 text-white') : (theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900')}`}
+                  >
+                    {commonWallet.icon} {commonWallet.name}
+                  </button>
                   {wallets.map(w => (
                     <button
                       key={w.id}
-                      onClick={() => { setSelectedWalletId(w.id) }}
+                      onClick={() => { setSelectedWalletId(w.id); setShowWalletSelect(false) }}
                       className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium ${selectedWalletId === w.id ? (theme==='dark'?'bg-blue-700 text-white':'bg-blue-500 text-white') : (theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900')}`}
                     >
                       {w.icon} {w.name}
@@ -5969,7 +5992,7 @@ const getVisibleTransactions = () => {
               />
               <button
                 onClick={() => {
-                  const wid = activeWalletIndex > 0 ? wallets[activeWalletIndex-1]?.id : wallets[0]?.id
+                  const wid = activeWalletIndex > 0 ? wallets[activeWalletIndex-1]?.id : null
                   setSelectedWalletId(wid || null)
                   setShowWalletSelect(false)
                   setShowAddModal(true)
