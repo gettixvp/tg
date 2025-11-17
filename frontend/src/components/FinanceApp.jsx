@@ -448,6 +448,84 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                 </span>
               </div>
             </div>
+            {/* Wallet Navigation Buttons */}
+            <div className="flex justify-between items-center mt-4">
+              <button
+                onClick={() => {
+                  vibrateSelect()
+                  setActiveWalletIndex(prev => Math.max(prev - 1, 0))
+                }}
+                disabled={activeWalletIndex === 0}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronUp className="w-4 h-4 text-white" />
+              </button>
+              
+              <div className="flex gap-1">
+                {wallets.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      vibrateSelect()
+                      setActiveWalletIndex(idx + 1)
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      activeWalletIndex === idx + 1 ? 'bg-white' : 'bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+              
+              <button
+                onClick={() => {
+                  vibrateSelect()
+                  setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length))
+                }}
+                disabled={activeWalletIndex === wallets.length}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronDown className="w-4 h-4 text-white" />
+              </button>
+            </div>
+            {/* Wallet Navigation Buttons */}
+            <div className="flex justify-between items-center mt-4">
+              <button
+                onClick={() => {
+                  vibrateSelect()
+                  setActiveWalletIndex(prev => Math.max(prev - 1, 0))
+                }}
+                disabled={activeWalletIndex === 0}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronUp className="w-4 h-4 text-white" />
+              </button>
+              
+              <div className="flex gap-1">
+                {wallets.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      vibrateSelect()
+                      setActiveWalletIndex(idx + 1)
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      activeWalletIndex === idx + 1 ? 'bg-white' : 'bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+              
+              <button
+                onClick={() => {
+                  vibrateSelect()
+                  setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length))
+                }}
+                disabled={activeWalletIndex === wallets.length}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronDown className="w-4 h-4 text-white" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -632,28 +710,12 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
 }
 
 const WalletRow = ({ wallet, theme, onDelete, onUpdate }) => {
-  const [swipeX, setSwipeX] = useState(0)
-  const [isSwiping, setIsSwiping] = useState(false)
-  const startX = useRef(0)
   const [editing, setEditing] = useState(false)
-
-  const handleTouchStart = (e) => { startX.current = e.touches[0].clientX; setIsSwiping(true) }
-  const handleTouchMove = (e) => { if (!isSwiping || editing) return; const diff = e.touches[0].clientX - startX.current; if (diff < 0) setSwipeX(Math.max(diff, -80)); else if (swipeX < 0) setSwipeX(Math.min(0, swipeX + diff/2)) }
-  const handleTouchEnd = () => { setIsSwiping(false); if (swipeX < -40) setSwipeX(-80); else setSwipeX(0) }
-  const handleDelete = () => { if (swipeX === -80) { onDelete && onDelete(); setSwipeX(0) } }
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   return (
-    <div className="relative mb-1.5 overflow-hidden rounded-xl">
-      <div onClick={handleDelete} className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-red-600' : 'bg-red-500'}`}>
-        <Trash2 className="w-5 h-5 text-white" />
-      </div>
-      <div
-        style={{ transform: `translateX(${swipeX}px)`, transition: isSwiping ? 'none' : 'transform 0.3s ease' }}
-        onTouchStart={!editing ? handleTouchStart : undefined}
-        onTouchMove={!editing ? handleTouchMove : undefined}
-        onTouchEnd={!editing ? handleTouchEnd : undefined}
-        className={`relative p-3 rounded-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700/50' : 'bg-white border-gray-200/50'}`}
-      >
+    <div className="relative mb-1.5 rounded-xl">
+      <div className={`p-3 rounded-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700/50' : 'bg-white border-gray-200/50'}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center`} style={{ backgroundColor: theme === 'dark' ? wallet.colorDark : wallet.colorLight }}>
@@ -661,10 +723,34 @@ const WalletRow = ({ wallet, theme, onDelete, onUpdate }) => {
             </div>
             <input type="text" value={wallet.name} onChange={(e) => onUpdate && onUpdate({ name: e.target.value })} className={`p-2 rounded-lg text-sm ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-900'}`} />
           </div>
-          <button onClick={() => setEditing(!editing)} className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-900'}`}>
-            <Settings className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowDeleteConfirm(true)} className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-red-600 text-white' : 'bg-red-500 text-white'}`}>
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button onClick={() => setEditing(!editing)} className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-900'}`}>
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+        {showDeleteConfirm && (
+          <div className="mt-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-700 dark:text-red-400 mb-3">Удалить кошелек "{wallet.name}"?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { onDelete && onDelete(); setShowDeleteConfirm(false); }}
+                className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+              >
+                Удалить
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        )}
         {editing && (
           <div className="mt-3 space-y-3">
             <div className="grid grid-cols-8 gap-2">
@@ -750,8 +836,17 @@ const [newWalletColor, setNewWalletColor] = useState(null)
 const headerStartY = useRef(0)
 const headerSwipeY = useRef(0)
 const headerIsSwiping = useRef(false)
+const [walletSelectorOpen, setWalletSelectorOpen] = useState(false)
 const saveWallets = (next) => { setWallets(next); try { localStorage.setItem('finance_wallets_v1', JSON.stringify(next)) } catch {} }
-useEffect(() => { try { const raw = localStorage.getItem('finance_wallets_v1'); if (raw) { setWallets(JSON.parse(raw) || []) } } catch {} }, [])
+useEffect(() => { 
+  // Initialize Telegram WebApp
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp
+    tg.ready()
+    tg.expand()
+  }
+  try { const raw = localStorage.getItem('finance_wallets_v1'); if (raw) { setWallets(JSON.parse(raw) || []) } } catch {} 
+}, [])
 useEffect(() => { try { const raw = localStorage.getItem('finance_common_wallet_v1'); if (raw) { const obj = JSON.parse(raw); setCommonWallet(prev => ({ ...prev, ...obj })) } } catch {} }, [])
 const getActiveView = () => activeWalletIndex === 0 ? { ...commonWallet, isCommon: true } : wallets[activeWalletIndex - 1]
 const getVisibleTransactions = () => {
@@ -802,7 +897,7 @@ const getVisibleTransactions = () => {
   const [debtAmount, setDebtAmount] = useState('')
   const [debtDescription, setDebtDescription] = useState('')
 
-  const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
+  const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null
   const haptic = tg && tg.HapticFeedback
   const vibrate = () => haptic && haptic.impactOccurred && haptic.impactOccurred("light")
   const vibrateSuccess = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("success")
@@ -2554,11 +2649,8 @@ const getVisibleTransactions = () => {
             }}
           />
           <div
-            className="relative overflow-hidden rounded-2xl p-4 z-10"
+            className="relative rounded-2xl p-4 z-10"
             style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
-            onTouchStart={(e) => { headerStartY.current = e.touches[0].clientY; headerIsSwiping.current = true }}
-            onTouchMove={(e) => { if (!headerIsSwiping.current) return; const diff = e.touches[0].clientY - headerStartY.current; headerSwipeY.current = diff }}
-            onTouchEnd={() => { headerIsSwiping.current = false; const diff = headerSwipeY.current; headerSwipeY.current = 0; setActiveWalletIndex(prev => diff < -40 ? Math.min(prev + 1, wallets.length) : diff > 40 ? Math.max(prev - 1, 0) : prev) }}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
@@ -2566,8 +2658,56 @@ const getVisibleTransactions = () => {
                   {activeWalletIndex === 0 ? <CreditCard className="w-5 h-5 text-white" /> : <span className="text-xl">{wallets[activeWalletIndex-1]?.icon || '💼'}</span>}
                 </div>
                 <div>
-                  <p className="text-xs text-white/80">{activeWalletIndex === 0 ? "Общий баланс" : wallets[activeWalletIndex-1]?.name || "Кошелек"}</p>
+                  <button
+                    onClick={() => {
+                      vibrateSelect()
+                      setWalletSelectorOpen(true)
+                    }}
+                    className="flex items-center gap-1 text-xs text-white/80 hover:text-white transition-colors"
+                  >
+                    <span>{activeWalletIndex === 0 ? "Общий баланс" : wallets[activeWalletIndex-1]?.name || "Кошелек"}</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
                   <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? balance : (wallets[activeWalletIndex-1]?.balance || 0)) : "••••••"}</p>
+                </div>
+                {/* Wallet Navigation Buttons */}
+                <div className="flex justify-between items-center mt-3">
+                  <button
+                    onClick={() => {
+                      vibrateSelect()
+                      setActiveWalletIndex(prev => Math.max(prev - 1, 0))
+                    }}
+                    disabled={activeWalletIndex === 0}
+                    className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronUp className="w-3 h-3 text-white" />
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {wallets.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          vibrateSelect()
+                          setActiveWalletIndex(idx + 1)
+                        }}
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${
+                          activeWalletIndex === idx + 1 ? 'bg-white' : 'bg-white/40'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      vibrateSelect()
+                      setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length))
+                    }}
+                    disabled={activeWalletIndex === wallets.length}
+                    className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronDown className="w-3 h-3 text-white" />
+                  </button>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -2579,9 +2719,6 @@ const getVisibleTransactions = () => {
                 </button>
               </div>
             </div>
-            {activeWalletIndex < wallets.length && (
-              <div className="absolute -bottom-2 left-4 right-4 h-3 rounded-full bg-white/15"></div>
-            )}
           </div>
         </header>
       )}
@@ -3710,6 +3847,68 @@ const getVisibleTransactions = () => {
           )}
         </div>
       </main>
+
+      {/* Wallet Selector Modal for Telegram */}
+      {walletSelectorOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl p-4 pb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Выбор кошелька</h3>
+              <button
+                onClick={() => setWalletSelectorOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {/* Common Wallet */}
+              <button
+                onClick={() => {
+                  setActiveWalletIndex(0)
+                  setWalletSelectorOpen(false)
+                }}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  activeWalletIndex === 0 
+                    ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600' 
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span className="text-2xl">{commonWallet.icon}</span>
+                <div className="text-left">
+                  <div className="font-medium text-gray-800 dark:text-white">{commonWallet.name}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Общий баланс</div>
+                </div>
+              </button>
+              
+              {/* User Wallets */}
+              {wallets.map((wallet, idx) => (
+                <button
+                  key={wallet.id}
+                  onClick={() => {
+                    setActiveWalletIndex(idx + 1)
+                    setWalletSelectorOpen(false)
+                  }}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    activeWalletIndex === idx + 1 
+                      ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600' 
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="text-2xl">{wallet.icon}</span>
+                  <div className="text-left">
+                    <div className="font-medium text-gray-800 dark:text-white">{wallet.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{wallet.balance?.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showWalletModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
