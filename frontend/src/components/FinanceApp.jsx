@@ -1459,9 +1459,9 @@ const getVisibleTransactions = () => {
     if (wid) {
       setWallets((prev) => prev.map(w => w.id === wid ? {
         ...w,
-        income: transactionType === 'income' ? w.income + n : w.income,
-        expenses: transactionType === 'expense' ? w.expenses + n : w.expenses,
-        balance: transactionType === 'income' ? w.balance + n : transactionType === 'expense' ? w.balance - n : w.balance - n
+        income: transactionType === 'income' ? (Number(w.income || 0) + n) : Number(w.income || 0),
+        expenses: transactionType === 'expense' ? (Number(w.expenses || 0) + n) : Number(w.expenses || 0),
+        balance: transactionType === 'income' ? (Number(w.balance || 0) + n) : transactionType === 'expense' ? (Number(w.balance || 0) - n) : (Number(w.balance || 0) - n)
       } : w))
     }
 
@@ -1549,9 +1549,9 @@ const getVisibleTransactions = () => {
     if (tx.wallet_id) {
       setWallets(prev => prev.map(w => w.id === tx.wallet_id ? {
         ...w,
-        income: tx.type === 'income' ? w.income - txAmount : w.income,
-        expenses: tx.type === 'expense' ? w.expenses - txAmount : w.expenses,
-        balance: tx.type === 'income' ? w.balance - txAmount : tx.type === 'expense' ? w.balance + txAmount : w.balance + txAmount
+        income: tx.type === 'income' ? (Number(w.income || 0) - txAmount) : Number(w.income || 0),
+        expenses: tx.type === 'expense' ? (Number(w.expenses || 0) - txAmount) : Number(w.expenses || 0),
+        balance: tx.type === 'income' ? (Number(w.balance || 0) - txAmount) : tx.type === 'expense' ? (Number(w.balance || 0) + txAmount) : (Number(w.balance || 0) + txAmount)
       } : w))
     }
 
@@ -2572,6 +2572,9 @@ const getVisibleTransactions = () => {
           <div
             className="relative rounded-2xl p-4 z-10"
             style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
+            onTouchStart={(e) => { headerStartY.current = e.touches[0].clientY; headerIsSwiping.current = true }}
+            onTouchMove={(e) => { if (!headerIsSwiping.current) return; headerSwipeY.current = e.touches[0].clientY - headerStartY.current }}
+            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dy = headerSwipeY.current || 0; headerIsSwiping.current = false; headerSwipeY.current = 0; if (Math.abs(dy) > 40) { vibrateSelect(); if (dy < 0) { setActiveWalletIndex(prev => Math.max(prev - 1, 0)) } else { setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length)) } } }}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
@@ -2590,46 +2593,18 @@ const getVisibleTransactions = () => {
                     <ChevronDown className="w-3 h-3" />
                   </button>
                   <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? balance : (wallets[activeWalletIndex-1]?.balance || 0)) : "••••••"}</p>
-                </div>
-                {/* Wallet Navigation Buttons */}
-                <div className="flex justify-between items-center mt-3">
-                  <button
-                    onClick={() => {
-                      vibrateSelect()
-                      setActiveWalletIndex(prev => Math.max(prev - 1, 0))
-                    }}
-                    disabled={activeWalletIndex === 0}
-                    className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    <ChevronUp className="w-3 h-3 text-white" />
-                  </button>
-                  
-                  <div className="flex gap-1">
-                    {wallets.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          vibrateSelect()
-                          setActiveWalletIndex(idx + 1)
-                        }}
-                        className={`w-1.5 h-1.5 rounded-full transition-all ${
-                          activeWalletIndex === idx + 1 ? 'bg-white' : 'bg-white/40'
-                        }`}
-                      />
-                    ))}
+                  <div className="flex justify-between text-white text-sm mt-2">
+                    <div>
+                      <p className="text-xs opacity-80">Доходы</p>
+                      <p className="font-semibold">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? income : (wallets[activeWalletIndex-1]?.income || 0)) : "••••••"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs opacity-80">Расходы</p>
+                      <p className="font-semibold">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? expenses : (wallets[activeWalletIndex-1]?.expenses || 0)) : "••••••"}</p>
+                    </div>
                   </div>
-                  
-                  <button
-                    onClick={() => {
-                      vibrateSelect()
-                      setActiveWalletIndex(prev => Math.min(prev + 1, wallets.length))
-                    }}
-                    disabled={activeWalletIndex === wallets.length}
-                    className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    <ChevronDown className="w-3 h-3 text-white" />
-                  </button>
                 </div>
+                
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowWalletModal(true)} className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none">
@@ -3846,6 +3821,14 @@ const getVisibleTransactions = () => {
                   </div>
                 </div>
               </div>
+              <div className="space-y-3 mb-4">
+                <input type="text" value={commonWallet.name} onChange={(e)=>{ const v=e.target.value; setCommonWallet(prev=>{ const next={...prev,name:v}; try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({name:v,icon:prev.icon,colorLight:prev.colorLight,colorDark:prev.colorDark}))}catch{}; return next }) }} placeholder="Название общего кошелька" className={`w-full p-3 border rounded-xl ${theme==='dark'?'bg-gray-700 border-gray-600 text-gray-100':'bg-gray-50 border-gray-200 text-gray-900'}`} />
+                <div className="grid grid-cols-6 gap-2">
+                  {['💼','💳','🏦','👜','💰','🧾','📦','🧿'].map(ic => (
+                    <button key={'c'+ic} onClick={()=>{ setCommonWallet(prev=>{ const next={...prev,icon:ic}; try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({name:prev.name,icon:ic,colorLight:prev.colorLight,colorDark:prev.colorDark}))}catch{}; return next }) }} className={`p-2 rounded-xl ${theme==='dark'?'bg-gray-700':'bg-gray-100'}`}>{ic}</button>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-6 gap-2 mb-4">
                 {[{l:'#6366f1',d:'#3b82f6'},{l:'#10b981',d:'#059669'},{l:'#f59e0b',d:'#d97706'},{l:'#ef4444',d:'#dc2626'},{l:'#8b5cf6',d:'#7c3aed'},{l:'#06b6d4',d:'#0891b2'}].map((c) => (
                   <button key={c.l} onClick={() => { setCommonWallet({...commonWallet, colorLight:c.l, colorDark:c.d}); try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({colorLight:c.l,colorDark:c.d}))}catch{} }} className="h-8 rounded-full" style={{ backgroundColor: theme==='dark'?c.d:c.l }} />
@@ -3857,6 +3840,17 @@ const getVisibleTransactions = () => {
               </button>
               {showCreateWallet && (
                 <div className="mt-4 space-y-3">
+                  <div className={`rounded-2xl p-4 border ${theme==='dark'?'bg-gray-800 border-gray-700':'bg-white border-gray-200'}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: (newWalletColor ? (theme==='dark'?newWalletColor.d:newWalletColor.l) : (theme==='dark'?'#3b82f6':'#6366f1')) }}>
+                        <span className="text-xl">{newWalletIcon || '💼'}</span>
+                      </div>
+                      <div>
+                        <p className={`${theme==='dark'?'text-gray-300':'text-gray-700'} text-sm`}>{newWalletName || 'Новый кошелек'}</p>
+                        <p className={`${theme==='dark'?'text-gray-400':'text-gray-500'} text-xs`}>Предпросмотр</p>
+                      </div>
+                    </div>
+                  </div>
                   <input type="text" value={newWalletName} onChange={(e)=>setNewWalletName(e.target.value)} placeholder="Название" className={`w-full p-3 border rounded-xl ${theme==='dark'?'bg-gray-700 border-gray-600 text-gray-100':'bg-gray-50 border-gray-200 text-gray-900'}`} />
                   <div className="grid grid-cols-6 gap-2">
                     {['💼','💳','🏦','👜','💰','🧾','📦','🧿'].map(ic => (
@@ -5430,22 +5424,15 @@ const getVisibleTransactions = () => {
                 <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   Новая операция
                 </h3>
-                {wallets.length > 0 && (
-                  <button
-                    onClick={() => setShowWalletSelect(!showWalletSelect)}
-                    className={`py-2 px-3 rounded-xl text-sm font-medium ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900'}`}
-                  >
-                    {(() => { const wid = selectedWalletId || (activeWalletIndex > 0 ? wallets[activeWalletIndex-1]?.id : wallets[0]?.id); const w = wallets.find(x => x.id === wid); return w ? w.name : 'Выбрать кошелек' })()}
-                  </button>
-                )}
+                
               </div>
-              {showWalletSelect && wallets.length > 0 && (
+              {wallets.length > 0 && (
                 <div className="flex gap-2 mb-4">
                   {wallets.map(w => (
                     <button
                       key={w.id}
-                      onClick={() => { setSelectedWalletId(w.id); setShowWalletSelect(false) }}
-                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900'}`}
+                      onClick={() => { setSelectedWalletId(w.id) }}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium ${selectedWalletId === w.id ? (theme==='dark'?'bg-blue-700 text-white':'bg-blue-500 text-white') : (theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900')}`}
                     >
                       {w.icon} {w.name}
                     </button>
