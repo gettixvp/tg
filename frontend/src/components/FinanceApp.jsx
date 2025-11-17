@@ -2616,7 +2616,7 @@ const getVisibleTransactions = () => {
                     vibrate()
                   }}
                   className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
+                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -5877,56 +5877,8 @@ const getVisibleTransactions = () => {
         </div>
       )}
 
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-in;
-        }
-        
-        * {
-          -webkit-tap-highlight-color: transparent;
-        }
-        
-        main {
-          scroll-behavior: smooth;
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior-y: contain;
-        }
-        
-        main::-webkit-scrollbar {
-          width: 0px;
-          background: transparent;
-        }
-        
-        /* Скрыть полосы прокрутки везде */
-        *::-webkit-scrollbar {
-          width: 0px;
-          height: 0px;
-          background: transparent;
-        }
-        
-        * {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        
-        input[type="text"],
-        input[type="number"],
-        input[type="email"],
-        input[type="password"],
-        select,
-        textarea {
-          font-size: 16px !important;
-          touch-action: manipulation;
-        }
-        
-        input, select, textarea {
-          transition: none !important;
-        }
-      `}</style>
+      <style></style>
     </div>
   )
+}
 }
