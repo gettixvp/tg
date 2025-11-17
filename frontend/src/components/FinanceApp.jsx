@@ -3808,7 +3808,7 @@ const getVisibleTransactions = () => {
 
       {showWalletModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
-          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} slide-up`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
             <div className="p-4 overflow-y-auto flex-1">
               <div className="mb-3">
                 <div className="rounded-2xl p-4" style={{ backgroundColor: theme==='dark'?commonWallet.colorDark:commonWallet.colorLight }}>
@@ -4731,7 +4731,7 @@ const getVisibleTransactions = () => {
           <div
             className={`w-full max-w-md rounded-t-2xl shadow-2xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
-            }`}
+            } slide-up`}
             style={{ 
               maxHeight: "85vh",
               display: "flex",
@@ -4894,7 +4894,7 @@ const getVisibleTransactions = () => {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             {/* Контент - прокручиваемый */}
@@ -4995,7 +4995,7 @@ const getVisibleTransactions = () => {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
@@ -5256,7 +5256,7 @@ const getVisibleTransactions = () => {
           }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
             style={{ 
               maxHeight: "85vh",
               display: "flex",
@@ -5413,7 +5413,7 @@ const getVisibleTransactions = () => {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
