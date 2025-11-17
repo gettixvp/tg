@@ -2579,22 +2579,6 @@ const getVisibleTransactions = () => {
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingUp className="w-3 h-3 text-emerald-300" />
-                  <span className="text-xs text-white/90">Доходы</span>
-                </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? income : (wallets[activeWalletIndex-1]?.income || 0)) : "••••••"}</p>
-              </div>
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingDown className="w-3 h-3 text-rose-300" />
-                  <span className="text-xs text-white/90">Расходы</span>
-                </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? expenses : (wallets[activeWalletIndex-1]?.expenses || 0)) : "••••••"}</p>
-              </div>
-            </div>
             {activeWalletIndex < wallets.length && (
               <div className="absolute -bottom-2 left-4 right-4 h-3 rounded-full bg-white/15"></div>
             )}
