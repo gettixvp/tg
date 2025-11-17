@@ -758,10 +758,10 @@ const [showWalletModal, setShowWalletModal] = useState(false)
   const [newWalletName, setNewWalletName] = useState('')
   const [newWalletIcon, setNewWalletIcon] = useState('')
   const [newWalletColor, setNewWalletColor] = useState(null)
-  const headerStartY = useRef(0)
-  const headerSwipeY = useRef(0)
+  const headerStartX = useRef(0)
+  const headerSwipeX = useRef(0)
   const headerIsSwiping = useRef(false)
-  const [lastSwipeDir, setLastSwipeDir] = useState('down')
+  const [lastSwipeDir, setLastSwipeDir] = useState('right')
   const [walletSelectorOpen, setWalletSelectorOpen] = useState(false)
   const [closingWalletModal, setClosingWalletModal] = useState(false)
   const [closingAddModal, setClosingAddModal] = useState(false)
@@ -2578,13 +2578,13 @@ const getVisibleTransactions = () => {
           <div
             className="relative rounded-2xl p-4 z-10"
             style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
-            onTouchStart={(e) => { headerStartY.current = e.touches[0].clientY; headerIsSwiping.current = true }}
-            onTouchMove={(e) => { if (!headerIsSwiping.current) return; headerSwipeY.current = e.touches[0].clientY - headerStartY.current }}
-            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dy = headerSwipeY.current || 0; headerIsSwiping.current = false; headerSwipeY.current = 0; if (Math.abs(dy) > 40) { vibrateSelect(); if (dy < 0) { setLastSwipeDir('up'); setActiveWalletIndex(prev => { const next = prev - 1; return next < 0 ? wallets.length : next }) } else { setLastSwipeDir('down'); setActiveWalletIndex(prev => { const next = prev + 1; return next > wallets.length ? 0 : next }) } } }}
+            onTouchStart={(e) => { headerStartX.current = e.touches[0].clientX; headerIsSwiping.current = true }}
+            onTouchMove={(e) => { if (!headerIsSwiping.current) return; headerSwipeX.current = e.touches[0].clientX - headerStartX.current }}
+            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dx = headerSwipeX.current || 0; headerIsSwiping.current = false; headerSwipeX.current = 0; if (Math.abs(dx) > 40) { vibrateSelect(); if (dx < 0) { setLastSwipeDir('left'); setActiveWalletIndex(prev => { const next = prev + 1; return next > wallets.length ? 0 : next }) } else { setLastSwipeDir('right'); setActiveWalletIndex(prev => { const next = prev - 1; return next < 0 ? wallets.length : next }) } } }}
           >
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col items-start gap-1">
-              <div className={`h-1.5 rounded-full bg-white/60 transition-all ${lastSwipeDir==='up'?'w-3':'w-1.5'}`} />
-              <div className={`h-1.5 rounded-full bg-white/60 transition-all ${lastSwipeDir!=='up'?'w-3':'w-1.5'}`} />
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1">
+              <div className={`h-1.5 rounded-full bg-white/70 transition-all ${activeWalletIndex===0?'w-3':'w-1.5'}`} />
+              <div className={`h-1.5 rounded-full bg-white/70 transition-all ${activeWalletIndex!==0?'w-3':'w-1.5'}`} />
             </div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
@@ -2596,7 +2596,7 @@ const getVisibleTransactions = () => {
                     <>
                       <p className="text-xs text-white/80">Общий баланс</p>
                       <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
-                      <div className="grid grid-cols-2 gap-2.5 mt-2">
+                      <div className="grid grid-cols-2 gap-2.5 mt-3">
                         <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                           <div className="flex items-center gap-1 mb-0.5">
                             <TrendingUp className="w-3 h-3 text-emerald-300" />
@@ -2623,7 +2623,7 @@ const getVisibleTransactions = () => {
                         <ChevronDown className="w-3 h-3" />
                       </button>
                       <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.balance || 0) : "••••••"}</p>
-                      <div className="grid grid-cols-2 gap-2.5 mt-2">
+                      <div className="grid grid-cols-2 gap-2.5 mt-3">
                         <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                           <div className="flex items-center gap-1 mb-0.5">
                             <TrendingUp className="w-3 h-3 text-emerald-300" />
@@ -3845,8 +3845,8 @@ const getVisibleTransactions = () => {
       )}
 
       {showWalletModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
-          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${closingWalletModal ? 'slide-down' : 'slide-up'}`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => { setClosingWalletModal(true); setTimeout(() => { setShowWalletModal(false); setClosingWalletModal(false) }, 250) }}>
+          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${closingWalletModal ? 'slide-down' : 'slide-up'}`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column', willChange: 'transform' }} onClick={(e) => e.stopPropagation()}>
             <div className="p-4 overflow-y-auto flex-1">
               <div className="mb-3">
                 <div className="rounded-2xl p-4" style={{ backgroundColor: theme==='dark'?commonWallet.colorDark:commonWallet.colorLight }}>
@@ -4773,7 +4773,8 @@ const getVisibleTransactions = () => {
             style={{ 
               maxHeight: "85vh",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              willChange: 'transform'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -4933,7 +4934,7 @@ const getVisibleTransactions = () => {
         >
           <div
             className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingBudgetModal ? 'slide-down' : 'slide-up'}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", willChange: 'transform' }}
           >
             {/* Контент - прокручиваемый */}
             <div 
@@ -5034,8 +5035,8 @@ const getVisibleTransactions = () => {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingAddModal ? 'slide-down' : 'slide-up'}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingBudgetModal ? 'slide-down' : 'slide-up'}`}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", willChange: 'transform' }}
           >
             <div
               className="p-4 overflow-y-auto flex-1"
@@ -5303,7 +5304,8 @@ const getVisibleTransactions = () => {
             style={{ 
               maxHeight: "85vh",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              willChange: 'transform'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -5463,19 +5465,14 @@ const getVisibleTransactions = () => {
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Новая операция
-                </h3>
-                
-              </div>
+              
               <div className="flex items-center justify-between mb-4">
                 <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   Новая операция
                 </h3>
                 <button
                   onClick={() => setShowWalletSelect(!showWalletSelect)}
-                  className={`py-2 px-3 rounded-xl text-sm font-medium ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900'}`}
+                  className={`text-sm ${theme==='dark'?'text-blue-400 hover:text-blue-300':'text-blue-600 hover:text-blue-700'}`}
                 >
                   {(() => { const label = selectedWalletId === null ? (commonWallet.name || 'Общий баланс') : (wallets.find(x => x.id === selectedWalletId)?.name || 'Кошелек'); return label })()}
                 </button>
