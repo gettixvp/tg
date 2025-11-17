@@ -631,6 +631,59 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
   )
 }
 
+const WalletRow = ({ wallet, theme, onDelete, onUpdate }) => {
+  const [swipeX, setSwipeX] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const startX = useRef(0)
+  const [editing, setEditing] = useState(false)
+
+  const handleTouchStart = (e) => { startX.current = e.touches[0].clientX; setIsSwiping(true) }
+  const handleTouchMove = (e) => { if (!isSwiping || editing) return; const diff = e.touches[0].clientX - startX.current; if (diff < 0) setSwipeX(Math.max(diff, -80)); else if (swipeX < 0) setSwipeX(Math.min(0, swipeX + diff/2)) }
+  const handleTouchEnd = () => { setIsSwiping(false); if (swipeX < -40) setSwipeX(-80); else setSwipeX(0) }
+  const handleDelete = () => { if (swipeX === -80) { onDelete && onDelete(); setSwipeX(0) } }
+
+  return (
+    <div className="relative mb-1.5 overflow-hidden rounded-xl">
+      <div onClick={handleDelete} className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-red-600' : 'bg-red-500'}`}>
+        <Trash2 className="w-5 h-5 text-white" />
+      </div>
+      <div
+        style={{ transform: `translateX(${swipeX}px)`, transition: isSwiping ? 'none' : 'transform 0.3s ease' }}
+        onTouchStart={!editing ? handleTouchStart : undefined}
+        onTouchMove={!editing ? handleTouchMove : undefined}
+        onTouchEnd={!editing ? handleTouchEnd : undefined}
+        className={`relative p-3 rounded-xl border ${theme === 'dark' ? 'bg-gray-800 border-gray-700/50' : 'bg-white border-gray-200/50'}`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center`} style={{ backgroundColor: theme === 'dark' ? wallet.colorDark : wallet.colorLight }}>
+              <span className="text-xl">{wallet.icon}</span>
+            </div>
+            <input type="text" value={wallet.name} onChange={(e) => onUpdate && onUpdate({ name: e.target.value })} className={`p-2 rounded-lg text-sm ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-900'}`} />
+          </div>
+          <button onClick={() => setEditing(!editing)} className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-900'}`}>
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
+        {editing && (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-8 gap-2">
+              {['💼','💳','🏦','👜','💰','🧾','📦','🧿'].map(ic => (
+                <button key={ic} onClick={() => onUpdate && onUpdate({ icon: ic })} className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded-xl`}>{ic}</button>
+              ))}
+            </div>
+            <div className="grid grid-cols-6 gap-2">
+              {[{l:'#6366f1',d:'#3b82f6'},{l:'#10b981',d:'#059669'},{l:'#f59e0b',d:'#d97706'},{l:'#ef4444',d:'#dc2626'},{l:'#8b5cf6',d:'#7c3aed'},{l:'#06b6d4',d:'#0891b2'}].map((c) => (
+                <button key={'c'+c.l} onClick={() => onUpdate && onUpdate({ colorLight: c.l, colorDark: c.d })} className="h-8 rounded-full" style={{ backgroundColor: theme === 'dark' ? c.d : c.l }} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
@@ -684,6 +737,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
+const [wallets, setWallets] = useState([])
+const [commonWallet, setCommonWallet] = useState({ id: 'common', name: 'Общий', icon: '💳', colorLight: '#6366f1', colorDark: '#3b82f6' })
+const [activeWalletIndex, setActiveWalletIndex] = useState(0)
+const [showWalletModal, setShowWalletModal] = useState(false)
+const [showWalletSelect, setShowWalletSelect] = useState(false)
+const [selectedWalletId, setSelectedWalletId] = useState(null)
+const [showCreateWallet, setShowCreateWallet] = useState(false)
+const [newWalletName, setNewWalletName] = useState('')
+const [newWalletIcon, setNewWalletIcon] = useState('')
+const [newWalletColor, setNewWalletColor] = useState(null)
+const headerStartY = useRef(0)
+const headerSwipeY = useRef(0)
+const headerIsSwiping = useRef(false)
+const saveWallets = (next) => { setWallets(next); try { localStorage.setItem('finance_wallets_v1', JSON.stringify(next)) } catch {} }
+useEffect(() => { try { const raw = localStorage.getItem('finance_wallets_v1'); if (raw) { setWallets(JSON.parse(raw) || []) } } catch {} }, [])
+useEffect(() => { try { const raw = localStorage.getItem('finance_common_wallet_v1'); if (raw) { const obj = JSON.parse(raw); setCommonWallet(prev => ({ ...prev, ...obj })) } } catch {} }, [])
+const getActiveView = () => activeWalletIndex === 0 ? { ...commonWallet, isCommon: true } : wallets[activeWalletIndex - 1]
+const getVisibleTransactions = () => {
+  const view = getActiveView()
+  if (view.isCommon) return transactions
+  return transactions.filter(t => t.wallet_id === view.id)
+}
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
@@ -1349,6 +1424,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       convertedUSD = n * exchangeRate
     }
 
+    const wid = selectedWalletId || (activeWalletIndex > 0 ? (wallets[activeWalletIndex-1]?.id || null) : (wallets[0]?.id || null))
     const newTx = {
       id: Date.now(),
       user_id: user?.id || null,
@@ -1362,9 +1438,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       created_by_name: displayName || null,
       telegram_photo_url: tgPhotoUrl || null,
       savings_goal: transactionType === 'savings' ? selectedSavingsGoal : null,
+      wallet_id: wid || null,
     }
 
     setTransactions((p) => [newTx, ...p])
+    if (wid) {
+      setWallets((prev) => prev.map(w => w.id === wid ? {
+        ...w,
+        income: transactionType === 'income' ? w.income + n : w.income,
+        expenses: transactionType === 'expense' ? w.expenses + n : w.expenses,
+        balance: transactionType === 'income' ? w.balance + n : transactionType === 'expense' ? w.balance - n : w.balance - n
+      } : w))
+    }
 
     let newBalance = balance
     let newIncome = income
@@ -1414,6 +1499,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             created_by_telegram_id: tgUserId || null,
             created_by_name: displayName || null,
             savings_goal: newTx.savings_goal,
+            wallet_id: newTx.wallet_id || null,
           }),
         })
 
@@ -1443,6 +1529,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     let newSavings = Number(savings)
     const txAmount = Number(tx.amount)
     const txConvertedUSD = Number(tx.converted_amount_usd || 0)
+
+    if (tx.wallet_id) {
+      setWallets(prev => prev.map(w => w.id === tx.wallet_id ? {
+        ...w,
+        income: tx.type === 'income' ? w.income - txAmount : w.income,
+        expenses: tx.type === 'expense' ? w.expenses - txAmount : w.expenses,
+        balance: tx.type === 'income' ? w.balance - txAmount : tx.type === 'expense' ? w.balance + txAmount : w.balance + txAmount
+      } : w))
+    
 
     if (tx.type === "income") {
       newIncome -= txAmount
@@ -2460,46 +2555,49 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           />
           <div
             className="relative overflow-hidden rounded-2xl p-4 z-10"
-            style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
+            style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
+            onTouchStart={(e) => { headerStartY.current = e.touches[0].clientY; headerIsSwiping.current = true }}
+            onTouchMove={(e) => { if (!headerIsSwiping.current) return; const diff = e.touches[0].clientY - headerStartY.current; headerSwipeY.current = diff }}
+            onTouchEnd={() => { headerIsSwiping.current = false; const diff = headerSwipeY.current; headerSwipeY.current = 0; setActiveWalletIndex(prev => diff < -40 ? Math.min(prev + 1, wallets.length) : diff > 40 ? Math.max(prev - 1, 0) : prev) }}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
                 <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
-                  <CreditCard className="w-5 h-5 text-white" />
+                  {activeWalletIndex === 0 ? <CreditCard className="w-5 h-5 text-white" /> : <span className="text-xl">{wallets[activeWalletIndex-1]?.icon || '💼'}</span>}
                 </div>
                 <div>
-                  <p className="text-xs text-white/80">Общий баланс</p>
-                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                  <p className="text-xs text-white/80">{activeWalletIndex === 0 ? "Общий баланс" : wallets[activeWalletIndex-1]?.name || "Кошелек"}</p>
+                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? balance : (wallets[activeWalletIndex-1]?.balance || 0)) : "••••••"}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
-              >
-                {balanceVisible ? (
-                  <Eye className="w-4 h-4 text-white" />
-                ) : (
-                  <EyeOff className="w-4 h-4 text-white" />
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowWalletModal(true)} className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none">
+                  <Settings className="w-4 h-4 text-white" />
+                </button>
+                <button onClick={() => setBalanceVisible(!balanceVisible)} className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none">
+                  {balanceVisible ? (<Eye className="w-4 h-4 text-white" />) : (<EyeOff className="w-4 h-4 text-white" />)}
+                </button>
+              </div>
             </div>
-
             <div className="grid grid-cols-2 gap-2.5">
               <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingUp className="w-3 h-3 text-emerald-300" />
                   <span className="text-xs text-white/90">Доходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? income : (wallets[activeWalletIndex-1]?.income || 0)) : "••••••"}</p>
               </div>
               <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingDown className="w-3 h-3 text-rose-300" />
                   <span className="text-xs text-white/90">Расходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? expenses : (wallets[activeWalletIndex-1]?.expenses || 0)) : "••••••"}</p>
               </div>
             </div>
+            {activeWalletIndex < wallets.length && (
+              <div className="absolute -bottom-2 left-4 right-4 h-3 rounded-full bg-white/15"></div>
+            )}
           </div>
         </header>
       )}
@@ -2763,7 +2861,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     Все →
                   </button>
                 </div>
-                {transactions.length === 0 ? (
+                {getVisibleTransactions().length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -2781,7 +2879,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 ) : (
                   <div>
-                    {transactions.slice(0, 4).map((tx) => (
+                    {getVisibleTransactions().slice(0, 4).map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -2838,7 +2936,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </button>
                   </div>
                 </div>
-                {transactions.length === 0 ? (
+                {getVisibleTransactions().length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -2851,7 +2949,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 ) : (
                   <div>
-                    {transactions.map((tx) => (
+                    {getVisibleTransactions().map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -3628,6 +3726,76 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
         </div>
       </main>
+
+      {showWalletModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
+          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="p-4 overflow-y-auto flex-1">
+              <div className="mb-3">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: theme==='dark'?commonWallet.colorDark:commonWallet.colorLight }}>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-white/20"><CreditCard className="w-5 h-5 text-white" /></div>
+                    <div>
+                      <p className="text-xs text-white/80">Общий баланс</p>
+                      <p className="text-xl font-bold text-white">{formatCurrency(balance)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-6 gap-2 mb-4">
+                {[{l:'#6366f1',d:'#3b82f6'},{l:'#10b981',d:'#059669'},{l:'#f59e0b',d:'#d97706'},{l:'#ef4444',d:'#dc2626'},{l:'#8b5cf6',d:'#7c3aed'},{l:'#06b6d4',d:'#0891b2'}].map((c) => (
+                  <button key={c.l} onClick={() => { setCommonWallet({...commonWallet, colorLight:c.l, colorDark:c.d}); try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({colorLight:c.l,colorDark:c.d}))}catch{} }} className="h-8 rounded-full" style={{ backgroundColor: theme==='dark'?c.d:c.l }} />
+                ))}
+              </div>
+              <button onClick={() => setShowCreateWallet(true)} disabled={wallets.length>=3} className={`w-full py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 ${wallets.length>=3 ? 'opacity-50 cursor-not-allowed' : theme==='dark' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'}`}>
+                <Plus className="w-5 h-5" />
+                Добавить кошелек
+              </button>
+              {showCreateWallet && (
+                <div className="mt-4 space-y-3">
+                  <input type="text" value={newWalletName} onChange={(e)=>setNewWalletName(e.target.value)} placeholder="Название" className={`w-full p-3 border rounded-xl ${theme==='dark'?'bg-gray-700 border-gray-600 text-gray-100':'bg-gray-50 border-gray-200 text-gray-900'}`} />
+                  <div className="grid grid-cols-6 gap-2">
+                    {['💼','💳','🏦','👜','💰','🧾','📦','🧿'].map(ic => (
+                      <button key={ic} onClick={()=>setNewWalletIcon(ic)} className={`p-2 rounded-xl ${theme==='dark'?'bg-gray-700':'bg-gray-100'}`}>{ic}</button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-6 gap-2">
+                    {[{l:'#6366f1',d:'#3b82f6'},{l:'#10b981',d:'#059669'},{l:'#f59e0b',d:'#d97706'},{l:'#ef4444',d:'#dc2626'},{l:'#8b5cf6',d:'#7c3aed'},{l:'#06b6d4',d:'#0891b2'}].map((c) => (
+                      <button key={'w'+c.l} onClick={()=>setNewWalletColor(c)} className="h-8 rounded-full" style={{ backgroundColor: theme==='dark'?c.d:c.l }} />
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={()=>{ setShowCreateWallet(false); setNewWalletName(''); setNewWalletIcon(''); setNewWalletColor(null) }} className={`flex-1 py-3 rounded-xl ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-700'}`}>Отмена</button>
+                    <button onClick={()=>{ if(!newWalletName||!newWalletColor) return; const w={ id:'w_'+Date.now(), name:newWalletName, icon:newWalletIcon||'💼', colorLight:newWalletColor.l, colorDark:newWalletColor.d, balance:0, income:0, expenses:0 }; const next=[...wallets,w]; saveWallets(next); setShowCreateWallet(false); setNewWalletName(''); setNewWalletIcon(''); setNewWalletColor(null) }} className={`flex-1 py-3 rounded-xl ${theme==='dark'?'bg-blue-700 text-white':'bg-blue-500 text-white'}`}>Создать</button>
+                  </div>
+                </div>
+              )}
+              <div className="mt-4 space-y-2">
+                {wallets.map((w) => (
+                  <WalletRow
+                  key={w.id}
+                  wallet={w}
+                  theme={theme}
+                  onDelete={() => {
+                    const next = wallets.filter(x => x.id !== w.id)
+                    saveWallets(next)
+                    setActiveWalletIndex((prev) => Math.min(prev, next.length))
+                    setTransactions(prev => prev.map(t => t.wallet_id === w.id ? { ...t, wallet_id: null } : t))
+                  }}
+                  onUpdate={(patch) => {
+                    const next = wallets.map(x => x.id === w.id ? { ...x, ...patch } : x)
+                    saveWallets(next)
+                  }}
+                />
+                ))}
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t" style={{ borderColor: theme==='dark' ? '#374151' : '#e5e7eb' }}>
+              <button onClick={()=>setShowWalletModal(false)} className={`w-full py-2.5 rounded-xl ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-700'}`}>Закрыть</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -4668,7 +4836,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             ? "bg-blue-900/20 border-blue-700/30"
                             : "bg-blue-50 border-blue-200"
                           : theme === "dark"
-                            ? "bg-gray-700 border-gray-600 hover:bg-gray-650"
+                            ? "bg-gray-700 border-gray-600 hover:bg-gray-600"
                             : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                       }`}
                     >
@@ -4756,7 +4924,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }}
                   className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
                     theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-650"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
                       : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
                   }`}
                   style={{ minHeight: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -5154,9 +5322,32 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Новая операция
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  Новая операция
+                </h3>
+                {wallets.length > 0 && (
+                  <button
+                    onClick={() => setShowWalletSelect(!showWalletSelect)}
+                    className={`py-2 px-3 rounded-xl text-sm font-medium ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900'}`}
+                  >
+                    {(() => { const wid = selectedWalletId || (activeWalletIndex > 0 ? wallets[activeWalletIndex-1]?.id : wallets[0]?.id); const w = wallets.find(x => x.id === wid); return w ? w.name : 'Выбрать кошелек' })()}
+                  </button>
+                )}
+              </div>
+              {showWalletSelect && wallets.length > 0 && (
+                <div className="flex gap-2 mb-4">
+                  {wallets.map(w => (
+                    <button
+                      key={w.id}
+                      onClick={() => { setSelectedWalletId(w.id); setShowWalletSelect(false) }}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900'}`}
+                    >
+                      {w.icon} {w.name}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="flex gap-2 mb-4">
                 {["expense", "income", "savings"].map((type) => (
@@ -5663,11 +5854,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("history")
                   vibrate()
                 }}
-                icon={<History className="h-4 w-[4px28]" />}
+                icon={<History className="w-4 h-4" />}
                 theme={theme}
               />
               <button
                 onClick={() => {
+                  const wid = activeWalletIndex > 0 ? wallets[activeWalletIndex-1]?.id : wallets[0]?.id
+                  setSelectedWalletId(wid || null)
+                  setShowWalletSelect(false)
                   setShowAddModal(true)
                   setShowNumKeyboard(false)
                   vibrate()
@@ -5682,7 +5876,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("savings")
                   vibrate()
                 }}
-                icon={<PiggyBank className="h-4 w-[4px28]" />}
+                icon={<PiggyBank className="w-4 h-4" />}
                 theme={theme}
               />
               <NavButton
@@ -5691,7 +5885,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("settings")
                   vibrate()
                 }}
-                icon={<Settings className="h-4 w-[px8]" />}
+                icon={<Settings className="w-4 h-4" />}
                 theme={theme}
               />
             </div>
