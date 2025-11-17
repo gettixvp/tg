@@ -752,15 +752,16 @@ const [wallets, setWallets] = useState([])
 const [commonWallet, setCommonWallet] = useState({ id: 'common', name: 'Общий', icon: '💳', colorLight: '#6366f1', colorDark: '#3b82f6' })
 const [activeWalletIndex, setActiveWalletIndex] = useState(0)
 const [showWalletModal, setShowWalletModal] = useState(false)
-const [showWalletSelect, setShowWalletSelect] = useState(false)
-const [selectedWalletId, setSelectedWalletId] = useState(null)
-const [showCreateWallet, setShowCreateWallet] = useState(false)
-const [newWalletName, setNewWalletName] = useState('')
-const [newWalletIcon, setNewWalletIcon] = useState('')
-const [newWalletColor, setNewWalletColor] = useState(null)
-const headerStartY = useRef(0)
-const headerSwipeY = useRef(0)
-const headerIsSwiping = useRef(false)
+  const [showWalletSelect, setShowWalletSelect] = useState(false)
+  const [selectedWalletId, setSelectedWalletId] = useState(null)
+  const [showCreateWallet, setShowCreateWallet] = useState(false)
+  const [newWalletName, setNewWalletName] = useState('')
+  const [newWalletIcon, setNewWalletIcon] = useState('')
+  const [newWalletColor, setNewWalletColor] = useState(null)
+  const headerStartY = useRef(0)
+  const headerSwipeY = useRef(0)
+  const headerIsSwiping = useRef(false)
+  const [lastSwipeDir, setLastSwipeDir] = useState('down')
   const [walletSelectorOpen, setWalletSelectorOpen] = useState(false)
   const [closingWalletModal, setClosingWalletModal] = useState(false)
   const [closingAddModal, setClosingAddModal] = useState(false)
@@ -2579,48 +2580,66 @@ const getVisibleTransactions = () => {
             style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
             onTouchStart={(e) => { headerStartY.current = e.touches[0].clientY; headerIsSwiping.current = true }}
             onTouchMove={(e) => { if (!headerIsSwiping.current) return; headerSwipeY.current = e.touches[0].clientY - headerStartY.current }}
-            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dy = headerSwipeY.current || 0; headerIsSwiping.current = false; headerSwipeY.current = 0; if (Math.abs(dy) > 40) { vibrateSelect(); if (dy < 0) { setActiveWalletIndex(prev => { const next = prev - 1; return next < 0 ? wallets.length : next }) } else { setActiveWalletIndex(prev => { const next = prev + 1; return next > wallets.length ? 0 : next }) } } }}
-         >
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/60 pulse-once" key={activeWalletIndex} />
+            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dy = headerSwipeY.current || 0; headerIsSwiping.current = false; headerSwipeY.current = 0; if (Math.abs(dy) > 40) { vibrateSelect(); if (dy < 0) { setLastSwipeDir('up'); setActiveWalletIndex(prev => { const next = prev - 1; return next < 0 ? wallets.length : next }) } else { setLastSwipeDir('down'); setActiveWalletIndex(prev => { const next = prev + 1; return next > wallets.length ? 0 : next }) } } }}
+          >
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col items-start gap-1">
+              <div className={`h-1.5 rounded-full bg-white/60 transition-all ${lastSwipeDir==='up'?'w-3':'w-1.5'}`} />
+              <div className={`h-1.5 rounded-full bg-white/60 transition-all ${lastSwipeDir!=='up'?'w-3':'w-1.5'}`} />
+            </div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
                 <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
                   {activeWalletIndex === 0 ? <CreditCard className="w-5 h-5 text-white" /> : <span className="text-xl">{wallets[activeWalletIndex-1]?.icon || '💼'}</span>}
                 </div>
                 <div>
-                  <button
-                    onClick={() => {
-                      vibrateSelect()
-                      setWalletSelectorOpen(true)
-                    }}
-                    className="flex items-center gap-1 text-xs text-white/80 hover:text-white transition-colors"
-                  >
-                    <span>{activeWalletIndex === 0 ? "Общий баланс" : wallets[activeWalletIndex-1]?.name || "Кошелек"}</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? balance : (wallets[activeWalletIndex-1]?.balance || 0)) : "••••••"}</p>
                   {activeWalletIndex === 0 ? (
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between min-w-0">
-                        <div className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-white" /><span className="text-xs text-white/80">Доходы</span></div>
-                        <span className="text-sm font-semibold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(income) : "••••••"}</span>
+                    <>
+                      <p className="text-xs text-white/80">Общий баланс</p>
+                      <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                      <div className="grid grid-cols-2 gap-2.5 mt-2">
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingUp className="w-3 h-3 text-emerald-300" />
+                            <span className="text-xs text-white/90">Доходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+                        </div>
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingDown className="w-3 h-3 text-rose-300" />
+                            <span className="text-xs text-white/90">Расходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+                        </div>
                       </div>
-                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between min-w-0">
-                        <div className="flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-white" /><span className="text-xs text-white/80">Расходы</span></div>
-                        <span className="text-sm font-semibold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(expenses) : "••••••"}</span>
-                      </div>
-                    </div>
+                    </>
                   ) : (
-                    <div className="flex justify-between text-white text-sm mt-2">
-                      <div>
-                        <p className="text-xs opacity-80">Доходы</p>
-                        <p className="font-semibold">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.income || 0) : "••••••"}</p>
+                    <>
+                      <button
+                        onClick={() => { vibrateSelect(); setWalletSelectorOpen(true) }}
+                        className="flex items-center gap-1 text-xs text-white/80 hover:text-white transition-colors"
+                      >
+                        <span>{wallets[activeWalletIndex-1]?.name || "Кошелек"}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                      <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.balance || 0) : "••••••"}</p>
+                      <div className="grid grid-cols-2 gap-2.5 mt-2">
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingUp className="w-3 h-3 text-emerald-300" />
+                            <span className="text-xs text-white/90">Доходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.income || 0) : "••••••"}</p>
+                        </div>
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingDown className="w-3 h-3 text-rose-300" />
+                            <span className="text-xs text-white/90">Расходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.expenses || 0) : "••••••"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs opacity-80">Расходы</p>
-                        <p className="font-semibold">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.expenses || 0) : "••••••"}</p>
-                      </div>
-                    </div>
+                    </>
                   )}
                 </div>
                 
