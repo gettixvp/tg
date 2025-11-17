@@ -39,8 +39,10 @@ import NavButton from "./NavButton"
 import CommentRow from "./CommentRow"
 import TxRow from "./TxRow"
 import NumericKeyboard from "./NumericKeyboard"
-import LinkedUserRow from "./LinkedUserRow"
 import HistoryTab from "./HistoryTab"
+import OverviewTab from "./OverviewTab"
+import SavingsTab from "./SavingsTab"
+import SettingsTab from "./SettingsTab"
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement)
 
@@ -2077,280 +2079,31 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           {activeTab === "overview" && (
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                {/* Основная копилка */}
-                <div
-                  onClick={() => {
-                    setActiveTab("savings")
-                    vibrate()
-                  }}
-                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
-                        <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                      </div>
-                      <div>
-                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{goalName || "Копилка"}</p>
-                      </div>
-                    </div>
-                    {/* Маленькая круговая диаграмма */}
-                    <div className="relative w-14 h-14 flex-shrink-0">
-                      <svg className="w-14 h-14 transform -rotate-90">
-                        <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
-                          stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-                          strokeWidth="5"
-                          fill="none"
-                        />
-                        <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
-                          stroke={theme === "dark" ? "#3b82f6" : "#6366f1"}
-                          strokeWidth="5"
-                          fill="none"
-                          strokeDasharray={`${2 * Math.PI * 24}`}
-                          strokeDashoffset={`${2 * Math.PI * 24 * (1 - savingsProgress)}`}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          {savingsPct || 0}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Вторая копилка (если есть) */}
-                {secondGoalName && secondGoalAmount > 0 && (
-                  <div
-                    onClick={() => {
-                      setActiveTab("savings")
-                      vibrate()
-                    }}
-                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                      theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-1">
-                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "bg-purple-100"}`}>
-                          <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-                        </div>
-                        <div>
-                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{secondGoalName}</p>
-                        </div>
-                      </div>
-                      {/* Маленькая круговая диаграмма для второй цели */}
-                      <div className="relative w-14 h-14 flex-shrink-0">
-                        <svg className="w-14 h-14 transform -rotate-90">
-                          <circle
-                            cx="28"
-                            cy="28"
-                            r="24"
-                            stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-                            strokeWidth="5"
-                            fill="none"
-                          />
-                          <circle
-                            cx="28"
-                            cy="28"
-                            r="24"
-                            stroke={theme === "dark" ? "#a855f7" : "#9333ea"}
-                            strokeWidth="5"
-                            fill="none"
-                            strokeDasharray={`${2 * Math.PI * 24}`}
-                            strokeDashoffset={`${2 * Math.PI * 24 * (1 - (secondGoalSavings / secondGoalAmount))}`}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                            {Math.round((secondGoalSavings / secondGoalAmount) * 100) || 0}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Бюджеты и лимиты */}
-              {Object.keys(budgets).length > 0 && (
-                <div
-                  className={`rounded-2xl p-4 border ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      Бюджеты
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setShowBudgetModal(true)
-                        setSelectedBudgetCategory('')
-                        setBudgetLimitInput('')
-                        vibrate()
-                      }}
-                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                    >
-                      Настроить
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {Object.entries(budgets).map(([category, budget]) => {
-                      const status = budgetStatuses[category]
-                      if (!status) return null
-                      
-                      const meta = categoriesMeta[category] || {}
-                      const periodText = budget.period === 'week' ? 'неделю' : budget.period === 'month' ? 'месяц' : 'год'
-                      
-                      return (
-                        <div
-                          key={category}
-                          className={`p-3 rounded-xl border transition-all ${
-                            status.isOverBudget
-                              ? theme === "dark" ? "bg-red-900/20 border-red-700/30" : "bg-red-50 border-red-200"
-                              : status.isNearLimit
-                              ? theme === "dark" ? "bg-orange-900/20 border-orange-700/30" : "bg-orange-50 border-orange-200"
-                              : theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">{meta.icon || '💰'}</span>
-                              <div>
-                                <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
-                                  {category}
-                                </p>
-                                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                  На {periodText}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`text-sm font-bold ${
-                                status.isOverBudget
-                                  ? "text-red-600"
-                                  : status.isNearLimit
-                                  ? "text-orange-600"
-                                  : theme === "dark" ? "text-gray-200" : "text-gray-900"
-                              }`}>
-                                {formatCurrency(status.spent)} / {formatCurrency(status.limit)}
-                              </p>
-                              <p className={`text-xs ${
-                                status.remaining < 0
-                                  ? "text-red-600"
-                                  : theme === "dark" ? "text-gray-400" : "text-gray-600"
-                              }`}>
-                                {status.remaining < 0 ? 'Превышение' : 'Осталось'}: {formatCurrency(Math.abs(status.remaining))}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Прогресс-бар */}
-                          <div className={`w-full h-2 rounded-full overflow-hidden ${
-                            theme === "dark" ? "bg-gray-600" : "bg-gray-200"
-                          }`}>
-                            <div
-                              className={`h-full transition-all duration-500 rounded-full ${
-                                status.isOverBudget
-                                  ? "bg-gradient-to-r from-red-500 to-red-600"
-                                  : status.isNearLimit
-                                  ? "bg-gradient-to-r from-orange-400 to-orange-500"
-                                  : "bg-gradient-to-r from-green-400 to-green-500"
-                              }`}
-                              style={{ width: `${Math.min(status.percentage, 100)}%` }}
-                            />
-                          </div>
-                          
-                          {/* Процент */}
-                          <div className="flex justify-between items-center mt-1">
-                            <p className={`text-xs font-medium ${
-                              status.isOverBudget
-                                ? "text-red-600"
-                                : status.isNearLimit
-                                ? "text-orange-600"
-                                : theme === "dark" ? "text-green-400" : "text-green-600"
-                            }`}>
-                              {Math.round(status.percentage)}%
-                            </p>
-                            {status.isOverBudget && (
-                              <span className="text-xs text-red-600 font-medium">⚠️ Превышен лимит</span>
-                            )}
-                            {status.isNearLimit && !status.isOverBudget && (
-                              <span className="text-xs text-orange-600 font-medium">⚡ Близко к лимиту</span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Последние операции
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab("history")}
-                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                  >
-                    Все →
-                  </button>
-                </div>
-                {transactions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-                      }`}
-                    >
-                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                    </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                      Пока нет операций
-                    </p>
-                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                      Добавьте первую транзакцию
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    {transactions.slice(0, 4).map((tx) => (
-                      <TxRow
-                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
-                        key={tx.id}
-                        categoriesMeta={categoriesMeta}
-                        formatCurrency={formatCurrency}
-                        formatDate={formatDate}
-                        theme={theme}
-                        onDelete={deleteTransaction}
-                        showCreator={showLinkedUsers}
-                        onToggleLike={toggleLike}
-                        onOpenDetails={openTransactionDetails}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <OverviewTab
+              theme={theme}
+              goalName={goalName}
+              secondGoalName={secondGoalName}
+              secondGoalAmount={secondGoalAmount}
+              savingsProgress={savingsProgress}
+              savingsPct={savingsPct}
+              secondGoalSavings={secondGoalSavings}
+              budgets={budgets}
+              budgetStatuses={budgetStatuses}
+              categoriesMeta={categoriesMeta}
+              formatCurrency={formatCurrency}
+              setActiveTab={setActiveTab}
+              setShowBudgetModal={setShowBudgetModal}
+              setSelectedBudgetCategory={setSelectedBudgetCategory}
+              setBudgetLimitInput={setBudgetLimitInput}
+              vibrate={vibrate}
+              transactions={transactions}
+              likedTransactions={likedTransactions}
+              transactionComments={transactionComments}
+              deleteTransaction={deleteTransaction}
+              showLinkedUsers={showLinkedUsers}
+              toggleLike={toggleLike}
+              openTransactionDetails={openTransactionDetails}
+            />
           )}
 
           {activeTab === "history" && (
@@ -2374,759 +2127,78 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           )}
 
           {activeTab === "savings" && (
-            <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              {/* Верхние вкладки: Копилка / Долги */}
-              <div className={`mx-4 p-1.5 rounded-full ${
-                theme === "dark" ? "bg-gray-800/80" : "bg-gray-200/80"
-              } backdrop-blur-sm`}>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => {
-                      setSavingsTab('savings')
-                      vibrateSelect()
-                    }}
-                    className={`flex-1 py-3 rounded-full font-bold transition-all text-sm ${
-                      savingsTab === 'savings'
-                        ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl scale-105"
-                        : theme === "dark"
-                          ? "text-gray-400 hover:text-gray-200"
-                          : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    Копилка
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSavingsTab('debts')
-                      vibrateSelect()
-                    }}
-                    className={`flex-1 py-3 rounded-full font-bold transition-all text-sm ${
-                      savingsTab === 'debts'
-                        ? "bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white shadow-xl scale-105"
-                        : theme === "dark"
-                          ? "text-gray-400 hover:text-gray-200"
-                          : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    Долги
-                  </button>
-                </div>
-              </div>
-
-              {savingsTab === 'savings' && (
-                <>
-              <div
-                className={`rounded-2xl p-4 text-white shadow-2xl ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-                    : "bg-gradient-to-br from-blue-500 to-purple-600"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-1">Копилка (USD)</h3>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
-                      {goalName}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => {
-                        setShowSecondGoalModal(true)
-                        vibrate()
-                      }}
-                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
-                      title="Добавить вторую цель"
-                    >
-                      <Plus className="w-5 h-5 text-white" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowSavingsSettingsModal(true)
-                        vibrate()
-                      }}
-                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
-                    >
-                      <Settings className="w-5 h-5 text-white" />
-                    </button>
-                    <div className="p-2 rounded-xl bg-white/20">
-                      <PiggyBank className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Прогресс</span>
-                    <span className="text-white font-bold">{savingsPct}%</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-500 shadow-lg"
-                      style={{ width: `${savingsPct}%` }}
-                    />
-                  </div>
-                  <div
-                    className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
-                  >
-                    <span>{formatCurrency(savings, "USD")}</span>
-                    <span>{formatCurrency(goalSavings, "USD")}</span>
-                  </div>
-
-                  {/* Вторая цель */}
-                  {secondGoalName && secondGoalAmount > 0 && (
-                    <div className="mt-4 pt-4 border-t border-white/20">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
-                          {secondGoalName}
-                        </span>
-                        <span className="text-white font-bold">
-                          {Math.round((secondGoalSavings / secondGoalAmount) * 100)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500 shadow-lg"
-                          style={{ width: `${Math.min((secondGoalSavings / secondGoalAmount) * 100, 100)}%` }}
-                        />
-                      </div>
-                      <div
-                        className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
-                      >
-                        <span>{formatCurrency(secondGoalSavings, "USD")}</span>
-                        <span>{formatCurrency(secondGoalAmount, "USD")}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setShowGoalModal(true)
-                      vibrate()
-                    }}
-                    className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-all text-sm touch-none"
-                  >
-                    Изменить цель
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTransactionType("savings")
-                      setShowAddModal(true)
-                      setShowNumKeyboard(false)
-                      vibrate()
-                    }}
-                    className={`flex items-center gap-1 px-4 py-2 rounded-xl font-medium transition-all shadow-lg text-sm touch-none ${
-                      theme === "dark"
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-white text-blue-600 hover:bg-blue-50"
-                    }`}
-                  >
-                    <Plus className="w-4 h-4" />
-                    Пополнить
-                  </button>
-                </div>
-              </div>
-
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  История пополнений
-                </h3>
-                {transactions.filter((t) => t.type === "savings").length === 0 ? (
-                  <div className="text-center py-8">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-blue-100"
-                      }`}
-                    >
-                      <PiggyBank className={`w-6 h-6 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                    </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Начните копить!</p>
-                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                      Добавьте первое пополнение
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    {transactions
-                      .filter((t) => t.type === "savings")
-                      .map((tx) => (
-                        <TxRow
-                          tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
-                          key={tx.id}
-                          categoriesMeta={categoriesMeta}
-                          formatCurrency={formatCurrency}
-                          formatDate={formatDate}
-                          theme={theme}
-                          onDelete={deleteTransaction}
-                          showCreator={showLinkedUsers}
-                          onToggleLike={toggleLike}
-                          onOpenDetails={openTransactionDetails}
-                        />
-                      ))}
-                  </div>
-                )}
-              </div>
-              </>
-              )}
-
-              {savingsTab === 'debts' && (
-                <div className="space-y-4">
-                  {/* Кнопка добавления долга */}
-                  <button
-                    onClick={() => {
-                      setShowAddDebtModal(true)
-                      vibrate()
-                    }}
-                    className={`w-full mx-4 py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 shadow-lg ${
-                      theme === "dark"
-                        ? "bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-500 hover:to-red-500"
-                        : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600"
-                    }`}
-                    style={{ maxWidth: 'calc(100% - 2rem)' }}
-                  >
-                    <Plus className="w-5 h-5" />
-                    Добавить долг
-                  </button>
-
-                  {/* Список долгов */}
-                  {debts.length === 0 ? (
-                    <div className={`rounded-2xl p-8 text-center mx-4 ${
-                      theme === "dark" ? "bg-gray-800" : "bg-white"
-                    }`}>
-                      <div className="text-6xl mb-4">💰</div>
-                      <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                        Нет долгов
-                      </h3>
-                      <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                        Нажмите "Добавить долг" чтобы начать учет
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 px-4">
-                      {debts.map((debt) => (
-                        <div
-                          key={debt.id}
-                          className={`rounded-xl p-4 border ${
-                            debt.type === 'owe'
-                              ? theme === "dark"
-                                ? "bg-red-900/20 border-red-700/30"
-                                : "bg-red-50 border-red-200"
-                              : theme === "dark"
-                                ? "bg-green-900/20 border-green-700/30"
-                                : "bg-green-50 border-green-200"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl">
-                                {debt.type === 'owe' ? '📤' : '📥'}
-                              </span>
-                              <div>
-                                <h4 className={`font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                                  {debt.person}
-                                </h4>
-                                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                  {debt.type === 'owe' ? 'Я должен' : 'Мне должны'}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`text-lg font-bold ${
-                                debt.type === 'owe'
-                                  ? theme === "dark" ? "text-red-400" : "text-red-600"
-                                  : theme === "dark" ? "text-green-400" : "text-green-600"
-                              }`}>
-                                {formatCurrency(debt.amount)}
-                              </p>
-                            </div>
-                          </div>
-                          {debt.description && (
-                            <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                              {debt.description}
-                            </p>
-                          )}
-                          <div className="flex gap-2 mt-3">
-                            <button
-                              onClick={() => repayDebt(debt)}
-                              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                                theme === "dark"
-                                  ? "bg-green-700 hover:bg-green-600 text-white"
-                                  : "bg-green-500 hover:bg-green-600 text-white"
-                              }`}
-                            >
-                              Погашено
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (window.confirm('Удалить этот долг?')) {
-                                  deleteDebt(debt.id)
-                                }
-                              }}
-                              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
-                                theme === "dark"
-                                  ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                              }`}
-                            >
-                              Удалить
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <SavingsTab
+              theme={theme}
+              isFullscreen={isFullscreen}
+              savingsTab={savingsTab}
+              setSavingsTab={setSavingsTab}
+              vibrateSelect={vibrateSelect}
+              vibrate={vibrate}
+              goalName={goalName}
+              savingsPct={savingsPct}
+              savings={savings}
+              goalSavings={goalSavings}
+              secondGoalName={secondGoalName}
+              secondGoalAmount={secondGoalAmount}
+              secondGoalSavings={secondGoalSavings}
+              formatCurrency={formatCurrency}
+              formatDate={formatDate}
+              setShowGoalModal={setShowGoalModal}
+              setTransactionType={setTransactionType}
+              setShowAddModal={setShowAddModal}
+              setShowNumKeyboard={setShowNumKeyboard}
+              transactions={transactions}
+              likedTransactions={likedTransactions}
+              transactionComments={transactionComments}
+              categoriesMeta={categoriesMeta}
+              deleteTransaction={deleteTransaction}
+              showLinkedUsers={showLinkedUsers}
+              toggleLike={toggleLike}
+              openTransactionDetails={openTransactionDetails}
+              setShowSecondGoalModal={setShowSecondGoalModal}
+              setShowSavingsSettingsModal={setShowSavingsSettingsModal}
+              debts={debts}
+              setShowAddDebtModal={setShowAddDebtModal}
+              repayDebt={repayDebt}
+              deleteDebt={deleteDebt}
+            />
           )}
 
           {activeTab === "settings" && (
-            <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              {/* Приветствие с аватаркой - только для незалогиненных */}
-              {!isAuthenticated && (
-                <div
-                  className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                    theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {tgPhotoUrl ? (
-                      <img
-                        src={tgPhotoUrl}
-                        alt="Avatar"
-                        className="w-14 h-14 rounded-full flex-shrink-0 object-cover ring-2 ring-white/20"
-                      />
-                    ) : (
-                      <div
-                        className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                        }`}
-                      >
-                        <User className={`w-7 h-7 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
-                      </div>
-                    )}
-                    <div>
-                      <h2 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                        Привет, {displayName}! 👋
-                      </h2>
-                      <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                        Добро пожаловать в ваш финансовый помощник
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                {linkedUsers.length > 1 && (
-                  <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                    Семейный аккаунт
-                  </p>
-                )}
-
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Аккаунт
-                </h3>
-
-                {isAuthenticated ? (
-                  <div className="space-y-3">
-                    <div
-                      className={`flex items-center gap-3 p-3 rounded-xl border ${
-                        theme === "dark" ? "bg-green-900/30 border-green-700/30" : "bg-green-50 border-green-200"
-                      }`}
-                    >
-                      {tgPhotoUrl ? (
-                        <img
-                          src={tgPhotoUrl}
-                          alt="Avatar"
-                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
-                        />
-                      ) : (
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            theme === "dark" ? "bg-green-700" : "bg-green-100"
-                          }`}
-                        >
-                          <User className={`w-5 h-5 ${theme === "dark" ? "text-green-300" : "text-green-600"}`} />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p
-                          className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
-                        >
-                          {(user && user.first_name) || displayName}
-                        </p>
-                        <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                          {user && user.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    {linkedUsers.length > 1 && (
-                      <div className="mb-3">
-                        <button
-                          onClick={() => {
-                            setShowLinkedUsersDropdown(!showLinkedUsersDropdown)
-                            vibrate()
-                          }}
-                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                            theme === "dark" 
-                              ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
-                              : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                          }`}
-                        >
-                          <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                            Пользователи ({linkedUsers.length})
-                          </span>
-                          {showLinkedUsersDropdown ? (
-                            <ChevronUp className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
-                          ) : (
-                            <ChevronDown className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
-                          )}
-                        </button>
-                        
-                        {showLinkedUsersDropdown && (
-                          <div className="space-y-2 mt-2">
-                            {linkedUsers.map((linkedUser) => (
-                              <LinkedUserRow
-                                key={linkedUser.telegram_id}
-                                linkedUser={linkedUser}
-                                currentTelegramId={tgUserId}
-                                theme={theme}
-                                vibrate={vibrate}
-                                removeLinkedUser={removeLinkedUser}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Кнопка приглашения пользователя */}
-                    <button
-                      onClick={inviteUser}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
-                          : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                      }`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Пригласить пользователя
-                    </button>
-                    
-                    <button
-                      onClick={handleLogout}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-rose-700 hover:bg-rose-600 text-white"
-                          : "bg-rose-500 hover:bg-rose-600 text-white"
-                      }`}
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Выйти
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div
-                      className={`p-3 rounded-xl border ${
-                        theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
-                      }`}
-                    >
-                      <p className={`text-sm mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                        Войдите в учетную запись через email, чтобы синхронизировать данные на всех устройствах.
-                      </p>
-                    </div>
-                    
-                    {/* Описание совместного кошелька */}
-                    <div className={`p-3 rounded-xl border ${
-                      theme === "dark" ? "bg-purple-900/20 border-purple-700/30" : "bg-purple-50 border-purple-200"
-                    }`}>
-                      <div className="flex items-start gap-2">
-                        <Users className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-                        <div>
-                          <p className={`text-xs font-medium mb-1 ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>
-                            Совместный кошелек
-                          </p>
-                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            Пригласите друзей или членов семьи для совместного управления бюджетом. 
-                            Они автоматически подключатся к вашему аккаунту через Telegram и смогут видеть общие расходы и доходы.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Кнопка приглашения (доступна без email) */}
-                    <button
-                      onClick={inviteUser}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
-                          : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                      }`}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Пригласить пользователя
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        setShowAuthModal(true)
-                        setAuthMode("login")
-                      }}
-                      className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-blue-700 hover:bg-blue-600 text-white"
-                          : "bg-blue-500 hover:bg-blue-600 text-white"
-                      }`}
-                    >
-                      <LogIn className="w-4 h-4" />
-                      Войти через Email
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Настройки
-                </h3>
-
-                <div className="space-y-3">
-                  <div>
-                    <label
-                      className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                    >
-                      Валюта
-                    </label>
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      style={{ touchAction: 'manipulation' }}
-                      className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm ${
-                        theme === "dark"
-                          ? "bg-gray-700 border-gray-600 text-gray-100"
-                          : "bg-gray-50 border-gray-200 text-gray-900"
-                      }`}
-                    >
-                      {currencies.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.name} ({c.symbol})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label
-                      className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                    >
-                      Тема
-                    </label>
-                    <button
-                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      style={{ touchAction: 'manipulation' }}
-                      className={`w-full p-3 border rounded-xl transition-all text-left text-sm active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
-                          : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
-                      }`}
-                    >
-                      {theme === "dark" ? "🌙 Тёмная" : "☀️ Светлая"}
-                    </button>
-                  </div>
-
-                  {tg && (tg.requestFullscreen || tg.exitFullscreen) && (
-                    <div>
-                      <label
-                        className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                      >
-                        Полноэкранный режим
-                      </label>
-                      <button
-                        onClick={toggleFullscreen}
-                        style={{ touchAction: 'manipulation' }}
-                        className={`w-full p-3 border rounded-xl transition-all text-left text-sm active:scale-95 flex items-center gap-2 ${
-                          theme === "dark"
-                            ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
-                            : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
-                        }`}
-                      >
-                        {isFullscreen ? (
-                          <>
-                            <Minimize2 className="w-4 h-4" />
-                            <span>Выключить</span>
-                          </>
-                        ) : (
-                          <>
-                            <Maximize2 className="w-4 h-4" />
-                            <span>Включить</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Бюджеты */}
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Бюджеты и лимиты
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowBudgetModal(true)
-                    setSelectedBudgetCategory('')
-                    setBudgetLimitInput('')
-                    vibrate()
-                  }}
-                  className={`w-full py-3 rounded-xl font-medium transition-all shadow-lg text-sm active:scale-95 flex items-center justify-center gap-2 ${
-                    theme === "dark"
-                      ? "bg-blue-700 hover:bg-blue-600 text-white"
-                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  {Object.keys(budgets).length > 0 ? 'Управление бюджетами' : 'Настроить бюджеты'}
-                </button>
-                {Object.keys(budgets).length > 0 && (
-                  <p className={`text-xs mt-2 text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                    Активных бюджетов: {Object.keys(budgets).length}
-                  </p>
-                )}
-              </div>
-
-              {/* Системные настройки (раскрываемое меню) */}
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <button
-                  onClick={() => {
-                    setShowSystemSettings(!showSystemSettings)
-                    vibrate()
-                  }}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                    theme === "dark" 
-                      ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
-                      : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                    ⚙️ Системные настройки
-                  </span>
-                  {showSystemSettings ? (
-                    <ChevronUp className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
-                  ) : (
-                    <ChevronDown className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
-                  )}
-                </button>
-                
-                {showSystemSettings && (
-                  <div className="space-y-3 mt-3">
-                    {/* Смена пароля (только для пользователей с email) */}
-                    {user && user.email && (
-                      <div
-                        className={`rounded-xl p-3 border ${
-                          theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
-                        }`}
-                      >
-                        <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-blue-300" : "text-blue-900"}`}>
-                          Безопасность
-                        </h4>
-                        <button
-                          onClick={() => {
-                            setShowChangePasswordModal(true)
-                            vibrateSelect()
-                          }}
-                          className={`w-full py-2 rounded-lg font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${
-                            theme === "dark"
-                              ? "bg-blue-700 hover:bg-blue-600 text-white"
-                              : "bg-blue-500 hover:bg-blue-600 text-white"
-                          }`}
-                        >
-                          <Settings className="w-3 h-3" />
-                          Сменить пароль
-                        </button>
-                        <p className={`text-xs mt-2 ${theme === "dark" ? "text-blue-400" : "text-blue-700"}`}>
-                          Измените пароль для входа в аккаунт через email.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Исправление данных */}
-                    <div
-                      className={`rounded-xl p-3 border ${
-                        theme === "dark" ? "bg-orange-900/30 border-orange-700/30" : "bg-orange-50 border-orange-200"
-                      }`}
-                    >
-                      <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-orange-300" : "text-orange-900"}`}>
-                        Исправление данных
-                      </h4>
-                      <button
-                        onClick={recalculateBalance}
-                        className={`w-full py-2 rounded-lg font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${
-                          theme === "dark"
-                            ? "bg-orange-700 hover:bg-orange-600 text-white"
-                            : "bg-orange-500 hover:bg-orange-600 text-white"
-                        }`}
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        Пересчитать баланс
-                      </button>
-                      <p className={`text-xs mt-2 ${theme === "dark" ? "text-orange-400" : "text-orange-700"}`}>
-                        Пересчитывает баланс на основе всех транзакций. Используйте, если баланс некорректен.
-                      </p>
-                    </div>
-
-                    {/* Опасная зона */}
-                    <div
-                      className={`rounded-xl p-3 border ${
-                        theme === "dark" ? "bg-red-900/30 border-red-700/30" : "bg-red-50 border-red-200"
-                      }`}
-                    >
-                      <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-red-300" : "text-red-900"}`}>
-                        Опасная зона
-                      </h4>
-                      <button
-                        onClick={handleResetAll}
-                        className={`w-full py-2 rounded-lg font-medium transition-all shadow text-xs touch-none active:scale-95 ${
-                          theme === "dark"
-                            ? "bg-red-700 hover:bg-red-600 text-white"
-                            : "bg-red-500 hover:bg-red-600 text-white"
-                        }`}
-                      >
-                        Сбросить все данные
-                      </button>
-                      <p className={`text-xs mt-2 ${theme === "dark" ? "text-red-400" : "text-red-700"}`}>
-                        Удалит все транзакции, бюджеты и настройки. Это действие необратимо!
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <SettingsTab
+              theme={theme}
+              isFullscreen={isFullscreen}
+              isAuthenticated={isAuthenticated}
+              tgPhotoUrl={tgPhotoUrl}
+              displayName={displayName}
+              linkedUsers={linkedUsers}
+              tgUserId={tgUserId}
+              user={user}
+              showLinkedUsersDropdown={showLinkedUsersDropdown}
+              setShowLinkedUsersDropdown={setShowLinkedUsersDropdown}
+              vibrate={vibrate}
+              removeLinkedUser={removeLinkedUser}
+              inviteUser={inviteUser}
+              handleLogout={handleLogout}
+              setShowAuthModal={setShowAuthModal}
+              setAuthMode={setAuthMode}
+              currency={currency}
+              setCurrency={setCurrency}
+              currencies={currencies}
+              setTheme={setTheme}
+              tg={tg}
+              toggleFullscreen={toggleFullscreen}
+              budgets={budgets}
+              setShowBudgetModal={setShowBudgetModal}
+              setSelectedBudgetCategory={setSelectedBudgetCategory}
+              setBudgetLimitInput={setBudgetLimitInput}
+              showSystemSettings={showSystemSettings}
+              setShowSystemSettings={setShowSystemSettings}
+              setShowChangePasswordModal={setShowChangePasswordModal}
+              vibrateSelect={vibrateSelect}
+              recalculateBalance={recalculateBalance}
+              handleResetAll={handleResetAll}
+            />
           )}
         </div>
       </main>
