@@ -761,7 +761,12 @@ const [newWalletColor, setNewWalletColor] = useState(null)
 const headerStartY = useRef(0)
 const headerSwipeY = useRef(0)
 const headerIsSwiping = useRef(false)
-const [walletSelectorOpen, setWalletSelectorOpen] = useState(false)
+  const [walletSelectorOpen, setWalletSelectorOpen] = useState(false)
+  const [closingWalletModal, setClosingWalletModal] = useState(false)
+  const [closingAddModal, setClosingAddModal] = useState(false)
+  const [closingTxDetails, setClosingTxDetails] = useState(false)
+  const [closingBudgetModal, setClosingBudgetModal] = useState(false)
+  const [closingDebtModal, setClosingDebtModal] = useState(false)
 const saveWallets = (next) => { setWallets(next); try { localStorage.setItem('finance_wallets_v1', JSON.stringify(next)) } catch {} }
 useEffect(() => { 
   // Initialize Telegram WebApp
@@ -2593,16 +2598,29 @@ const getVisibleTransactions = () => {
                     <ChevronDown className="w-3 h-3" />
                   </button>
                   <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? balance : (wallets[activeWalletIndex-1]?.balance || 0)) : "••••••"}</p>
-                  <div className="flex justify-between text-white text-sm mt-2">
-                    <div>
-                      <p className="text-xs opacity-80">Доходы</p>
-                      <p className="font-semibold">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? income : (wallets[activeWalletIndex-1]?.income || 0)) : "••••••"}</p>
+                  {activeWalletIndex === 0 ? (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between">
+                        <div className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-white" /><span className="text-xs text-white/80">Доходы</span></div>
+                        <span className="text-sm font-semibold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</span>
+                      </div>
+                      <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-between">
+                        <div className="flex items-center gap-1.5"><TrendingDown className="w-4 h-4 text-white" /><span className="text-xs text-white/80">Расходы</span></div>
+                        <span className="text-sm font-semibold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs opacity-80">Расходы</p>
-                      <p className="font-semibold">{balanceVisible ? formatCurrency(activeWalletIndex === 0 ? expenses : (wallets[activeWalletIndex-1]?.expenses || 0)) : "••••••"}</p>
+                  ) : (
+                    <div className="flex justify-between text-white text-sm mt-2">
+                      <div>
+                        <p className="text-xs opacity-80">Доходы</p>
+                        <p className="font-semibold">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.income || 0) : "••••••"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs opacity-80">Расходы</p>
+                        <p className="font-semibold">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.expenses || 0) : "••••••"}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 
               </div>
@@ -3808,7 +3826,7 @@ const getVisibleTransactions = () => {
 
       {showWalletModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50">
-          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} slide-up`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${closingWalletModal ? 'slide-down' : 'slide-up'}`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
             <div className="p-4 overflow-y-auto flex-1">
               <div className="mb-3">
                 <div className="rounded-2xl p-4" style={{ backgroundColor: theme==='dark'?commonWallet.colorDark:commonWallet.colorLight }}>
@@ -3889,7 +3907,7 @@ const getVisibleTransactions = () => {
               </div>
             </div>
             <div className="px-4 py-3 border-t" style={{ borderColor: theme==='dark' ? '#374151' : '#e5e7eb' }}>
-              <button onClick={()=>setShowWalletModal(false)} className={`w-full py-2.5 rounded-xl ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-700'}`}>Закрыть</button>
+              <button onClick={() => { setClosingWalletModal(true); setTimeout(() => { setShowWalletModal(false); setClosingWalletModal(false) }, 250) }} className={`w-full py-2.5 rounded-xl ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-700'}`}>Закрыть</button>
             </div>
           </div>
         </div>
@@ -4731,7 +4749,7 @@ const getVisibleTransactions = () => {
           <div
             className={`w-full max-w-md rounded-t-2xl shadow-2xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
-            } slide-up`}
+            } ${closingBudgetModal ? 'slide-down' : 'slide-up'}`}
             style={{ 
               maxHeight: "85vh",
               display: "flex",
@@ -4894,7 +4912,7 @@ const getVisibleTransactions = () => {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingBudgetModal ? 'slide-down' : 'slide-up'}`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             {/* Контент - прокручиваемый */}
@@ -4995,7 +5013,7 @@ const getVisibleTransactions = () => {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} slide-up`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingAddModal ? 'slide-down' : 'slide-up'}`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
@@ -5593,10 +5611,11 @@ const getVisibleTransactions = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    setShowAddModal(false)
+                    setClosingAddModal(true)
                     setShowNumKeyboard(false)
                     setIsKeyboardOpen(false)
                     blurAll()
+                    setTimeout(() => { setShowAddModal(false); setClosingAddModal(false) }, 250)
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                     theme === "dark"
