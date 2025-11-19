@@ -2533,8 +2533,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-sm ${
-                    theme === "dark" ? "bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/60" : "bg-white/50 border-white/50 hover:bg-white/60"
+                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-lg ${
+                    theme === "dark" ? "bg-gray-800/30 border-gray-700/30 hover:bg-gray-800/40" : "bg-white/30 border-white/30 hover:bg-white/40"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -2585,8 +2585,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-sm ${
-                      theme === "dark" ? "bg-gray-800/50 border-gray-700/50 hover:bg-gray-800/60" : "bg-white/50 border-white/50 hover:bg-white/60"
+                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-lg ${
+                      theme === "dark" ? "bg-gray-800/30 border-gray-700/30 hover:bg-gray-800/40" : "bg-white/30 border-white/30 hover:bg-white/40"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -2748,8 +2748,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-gray-200"
+                className={`rounded-2xl p-4 border backdrop-blur-lg shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
