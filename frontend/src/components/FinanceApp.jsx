@@ -663,6 +663,23 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
 export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
+  const sheetSwipeStartY = useRef(null)
+
+  const handleSheetTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return
+    sheetSwipeStartY.current = e.touches[0].clientY
+  }
+
+  const createSheetTouchEndHandler = (closeFn) => (e) => {
+    if (!e.changedTouches || e.changedTouches.length === 0) return
+    if (sheetSwipeStartY.current == null) return
+    const endY = e.changedTouches[0].clientY
+    const diffY = endY - sheetSwipeStartY.current
+    if (diffY > 60) {
+      closeFn()
+    }
+    sheetSwipeStartY.current = null
+  }
 
   // UseState hooks should be at the top level of the component
   const [user, setUser] = useState(null)
@@ -3755,18 +3772,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showGoalModal && (
         <div
-          className={`fixed inset-0 backdrop-blur-2xl flex items-center justify-center z-50 p-4 ${
+          className={`fixed inset-0 backdrop-blur-2xl flex items-end justify-center z-50 p-4 ${
             theme === "dark"
               ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
               : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
           }`}
+          onClick={() => setShowGoalModal(false)}
+          onTouchStart={handleSheetTouchStart}
+          onTouchEnd={createSheetTouchEndHandler(() => setShowGoalModal(false))}
         >
           <div
-            className={`w-full max-w-sm rounded-3xl p-4 shadow-xl border backdrop-blur-2xl ${
+            className={`w-full max-w-md rounded-t-3xl p-4 shadow-xl border backdrop-blur-2xl ${
               theme === "dark"
                 ? "bg-gray-900/70 border-gray-700/70"
                 : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
             }`}
+            onClick={(e) => e.stopPropagation()}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Цель накопления (USD)
@@ -3901,15 +3922,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showSavingsSettingsModal && (
         <div
-          className={`fixed inset-0 backdrop-blur-2xl flex items-center justify-center z-[60] p-4 ${
+          className={`fixed inset-0 backdrop-blur-2xl flex items-end justify-center z-[60] p-4 ${
             theme === "dark"
               ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
               : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
           }`}
+          onClick={() => setShowSavingsSettingsModal(false)}
+          onTouchStart={handleSheetTouchStart}
+          onTouchEnd={createSheetTouchEndHandler(() => setShowSavingsSettingsModal(false))}
         >
-          <div className={`w-full max-w-sm rounded-3xl shadow-xl overflow-hidden border backdrop-blur-2xl ${
+          <div className={`w-full max-w-md rounded-t-3xl shadow-xl overflow-hidden border backdrop-blur-2xl ${
             theme === "dark" ? "bg-gray-900/70 border-gray-700/70" : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
-          }`}>
+          }`} onClick={(e) => e.stopPropagation()}>
           <div className="p-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -4599,6 +4623,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
           }`}
           onClick={() => setShowTransactionDetails(false)}
+          onTouchStart={handleSheetTouchStart}
+          onTouchEnd={createSheetTouchEndHandler(() => setShowTransactionDetails(false))}
         >
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-xl border backdrop-blur-2xl ${
