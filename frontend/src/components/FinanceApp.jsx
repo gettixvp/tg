@@ -2466,7 +2466,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-          : "bg-white"
+          : "bg-gradient-to-r from-[#ead6cf] to-[#008dc3]"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -3659,7 +3659,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       </main>
 
       {showGoalModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
@@ -3797,7 +3797,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSavingsSettingsModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-lg flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-lg flex items-center justify-center z-[60] p-4">
           <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden border backdrop-blur-xl ${
             theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
           }`}>
@@ -4131,7 +4131,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSecondGoalModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
@@ -4214,7 +4214,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showChart && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
@@ -4476,7 +4476,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showTransactionDetails && selectedTransaction && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-end justify-center z-50"
           onClick={() => setShowTransactionDetails(false)}
         >
           {/* Header вне модального окна */}
@@ -4659,7 +4659,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно списка бюджетов */}
       {showBudgetModal && !selectedBudgetCategory && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-end justify-center z-50"
           style={{ touchAction: "none" }}
         >
           <div
@@ -4762,7 +4762,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно редактирования бюджета */}
       {showBudgetModal && selectedBudgetCategory && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-end justify-center z-50"
           style={{ touchAction: "none" }}
         >
           <div
@@ -5020,7 +5020,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно добавления долга */}
       {showAddDebtModal && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-end justify-center z-50"
           onClick={() => {
             setShowAddDebtModal(false)
             setDebtPerson('')
@@ -5184,7 +5184,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showAddModal && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-end justify-center z-50"
           style={{ touchAction: "none" }}
         >
           <div
@@ -5405,7 +5405,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
@@ -5553,7 +5553,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* Модальное окно смены пароля */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
