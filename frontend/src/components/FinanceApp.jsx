@@ -2465,7 +2465,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       <div
         className={`w-full h-screen flex items-center justify-center ${
           theme === "dark"
-            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
+            ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
             : "bg-white"
         }`}
       >
@@ -2483,8 +2483,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     <div
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-          : "bg-gradient-to-br from-slate-50 via-sky-50 to-indigo-100"
+          ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
+          : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
