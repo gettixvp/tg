@@ -374,10 +374,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer rounded-xl border backdrop-blur-lg ${
+          className={`relative p-3 cursor-pointer rounded-xl border backdrop-blur-xl ${
             theme === "dark"
-              ? "bg-gray-800/20 border-gray-700/30 hover:bg-gray-800/30"
-              : "bg-white/20 border-white/30 hover:bg-white/30"
+              ? "bg-gray-800/25 border-gray-700/30 hover:bg-gray-800/35"
+              : "bg-white/25 border-white/30 hover:bg-white/35"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -2441,7 +2441,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-          : "bg-gradient-to-br from-blue-400 via-pink-400 to-rose-500"
+          : "bg-gradient-to-b from-indigo-500 via-purple-400 to-rose-300"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -2639,8 +2639,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-2xl p-4 border ${
-                    theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
+                  className={`rounded-2xl p-4 border backdrop-blur-xl ${
+                    theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
