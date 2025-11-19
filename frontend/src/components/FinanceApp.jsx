@@ -370,10 +370,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer border ${
+          className={`relative p-3 cursor-pointer ${
             theme === "dark"
-              ? "backdrop-blur-sm bg-gray-800/90 border-gray-700/40"
-              : "glass-primary-soft"
+              ? "bg-gray-800"
+              : "bg-white shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -448,6 +448,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                 </span>
               </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -478,7 +479,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   className={`inline-block px-2.5 py-1.5 rounded-xl ${
                     theme === "dark"
                       ? "bg-gray-700/80 text-gray-100"
-                      : "glass-primary-soft text-gray-900"
+                      : "bg-gray-100 text-gray-900"
                   }`}
                 >
                   <p className={`text-[10px] font-medium mb-0.5 ${
@@ -573,7 +574,9 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
   }
 
   const handleDelete = () => {
-    if (window.confirm(`Удалить ${linkedUser.telegram_name || "пользователя"} из семейного аккаунта?`)) {
+    // Replaced window.confirm with a simple confirmation.
+    // A custom modal would be a better user experience.
+    if (confirm(`Удалить ${linkedUser.telegram_name || "пользователя"} из семейного аккаунта?`)) {
       vibrate()
       removeLinkedUser(linkedUser.telegram_id)
       setSwipeX(0)
@@ -601,9 +604,9 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         onTouchStart={!isCurrentUser ? handleTouchStart : undefined}
         onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
         onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
-          className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
-            theme === "dark" ? "bg-gray-800 border-gray-700/50" : "glass-primary-soft"
-          }`}
+        className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
+          theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
+        }`}
       >
         {linkedUser.telegram_photo_url ? (
           <img
@@ -626,6 +629,102 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
           </p>
           {isCurrentUser && <p className={`text-xs ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>Вы</p>}
         </div>
+      </div>
+    </div>
+  )
+}
+
+const WalletRow = ({ wallet, theme, onDelete, onUpdate, onActivate, isActive }) => {
+  const [editing, setEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [swipeX, setSwipeX] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const startX = useRef(0)
+
+  const handleTouchStart = (e) => {
+    startX.current = e.touches[0].clientX
+    setIsSwiping(true)
+  }
+  const handleTouchMove = (e) => {
+    if (!isSwiping) return
+    const diff = e.touches[0].clientX - startX.current
+    if (diff < 0) {
+      setSwipeX(Math.max(diff, -120))
+    } else if (swipeX < 0) {
+      setSwipeX(Math.min(0, swipeX + diff / 2))
+    }
+  }
+  const handleTouchEnd = () => {
+    setIsSwiping(false)
+    if (swipeX < -60) {
+      setSwipeX(-120)
+    } else {
+      setSwipeX(0)
+    }
+  }
+
+  return (
+    <div className="relative mb-1.5 rounded-xl overflow-hidden">
+      <div className={`absolute inset-y-0 right-0 w-30 flex items-center gap-2 pr-3 ${theme==='dark'?'bg-gray-700':'bg-gray-100'}`}>
+        <button onClick={() => setEditing(true)} className={`p-2 rounded-lg ${theme==='dark'?'bg-gray-600 text-white':'bg-gray-200 text-gray-800'}`}>
+          <Settings className="w-4 h-4" />
+        </button>
+        <button onClick={() => setShowDeleteConfirm(true)} className={`p-2 rounded-lg ${theme==='dark'?'bg-red-600 text-white':'bg-red-500 text-white'}`}>
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+      <div
+        style={{ transform: `translateX(${swipeX}px)`, transition: isSwiping ? 'none' : 'transform 0.3s ease' }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`relative p-3 rounded-xl border transition-all duration-300 ${theme === 'dark' ? 'bg-gray-800 border-gray-700/50' : 'bg-white border-gray-200/50'} ${isActive ? 'ring-2 ring-emerald-400' : ''}`}
+        onClick={() => onActivate && onActivate(wallet.id)}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 absolute top-0 right-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center`} style={{ backgroundColor: theme === 'dark' ? wallet.colorDark : wallet.colorLight }}>
+              <span className="text-xl">{wallet.icon}</span>
+            </div>
+            <input type="text" value={wallet.name} onChange={(e) => onUpdate && onUpdate({ name: e.target.value })} className={`p-2 rounded-lg text-sm ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-900'}`} />
+          </div>
+          <div className="flex items-center gap-2">
+            {isActive && <span className={`text-xs ${theme==='dark'?'text-emerald-300':'text-emerald-600'}`}>Активный</span>}
+          </div>
+        </div>
+        {showDeleteConfirm && (
+          <div className="mt-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-700 dark:text-red-400 mb-3">Удалить кошелек "{wallet.name}"?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { onDelete && onDelete(); setShowDeleteConfirm(false); }}
+                className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+              >
+                Удалить
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        )}
+        {editing && (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-8 gap-2">
+              {['💼','💳','🏦','👜','💰','🧾','📦','🧿'].map(ic => (
+                <button key={ic} onClick={() => onUpdate && onUpdate({ icon: ic })} className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} p-2 rounded-xl`}>{ic}</button>
+              ))}
+            </div>
+            <div className="grid grid-cols-6 gap-2">
+              {[{l:'#6366f1',d:'#3b82f6'},{l:'#10b981',d:'#059669'},{l:'#f59e0b',d:'#d97706'},{l:'#ef4444',d:'#dc2626'},{l:'#8b5cf6',d:'#7c3aed'},{l:'#06b6d4',d:'#0891b2'}].map((c) => (
+                <button key={'c'+c.l} onClick={() => onUpdate && onUpdate({ colorLight: c.l, colorDark: c.d })} className="h-8 rounded-full" style={{ backgroundColor: theme === 'dark' ? c.d : c.l }} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -684,6 +783,44 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
+const [wallets, setWallets] = useState([])
+const [commonWallet, setCommonWallet] = useState({ id: 'common', name: 'Общий', icon: '💳', colorLight: '#6366f1', colorDark: '#3b82f6' })
+const [activeWalletIndex, setActiveWalletIndex] = useState(0)
+const [showWalletModal, setShowWalletModal] = useState(false)
+  const [showWalletSelect, setShowWalletSelect] = useState(false)
+  const [selectedWalletId, setSelectedWalletId] = useState(null)
+  const [showCreateWallet, setShowCreateWallet] = useState(false)
+  const [newWalletName, setNewWalletName] = useState('')
+  const [newWalletIcon, setNewWalletIcon] = useState('')
+  const [newWalletColor, setNewWalletColor] = useState(null)
+  const headerStartX = useRef(0)
+  const headerSwipeX = useRef(0)
+  const headerIsSwiping = useRef(false)
+  const [lastSwipeDir, setLastSwipeDir] = useState('right')
+  const [walletSelectorOpen, setWalletSelectorOpen] = useState(false)
+  const [walletSelectorMode, setWalletSelectorMode] = useState('activate')
+  const [closingWalletModal, setClosingWalletModal] = useState(false)
+  const [closingAddModal, setClosingAddModal] = useState(false)
+  const [closingTxDetails, setClosingTxDetails] = useState(false)
+  const [closingBudgetModal, setClosingBudgetModal] = useState(false)
+  const [closingDebtModal, setClosingDebtModal] = useState(false)
+const saveWallets = (next) => { setWallets(next); try { localStorage.setItem('finance_wallets_v1', JSON.stringify(next)) } catch {} }
+useEffect(() => { 
+  // Initialize Telegram WebApp
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp
+    tg.ready()
+    tg.expand()
+  }
+  try { const raw = localStorage.getItem('finance_wallets_v1'); if (raw) { setWallets(JSON.parse(raw) || []) } } catch {} 
+}, [])
+useEffect(() => { try { const raw = localStorage.getItem('finance_common_wallet_v1'); if (raw) { const obj = JSON.parse(raw); setCommonWallet(prev => ({ ...prev, ...obj })) } } catch {} }, [])
+const getActiveView = () => activeWalletIndex === 0 ? { ...commonWallet, isCommon: true } : wallets[activeWalletIndex - 1]
+const getVisibleTransactions = () => {
+  const view = getActiveView()
+  if (view.isCommon) return transactions
+  return transactions.filter(t => t.wallet_id === view.id)
+}
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
@@ -727,7 +864,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [debtAmount, setDebtAmount] = useState('')
   const [debtDescription, setDebtDescription] = useState('')
 
-  const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
+  const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null
   const haptic = tg && tg.HapticFeedback
   const vibrate = () => haptic && haptic.impactOccurred && haptic.impactOccurred("light")
   const vibrateSuccess = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("success")
@@ -915,13 +1052,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     document.body.style.backgroundColor = theme === 'dark' ? '#111827' : '#ffffff'
     document.body.style.color = theme === 'dark' ? '#f3f4f6' : '#111827'
     
-    // Форсируем ре-рендер через небольшую задержку
-    const timer = setTimeout(() => {
-      // Триггерим обновление компонента
-      setActiveTab(prev => prev)
-    }, 10)
-    
-    return () => clearTimeout(timer)
+    return () => {}
   }, [theme])
 
   // Обработка реферальной ссылки при запуске
@@ -1349,6 +1480,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       convertedUSD = n * exchangeRate
     }
 
+    const wid = selectedWalletId !== null ? selectedWalletId : (activeWalletIndex > 0 ? (wallets[activeWalletIndex-1]?.id || null) : null)
     const newTx = {
       id: Date.now(),
       user_id: user?.id || null,
@@ -1362,9 +1494,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       created_by_name: displayName || null,
       telegram_photo_url: tgPhotoUrl || null,
       savings_goal: transactionType === 'savings' ? selectedSavingsGoal : null,
+      wallet_id: wid || null,
     }
 
     setTransactions((p) => [newTx, ...p])
+    if (wid) {
+      setWallets((prev) => prev.map(w => w.id === wid ? {
+        ...w,
+        income: transactionType === 'income' ? (Number(w.income || 0) + n) : Number(w.income || 0),
+        expenses: transactionType === 'expense' ? (Number(w.expenses || 0) + n) : Number(w.expenses || 0),
+        balance: transactionType === 'income' ? (Number(w.balance || 0) + n) : transactionType === 'expense' ? (Number(w.balance || 0) - n) : (Number(w.balance || 0) - n)
+      } : w))
+    }
 
     let newBalance = balance
     let newIncome = income
@@ -1414,6 +1555,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             created_by_telegram_id: tgUserId || null,
             created_by_name: displayName || null,
             savings_goal: newTx.savings_goal,
+            wallet_id: newTx.wallet_id || null,
           }),
         })
 
@@ -1429,7 +1571,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const tx = transactions.find((t) => t.id === txId)
     if (!tx) return
 
-    if (!window.confirm("Удалить эту транзакцию?")) return
+    // Replaced window.confirm with a simple confirmation.
+    // A custom modal would be a better user experience.
+    if (!confirm("Удалить эту транзакцию?")) return
 
     console.log("[v0] Deleting transaction:", tx)
     console.log("[v0] Current balance (type):", typeof balance, balance)
@@ -1443,6 +1587,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     let newSavings = Number(savings)
     const txAmount = Number(tx.amount)
     const txConvertedUSD = Number(tx.converted_amount_usd || 0)
+
+    if (tx.wallet_id) {
+      setWallets(prev => prev.map(w => w.id === tx.wallet_id ? {
+        ...w,
+        income: tx.type === 'income' ? (Number(w.income || 0) - txAmount) : Number(w.income || 0),
+        expenses: tx.type === 'expense' ? (Number(w.expenses || 0) - txAmount) : Number(w.expenses || 0),
+        balance: tx.type === 'income' ? (Number(w.balance || 0) - txAmount) : tx.type === 'expense' ? (Number(w.balance || 0) + txAmount) : (Number(w.balance || 0) + txAmount)
+      } : w))
+    }
 
     if (tx.type === "income") {
       newIncome -= txAmount
@@ -2434,12 +2587,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col overflow-hidden"
+      className={`fixed inset-0 flex flex-col overflow-hidden ${
+        theme === "dark"
+          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
+          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
+      }`}
       style={{
-        background:
-          theme === "dark"
-            ? "linear-gradient(135deg, #0f172a 0%, #1f2937 40%, #1e3a8a 100%)"
-            : "linear-gradient(135deg, #262F45 0%, #5196CE 40%, #FE8492 75%, #A42527 100%)",
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
         paddingLeft: safeAreaInset.left || 0,
         paddingRight: safeAreaInset.right || 0,
@@ -2459,49 +2612,81 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
           />
           <div
-            className={`relative overflow-hidden rounded-2xl p-4 z-10 ${
-              theme === "dark"
-                ? "border border-gray-700/30 backdrop-blur-2xl"
-                : "glass-primary-strong"
-            }`}
-            style={theme === "dark" ? { backgroundColor: "rgba(59,130,246,0.18)" } : undefined}
+            className="relative rounded-3xl p-4 z-10 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
+            style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
+            onTouchStart={(e) => { headerStartX.current = e.touches[0].clientX; headerIsSwiping.current = true }}
+            onTouchMove={(e) => { if (!headerIsSwiping.current) return; headerSwipeX.current = e.touches[0].clientX - headerStartX.current }}
+            onTouchEnd={() => { if (!headerIsSwiping.current) return; const dx = headerSwipeX.current || 0; headerIsSwiping.current = false; headerSwipeX.current = 0; if (Math.abs(dx) > 40) { vibrateSelect(); if (dx < 0) { setLastSwipeDir('left'); setActiveWalletIndex(prev => { const next = prev + 1; return next > wallets.length ? 0 : next }) } else { setLastSwipeDir('right'); setActiveWalletIndex(prev => { const next = prev - 1; return next < 0 ? wallets.length : next }) } } }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5 flex-1">
-                <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-white/20 backdrop-blur-sm" : "glass-primary"}`}>
-                  <CreditCard className={`w-5 h-5 ${theme === "dark" ? "text-white" : "text-blue-700"}`} />
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1">
+              <div className={`h-1.5 rounded-full bg-white/70 transition-all ${activeWalletIndex===0?'w-3':'w-1.5'}`} />
+              <div className={`h-1.5 rounded-full bg-white/70 transition-all ${activeWalletIndex!==0?'w-3':'w-1.5'}`} />
+            </div>
+            <div className="relative mb-3">
+              <div className="flex flex-col items-start gap-2">
+                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm absolute top-0 left-0">
+                  {activeWalletIndex === 0 ? <CreditCard className="w-5 h-5 text-white" /> : <span className="text-xl">{wallets[activeWalletIndex-1]?.icon || '💼'}</span>}
                 </div>
                 <div>
-                  <p className={`text-xs ${theme === "dark" ? "text-white/80" : "text-gray-700"}`}>Общий баланс</p>
-                  <p className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                  {activeWalletIndex === 0 ? (
+                    <>
+                      <p className="text-xs text-white/80">Общий баланс</p>
+                      <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                      <div className="grid grid-cols-2 gap-2.5 mt-3">
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingUp className="w-3 h-3 text-emerald-300" />
+                            <span className="text-xs text-white/90">Доходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? income.toLocaleString('ru-RU') : "••••••"}</p>
+                        </div>
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingDown className="w-3 h-3 text-rose-300" />
+                            <span className="text-xs text-white/90">Расходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? expenses.toLocaleString('ru-RU') : "••••••"}</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => { vibrateSelect(); setWalletSelectorOpen(true) }}
+                        className="flex items-center gap-1 text-xs text-white/80 hover:text-white transition-colors"
+                      >
+                        <span>{wallets[activeWalletIndex-1]?.name || "Кошелек"}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                      <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.balance || 0) : "••••••"}</p>
+                      <div className="grid grid-cols-2 gap-2.5 mt-3">
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingUp className="w-3 h-3 text-emerald-300" />
+                            <span className="text-xs text-white/90">Доходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? (wallets[activeWalletIndex-1]?.income || 0).toLocaleString('ru-RU') : "••••••"}</p>
+                        </div>
+                        <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingDown className="w-3 h-3 text-rose-300" />
+                            <span className="text-xs text-white/90">Расходы</span>
+                          </div>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? (wallets[activeWalletIndex-1]?.expenses || 0).toLocaleString('ru-RU') : "••••••"}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
+                
               </div>
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
-              >
-                {balanceVisible ? (
-                  <Eye className={`w-4 h-4 ${theme === "dark" ? "text-white" : "text-gray-700"}`} />
-                ) : (
-                  <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-white" : "text-gray-700"}`} />
-                )}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-white/10 backdrop-blur-sm border-white/20" : "glass-primary"}`}>
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-300" : "text-emerald-600"}`} />
-                  <span className={`text-xs ${theme === "dark" ? "text-white/90" : "text-gray-700"}`}>Доходы</span>
-                </div>
-                <p className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{balanceVisible ? formatCurrency(income) : "••••••"}</p>
-              </div>
-              <div className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-white/10 backdrop-blur-sm border-white/20" : "glass-primary"}`}>
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-300" : "text-rose-600"}`} />
-                  <span className={`text-xs ${theme === "dark" ? "text-white/90" : "text-gray-700"}`}>Расходы</span>
-                </div>
-                <p className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowWalletModal(true)} className="p-2.5 rounded-xl bg-white/25 hover:bg-white/35 transition-all touch-none shadow-sm">
+                  <Settings className="w-5 h-5 text-white" />
+                </button>
+                <button onClick={() => setBalanceVisible(!balanceVisible)} className="p-2.5 rounded-xl bg-white/25 hover:bg-white/35 transition-all touch-none shadow-sm">
+                  {balanceVisible ? (<Eye className="w-5 h-5 text-white" />) : (<EyeOff className="w-5 h-5 text-white" />)}
+                </button>
               </div>
             </div>
           </div>
@@ -2538,12 +2723,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     vibrate()
                   }}
                   className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "glass-primary-strong"
+                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
-                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "glass-primary-soft"}`}>
+                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
                         <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                       </div>
                       <div>
@@ -2590,12 +2775,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       vibrate()
                     }}
                     className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                      theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "glass-primary-strong"
+                      theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "glass-primary-soft"}`}>
+                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "bg-purple-100"}`}>
                           <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
                         </div>
                         <div>
@@ -2640,7 +2825,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {Object.keys(budgets).length > 0 && (
                 <div
                   className={`rounded-2xl p-4 border ${
-                    theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2753,7 +2938,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               <div
                 className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2767,7 +2952,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     Все →
                   </button>
                 </div>
-                {transactions.length === 0 ? (
+                {getVisibleTransactions().length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -2785,7 +2970,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 ) : (
                   <div>
-                    {transactions.slice(0, 4).map((tx) => (
+                    {getVisibleTransactions().slice(0, 4).map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -2808,8 +2993,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2842,7 +3027,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </button>
                   </div>
                 </div>
-                {transactions.length === 0 ? (
+                {getVisibleTransactions().length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -2855,7 +3040,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 ) : (
                   <div>
-                    {transactions.map((tx) => (
+                    {getVisibleTransactions().map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -2937,7 +3122,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setShowSecondGoalModal(true)
                         vibrate()
                       }}
-                    className={`p-2 rounded-xl transition-all touch-none ${theme === "dark" ? "bg-white/20 hover:bg-white/30" : "glass-primary"}`}
+                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
                       title="Добавить вторую цель"
                     >
                       <Plus className="w-5 h-5 text-white" />
@@ -2947,11 +3132,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setShowSavingsSettingsModal(true)
                         vibrate()
                       }}
-                    className={`p-2 rounded-xl transition-all touch-none ${theme === "dark" ? "bg-white/20 hover:bg-white/30" : "glass-primary"}`}
+                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
                     >
                       <Settings className="w-5 h-5 text-white" />
                     </button>
-                    <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-white/20" : "glass-primary"}`}>
+                    <div className="p-2 rounded-xl bg-white/20">
                       <PiggyBank className="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -3032,8 +3217,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3098,8 +3283,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                   {/* Список долгов */}
                   {debts.length === 0 ? (
-                    <div className={`rounded-2xl p-8 text-center mx-4 border ${
-                      theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                    <div className={`rounded-2xl p-8 text-center mx-4 ${
+                      theme === "dark" ? "bg-gray-800" : "bg-white"
                     }`}>
                       <div className="text-6xl mb-4">💰</div>
                       <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3193,8 +3378,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Приветствие с аватаркой - только для незалогиненных */}
               {!isAuthenticated && (
                 <div
-                  className={`rounded-2xl p-4 border shadow-lg ${
-                    theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                  className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                    theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -3226,8 +3411,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 {linkedUsers.length > 1 && (
@@ -3401,8 +3586,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3488,8 +3673,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты */}
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3520,8 +3705,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <button
@@ -3633,10 +3818,180 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       </main>
 
+      {/* Wallet Selector Modal for Telegram */}
+      {walletSelectorOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl p-4 pb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Выбор кошелька</h3>
+              <button
+                onClick={() => setWalletSelectorOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {/* Common Wallet */}
+              <button
+                onClick={() => {
+                  if (walletSelectorMode === 'assign') {
+                    setSelectedWalletId(null)
+                  } else {
+                    setActiveWalletIndex(0)
+                  }
+                  setWalletSelectorOpen(false)
+                }}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  activeWalletIndex === 0 
+                    ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600' 
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span className="text-2xl">{commonWallet.icon}</span>
+                <div className="text-left">
+                  <div className="font-medium text-gray-800 dark:text-white">{commonWallet.name}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Общий баланс</div>
+                </div>
+              </button>
+              
+              {/* User Wallets */}
+              {wallets.map((wallet, idx) => (
+                <button
+                  key={wallet.id}
+                  onClick={() => {
+                    if (walletSelectorMode === 'assign') {
+                      setSelectedWalletId(wallet.id)
+                    } else {
+                      setActiveWalletIndex(idx + 1)
+                    }
+                    setWalletSelectorOpen(false)
+                    setWalletSelectorMode('activate')
+                  }}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    activeWalletIndex === idx + 1 
+                      ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600' 
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="text-2xl">{wallet.icon}</span>
+                  <div className="text-left">
+                    <div className="font-medium text-gray-800 dark:text-white">{wallet.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{wallet.balance?.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' })}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWalletModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => { setClosingWalletModal(true); setTimeout(() => { setShowWalletModal(false); setClosingWalletModal(false) }, 250) }}>
+          <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${closingWalletModal ? 'slide-down' : 'slide-up'}`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column', willChange: 'transform' }} onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 overflow-y-auto flex-1 space-y-4">
+              <div className="mb-3">
+                <div className="rounded-2xl p-4" style={{ backgroundColor: theme==='dark'?commonWallet.colorDark:commonWallet.colorLight }}>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-white/20"><CreditCard className="w-5 h-5 text-white" /></div>
+                    <div>
+                      <p className="text-xs text-white/80">Общий баланс</p>
+                      <p className="text-xl font-bold text-white">{formatCurrency(balance)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Настройки общего кошелька</h3>
+              <div className="space-y-3 mb-4">
+                <input type="text" value={commonWallet.name} onChange={(e)=>{ const v=e.target.value; setCommonWallet(prev=>{ const next={...prev,name:v}; try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({name:v,icon:prev.icon,colorLight:prev.colorLight,colorDark:prev.colorDark}))}catch{}; return next }) }} placeholder="Название общего кошелька" className={`w-full p-3 border rounded-xl ${theme==='dark'?'bg-gray-700 border-gray-600 text-gray-100':'bg-gray-50 border-gray-200 text-gray-900'}`} />
+                <div className="grid grid-cols-6 gap-2">
+                  {['💼','💳','🏦','👜','💰','🧾','📦','🧿'].map(ic => (
+                    <button key={'c'+ic} onClick={()=>{ setCommonWallet(prev=>{ const next={...prev,icon:ic}; try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({name:prev.name,icon:ic,colorLight:prev.colorLight,colorDark:prev.colorDark}))}catch{}; return next }) }} className={`p-2 rounded-xl ${theme==='dark'?'bg-gray-700':'bg-gray-100'}`}>{ic}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-6 gap-2 mb-4">
+                {[{l:'#6366f1',d:'#3b82f6'},{l:'#10b981',d:'#059669'},{l:'#f59e0b',d:'#d97706'},{l:'#ef4444',d:'#dc2626'},{l:'#8b5cf6',d:'#7c3aed'},{l:'#06b6d4',d:'#0891b2'}].map((c) => (
+                  <button key={c.l} onClick={() => { setCommonWallet({...commonWallet, colorLight:c.l, colorDark:c.d}); try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({colorLight:c.l,colorDark:c.d}))}catch{} }} className="h-8 rounded-full" style={{ backgroundColor: theme==='dark'?c.d:c.l }} />
+                ))}
+              </div>
+              <button onClick={() => { const inviteText = `🎉 Присоединяйся к моему кошельку!\n\nНажми на ссылку, чтобы автоматически подключиться к моему аккаунту и следить за общими расходами!`; webApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href.split('?')[0] + '?startapp=' + user.id)}&text=${encodeURIComponent(inviteText)}`) }} className={`w-full py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 ${theme==='dark' ? 'bg-green-700 text-white' : 'bg-green-500 text-white'}`}>
+                <UserPlus className="w-5 h-5" />
+                Пригласить пользователя
+              </button>
+              <button onClick={() => setShowCreateWallet(true)} disabled={wallets.length>=3} className={`w-full py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 ${wallets.length>=3 ? 'opacity-50 cursor-not-allowed' : theme==='dark' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'}`}>
+                <Plus className="w-5 h-5" />
+                Добавить кошелек
+              </button>
+              {showCreateWallet && (
+                <div className="mt-4 space-y-3">
+                  <div className={`rounded-2xl p-4 border ${theme==='dark'?'bg-gray-800 border-gray-700':'bg-white border-gray-200'}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl" style={{ backgroundColor: (newWalletColor ? (theme==='dark'?newWalletColor.d:newWalletColor.l) : (theme==='dark'?'#3b82f6':'#6366f1')) }}>
+                        <span className="text-xl">{newWalletIcon || '💼'}</span>
+                      </div>
+                      <div>
+                        <p className={`${theme==='dark'?'text-gray-300':'text-gray-700'} text-sm`}>{newWalletName || 'Новый кошелек'}</p>
+                        <p className={`${theme==='dark'?'text-gray-400':'text-gray-500'} text-xs`}>Предпросмотр</p>
+                      </div>
+                    </div>
+                  </div>
+                  <input type="text" value={newWalletName} onChange={(e)=>setNewWalletName(e.target.value)} placeholder="Название" className={`w-full p-3 border rounded-xl ${theme==='dark'?'bg-gray-700 border-gray-600 text-gray-100':'bg-gray-50 border-gray-200 text-gray-900'}`} />
+                  <div className="grid grid-cols-6 gap-2">
+                    {['💼','💳','🏦','👜','💰','🧾','📦','🧿'].map(ic => (
+                      <button key={ic} onClick={()=>setNewWalletIcon(ic)} className={`p-2 rounded-xl ${theme==='dark'?'bg-gray-700':'bg-gray-100'}`}>{ic}</button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-6 gap-2">
+                    {[{l:'#6366f1',d:'#3b82f6'},{l:'#10b981',d:'#059669'},{l:'#f59e0b',d:'#d97706'},{l:'#ef4444',d:'#dc2626'},{l:'#8b5cf6',d:'#7c3aed'},{l:'#06b6d4',d:'#0891b2'}].map((c) => (
+                      <button key={'w'+c.l} onClick={()=>setNewWalletColor(c)} className="h-8 rounded-full" style={{ backgroundColor: theme==='dark'?c.d:c.l }} />
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={()=>{ setShowCreateWallet(false); setNewWalletName(''); setNewWalletIcon(''); setNewWalletColor(null) }} className={`flex-1 py-3 rounded-xl ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-700'}`}>Отмена</button>
+                    <button onClick={()=>{ if(!newWalletName||!newWalletColor) return; const w={ id:'w_'+Date.now(), name:newWalletName, icon:newWalletIcon||'💼', colorLight:newWalletColor.l, colorDark:newWalletColor.d, balance:0, income:0, expenses:0 }; const next=[...wallets,w]; saveWallets(next); setShowCreateWallet(false); setNewWalletName(''); setNewWalletIcon(''); setNewWalletColor(null) }} className={`flex-1 py-3 rounded-xl ${theme==='dark'?'bg-blue-700 text-white':'bg-blue-500 text-white'}`}>Создать</button>
+                  </div>
+                </div>
+              )}
+              <hr className="border-gray-200 dark:border-gray-700" />
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Другие кошельки</h3>
+              <div className="mt-4 space-y-2">
+                <p className={`text-xs mb-2 ${theme==='dark'?'text-gray-400':'text-gray-600'}`}>Нажмите на кошелек, чтобы сделать активным</p>
+                {wallets.map((w, idx) => (
+                  <WalletRow
+                  key={w.id}
+                  wallet={w}
+                  theme={theme}
+                  isActive={activeWalletIndex === idx+1}
+                  onActivate={(id) => { const index = wallets.findIndex(x => x.id === id); if (index >= 0) setActiveWalletIndex(index+1) }}
+                  onDelete={() => {
+                    const next = wallets.filter(x => x.id !== w.id)
+                    saveWallets(next)
+                    setActiveWalletIndex((prev) => Math.min(prev, next.length))
+                    setTransactions(prev => prev.map(t => t.wallet_id === w.id ? { ...t, wallet_id: null } : t))
+                  }}
+                  onUpdate={(patch) => {
+                    const next = wallets.map(x => x.id === w.id ? { ...x, ...patch } : x)
+                    saveWallets(next)
+                  }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t" style={{ borderColor: theme==='dark' ? '#374151' : '#e5e7eb' }}>
+              <button onClick={() => { setClosingWalletModal(true); setTimeout(() => { setShowWalletModal(false); setClosingWalletModal(false) }, 250) }} className={`w-full py-2.5 rounded-xl ${theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-700'}`}>Закрыть</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showGoalModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border ${theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"}`}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Цель накопления (USD)
@@ -3770,8 +4125,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSavingsSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-[60] p-4">
-          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden border ${theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"}`}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
           <div className="p-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -4102,9 +4457,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSecondGoalModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border ${theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"}`}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Вторая цель накопления
@@ -4183,10 +4538,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showChart && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto border ${
-              theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -4451,7 +4806,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {/* Header вне модального окна */}
           <div className="fixed top-4 left-0 right-0 flex justify-center z-10 px-4">
             <div className="flex items-center justify-between w-full max-w-md">
-              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-white"}`}>
                 Детали операции
               </h3>
               <button 
@@ -4461,7 +4816,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }} 
                 className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
               >
-                <X className={`w-5 h-5 ${theme === "dark" ? "text-white" : "text-gray-700"}`} />
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
           </div>
@@ -4469,11 +4824,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-2xl shadow-2xl ${
               theme === "dark" ? "bg-gray-800" : "bg-white"
-            }`}
+            } ${closingBudgetModal ? 'slide-down' : 'slide-up'}`}
             style={{ 
               maxHeight: "85vh",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              willChange: 'transform'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -4632,8 +4988,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingBudgetModal ? 'slide-down' : 'slide-up'}`}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", willChange: 'transform' }}
           >
             {/* Контент - прокручиваемый */}
             <div 
@@ -4672,7 +5028,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             ? "bg-blue-900/20 border-blue-700/30"
                             : "bg-blue-50 border-blue-200"
                           : theme === "dark"
-                            ? "bg-gray-700 border-gray-600 hover:bg-gray-650"
+                            ? "bg-gray-700 border-gray-600 hover:bg-gray-600"
                             : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                       }`}
                     >
@@ -4710,8 +5066,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="px-4 py-3 border-t flex-shrink-0" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
               <button
                 onClick={() => {
-                  setShowBudgetModal(false)
+                  setClosingBudgetModal(true)
                   vibrate()
+                  setTimeout(() => { setShowBudgetModal(false); setClosingBudgetModal(false) }, 250)
                 }}
                 className={`w-full py-2.5 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                   theme === "dark"
@@ -4733,8 +5090,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingBudgetModal ? 'slide-down' : 'slide-up'}`}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", willChange: 'transform' }}
           >
             <div
               className="p-4 overflow-y-auto flex-1"
@@ -4760,7 +5117,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }}
                   className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
                     theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-650"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
                       : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
                   }`}
                   style={{ minHeight: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -4987,18 +5344,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
           onClick={() => {
-            setShowAddDebtModal(false)
-            setDebtPerson('')
-            setDebtAmount('')
-            setDebtDescription('')
+            setClosingDebtModal(true)
+            setTimeout(() => {
+              setShowAddDebtModal(false)
+              setClosingDebtModal(false)
+              setDebtPerson('')
+              setDebtAmount('')
+              setDebtDescription('')
+            }, 250)
           }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingDebtModal ? 'slide-down' : 'slide-up'}`}
             style={{ 
               maxHeight: "85vh",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              willChange: 'transform'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -5151,16 +5513,44 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"} ${closingAddModal ? 'slide-down' : 'slide-up'}`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Новая операция
-              </h3>
+              
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  Новая операция
+                </h3>
+                <button
+                  onClick={() => { setWalletSelectorMode('assign'); setWalletSelectorOpen(true) }}
+                  className={`text-sm ${theme==='dark'?'text-blue-400 hover:text-blue-300':'text-blue-600 hover:text-blue-700'}`}
+                >
+                  {(() => { const label = selectedWalletId === null ? (commonWallet.name || 'Общий баланс') : (wallets.find(x => x.id === selectedWalletId)?.name || 'Кошелек'); return label })()}
+                </button>
+              </div>
+              {showWalletSelect && (
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => { setSelectedWalletId(null); setShowWalletSelect(false) }}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium ${selectedWalletId === null ? (theme==='dark'?'bg-blue-700 text-white':'bg-blue-500 text-white') : (theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900')}`}
+                  >
+                    {commonWallet.icon} {commonWallet.name}
+                  </button>
+                  {wallets.map(w => (
+                    <button
+                      key={w.id}
+                      onClick={() => { setSelectedWalletId(w.id); setShowWalletSelect(false) }}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium ${selectedWalletId === w.id ? (theme==='dark'?'bg-blue-700 text-white':'bg-blue-500 text-white') : (theme==='dark'?'bg-gray-700 text-gray-100':'bg-gray-100 text-gray-900')}`}
+                    >
+                      {w.icon} {w.name}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="flex gap-2 mb-4">
                 {["expense", "income", "savings"].map((type) => (
@@ -5315,10 +5705,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    setShowAddModal(false)
+                    setClosingAddModal(true)
                     setShowNumKeyboard(false)
                     setIsKeyboardOpen(false)
                     blurAll()
+                    setTimeout(() => { setShowAddModal(false); setClosingAddModal(false) }, 250)
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                     theme === "dark"
@@ -5366,10 +5757,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border ${
-              theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5514,10 +5905,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* Модальное окно смены пароля */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border ${
-              theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5648,9 +6039,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <div
-            className={`w-full max-w-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-              theme === "dark" ? "backdrop-blur-xl bg-gray-800/25 border-gray-700/30" : "glass-primary"
-            }`}
+              className={`w-full max-w-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
+                theme === "dark" ? "backdrop-blur-xl bg-gray-800/25 border-gray-700/30" : "glass-bottom border-white/40"
+              }`}
             >
               <NavButton
                 active={activeTab === "overview"}
@@ -5667,11 +6058,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("history")
                   vibrate()
                 }}
-                icon={<History className="h-4 w-[4px28]" />}
+                icon={<History className="w-4 h-4" />}
                 theme={theme}
               />
               <button
                 onClick={() => {
+                  const wid = activeWalletIndex > 0 ? wallets[activeWalletIndex-1]?.id : null
+                  setSelectedWalletId(wid || null)
+                  setShowWalletSelect(false)
                   setShowAddModal(true)
                   setShowNumKeyboard(false)
                   vibrate()
@@ -5686,7 +6080,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("savings")
                   vibrate()
                 }}
-                icon={<PiggyBank className="h-4 w-[4px28]" />}
+                icon={<PiggyBank className="w-4 h-4" />}
                 theme={theme}
               />
               <NavButton
@@ -5695,7 +6089,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("settings")
                   vibrate()
                 }}
-                icon={<Settings className="h-4 w-[px8]" />}
+                icon={<Settings className="w-4 h-4" />}
                 theme={theme}
               />
             </div>
@@ -5703,56 +6097,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       )}
 
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-in;
-        }
-        
-        * {
-          -webkit-tap-highlight-color: transparent;
-        }
-        
-        main {
-          scroll-behavior: smooth;
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior-y: contain;
-        }
-        
-        main::-webkit-scrollbar {
-          width: 0px;
-          background: transparent;
-        }
-        
-        /* Скрыть полосы прокрутки везде */
-        *::-webkit-scrollbar {
-          width: 0px;
-          height: 0px;
-          background: transparent;
-        }
-        
-        * {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        
-        input[type="text"],
-        input[type="number"],
-        input[type="email"],
-        input[type="password"],
-        select,
-        textarea {
-          font-size: 16px !important;
-          touch-action: manipulation;
-        }
-        
-        input, select, textarea {
-          transition: none !important;
-        }
-      `}</style>
+      <style></style>
     </div>
   )
 }

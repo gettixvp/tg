@@ -98,24 +98,6 @@
     @apply backdrop-blur-2xl bg-white/90 dark:bg-gray-800/90 border border-white/30 dark:border-gray-700/30;
   }
 
-  .glass-primary {
-    backdrop-filter: blur(24px);
-    background-color: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(81, 150, 206, 0.25);
-  }
-
-  .glass-primary-strong {
-    backdrop-filter: blur(40px);
-    background-color: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(81, 150, 206, 0.35);
-  }
-
-  .glass-primary-soft {
-    backdrop-filter: blur(12px);
-    background-color: rgba(255, 255, 255, 1);
-    border: 1px solid rgba(81, 150, 206, 0.30);
-  }
-
   .gradient-primary {
     @apply bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500;
   }
