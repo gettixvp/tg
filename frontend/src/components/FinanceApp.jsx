@@ -2645,8 +2645,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-lg ${
-                    theme === "dark" ? "bg-gray-800/30 border-gray-700/30 hover:bg-gray-800/40" : "bg-white/30 border-white/30 hover:bg-white/40"
+                  className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
+                    theme === "dark"
+                      ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
+                      : "bg-white/80 border-white/80 hover:bg-white shadow-md"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -2697,8 +2699,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-lg ${
-                      theme === "dark" ? "bg-gray-800/30 border-gray-700/30 hover:bg-gray-800/40" : "bg-white/30 border-white/30 hover:bg-white/40"
+                    className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
+                      theme === "dark"
+                        ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
+                        : "bg-white/80 border-white/80 hover:bg-white shadow-md"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -2747,8 +2751,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-2xl p-4 border backdrop-blur-xl ${
-                    theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
+                  className={`rounded-3xl p-4 border backdrop-blur-2xl shadow-lg ${
+                    theme === "dark"
+                      ? "bg-gray-900/40 border-gray-700/60"
+                      : "bg-white/80 border-white/80 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2778,12 +2784,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       return (
                         <div
                           key={category}
-                          className={`p-3 rounded-xl border transition-all backdrop-blur-xl ${
+                          className={`p-3 rounded-xl border transition-all backdrop-blur-xl shadow-sm ${
                             status.isOverBudget
-                              ? theme === "dark" ? "bg-red-900/25 border-red-700/30" : "bg-red-50/75 border-red-200/50"
+                              ? theme === "dark"
+                                ? "bg-red-900/30 border-red-700/60"
+                                : "bg-red-50/90 border-red-200/80"
                               : status.isNearLimit
-                              ? theme === "dark" ? "bg-orange-900/25 border-orange-700/30" : "bg-orange-50/75 border-orange-200/50"
-                              : theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
+                              ? theme === "dark"
+                                ? "bg-amber-900/25 border-amber-700/50"
+                                : "bg-amber-50/90 border-amber-200/80"
+                              : theme === "dark"
+                              ? "bg-gray-900/40 border-gray-700/60"
+                              : "bg-white/80 border-white/80"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
