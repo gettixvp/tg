@@ -2670,12 +2670,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       return (
                         <div
                           key={category}
-                          className={`p-3 rounded-xl border transition-all ${
+                          className={`p-3 rounded-xl border transition-all backdrop-blur-xl ${
                             status.isOverBudget
-                              ? theme === "dark" ? "bg-red-900/20 border-red-700/30" : "bg-red-50 border-red-200"
+                              ? theme === "dark" ? "bg-red-900/25 border-red-700/30" : "bg-red-50/75 border-red-200/50"
                               : status.isNearLimit
-                              ? theme === "dark" ? "bg-orange-900/20 border-orange-700/30" : "bg-orange-50 border-orange-200"
-                              : theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-slate-50 border-gray-200"
+                              ? theme === "dark" ? "bg-orange-900/25 border-orange-700/30" : "bg-orange-50/75 border-orange-200/50"
+                              : theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -3634,7 +3634,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       </main>
 
       {showGoalModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
@@ -4106,7 +4106,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSecondGoalModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
@@ -4189,7 +4189,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showChart && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
@@ -4451,7 +4451,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showTransactionDetails && selectedTransaction && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
           onClick={() => setShowTransactionDetails(false)}
         >
           {/* Header вне модального окна */}
@@ -4634,7 +4634,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно списка бюджетов */}
       {showBudgetModal && !selectedBudgetCategory && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
           style={{ touchAction: "none" }}
         >
           <div
@@ -4737,7 +4737,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно редактирования бюджета */}
       {showBudgetModal && selectedBudgetCategory && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
           style={{ touchAction: "none" }}
         >
           <div
@@ -4995,7 +4995,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно добавления долга */}
       {showAddDebtModal && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
           onClick={() => {
             setShowAddDebtModal(false)
             setDebtPerson('')
@@ -5159,7 +5159,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showAddModal && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-end justify-center z-50"
+          className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-end justify-center z-50"
           style={{ touchAction: "none" }}
         >
           <div
@@ -5380,7 +5380,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
@@ -5528,7 +5528,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* Модальное окно смены пароля */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
               theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/30"
