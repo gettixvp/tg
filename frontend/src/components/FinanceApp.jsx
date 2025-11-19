@@ -370,10 +370,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer ${
+          className={`relative p-3 cursor-pointer rounded-xl border backdrop-blur-lg ${
             theme === "dark"
-              ? "bg-gray-800"
-              : "bg-white shadow-sm"
+              ? "bg-gray-800/20 border-gray-700/30 hover:bg-gray-800/30"
+              : "bg-white/20 border-white/30 hover:bg-white/30"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
