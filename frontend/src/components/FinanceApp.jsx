@@ -2448,7 +2448,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         className={`w-full h-screen flex items-center justify-center ${
           theme === "dark"
             ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-            : "bg-gradient-to-b from-indigo-500 via-purple-400 to-rose-300"
+            : "bg-white"
         }`}
       >
         <div className="text-center">
