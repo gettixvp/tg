@@ -252,14 +252,14 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`p-3 rounded-2xl relative z-10 ${
+        className={`p-3 rounded-2xl relative z-10 backdrop-blur-xl ${
           String(comment.telegram_id) === String(tgUserId)
             ? theme === "dark"
-              ? "bg-blue-600 text-white ml-8"
-              : "bg-blue-500 text-white ml-8"
+              ? "bg-blue-600/80 text-white ml-8 border border-blue-400/60 shadow-md"
+              : "bg-blue-500 text-white ml-8 shadow-sm"
             : theme === "dark"
-              ? "bg-gray-700 text-gray-100 mr-8"
-              : "bg-gray-200 text-gray-900 mr-8"
+              ? "bg-gray-800/80 text-gray-100 mr-8 border border-gray-700"
+              : "bg-white/90 text-gray-900 mr-8 border border-gray-200 shadow-sm"
         }`}
       >
         <div className="flex items-start justify-between gap-2">
@@ -345,8 +345,8 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
 
   return (
-    <div className="mb-1.5">
-      <div className="relative overflow-hidden rounded-xl">
+    <div className="mb-2">
+      <div className="relative overflow-hidden rounded-2xl">
         {onDelete && (
           <div
             onClick={() => {
@@ -358,7 +358,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
             className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-xl transition-opacity ${
               swipeX < -20 ? 'opacity-100' : 'opacity-0'
             } ${
-              theme === "dark" ? "bg-red-600" : "bg-red-500"
+              theme === "dark" ? "bg-red-600" : "bg-rose-500"
             }`}
           >
             <Trash2 className="w-5 h-5 text-white" />
@@ -374,10 +374,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer rounded-xl border backdrop-blur-xl ${
+          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all ${
             theme === "dark"
-              ? "bg-gray-800/15 border-gray-700/15 hover:bg-gray-800/15"
-              : "bg-white/15 border-white/15 hover:bg-white/15"
+              ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
+              : "bg-white/90 border-white/80 hover:shadow-md shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -608,14 +608,14 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
   const isCurrentUser = linkedUser.telegram_id === currentTelegramId
 
   return (
-    <div className="relative mb-1.5 overflow-hidden rounded-xl">
+    <div className="relative mb-2 overflow-hidden rounded-2xl">
       {!isCurrentUser && (
         <div
           onClick={handleDelete}
           className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-xl transition-opacity ${
             swipeX < -20 ? 'opacity-100' : 'opacity-0'
           } ${
-            theme === "dark" ? "bg-red-600" : "bg-red-500"
+            theme === "dark" ? "bg-red-600" : "bg-rose-500"
           }`}
         >
           <Trash2 className="w-5 h-5 text-white" />
@@ -630,8 +630,8 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         onTouchStart={!isCurrentUser ? handleTouchStart : undefined}
         onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
         onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
-        className={`relative flex items-center gap-3 p-3 rounded-xl border backdrop-blur-xl transition-all duration-300 ${
-          theme === "dark" ? "bg-gray-800/15 border-gray-700/15 hover:bg-gray-800/20" : "bg-white/15 border-white/15 hover:bg-white/20"
+        className={`relative flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-2xl transition-all duration-300 ${
+          theme === "dark" ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55" : "bg-white/90 border-white/80 hover:shadow-md shadow-sm"
         }`}
       >
         {linkedUser.telegram_photo_url ? (
