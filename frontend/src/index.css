@@ -98,6 +98,24 @@
     @apply backdrop-blur-2xl bg-white/90 dark:bg-gray-800/90 border border-white/30 dark:border-gray-700/30;
   }
 
+  .glass-primary {
+    backdrop-filter: blur(24px);
+    background-color: rgba(81, 150, 206, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
+  .glass-primary-strong {
+    backdrop-filter: blur(40px);
+    background-color: rgba(81, 150, 206, 0.34);
+    border: 1px solid rgba(255, 255, 255, 0.40);
+  }
+
+  .glass-primary-soft {
+    backdrop-filter: blur(8px);
+    background-color: rgba(81, 150, 206, 0.90);
+    border: 1px solid rgba(81, 150, 206, 0.40);
+  }
+
   .gradient-primary {
     background-image: linear-gradient(135deg, #5196CE 0%, #FE8492 60%, #A42527 100%);
   }

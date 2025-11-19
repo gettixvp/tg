@@ -370,10 +370,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer border backdrop-blur-sm ${
+          className={`relative p-3 cursor-pointer border ${
             theme === "dark"
-              ? "bg-gray-800/90 border-gray-700/40"
-              : "bg-white/90 border-white/40"
+              ? "backdrop-blur-sm bg-gray-800/90 border-gray-700/40"
+              : "glass-primary-soft"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -478,7 +478,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   className={`inline-block px-2.5 py-1.5 rounded-xl ${
                     theme === "dark"
                       ? "bg-gray-700/80 text-gray-100"
-                      : "bg-gray-100 text-gray-900"
+                      : "glass-primary-soft text-gray-900"
                   }`}
                 >
                   <p className={`text-[10px] font-medium mb-0.5 ${
@@ -601,9 +601,9 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         onTouchStart={!isCurrentUser ? handleTouchStart : undefined}
         onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
         onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
-        className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
-          theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
-        }`}
+          className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
+            theme === "dark" ? "bg-gray-800 border-gray-700/50" : "glass-primary-soft"
+          }`}
       >
         {linkedUser.telegram_photo_url ? (
           <img
@@ -2462,13 +2462,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`relative overflow-hidden rounded-2xl p-4 z-10 ${
               theme === "dark"
                 ? "border border-gray-700/30 backdrop-blur-2xl"
-                : "border border-white/20 backdrop-blur-2xl"
+                : "glass-primary-strong"
             }`}
-            style={{ backgroundColor: theme === "dark" ? "rgba(59,130,246,0.18)" : "rgba(81,150,206,0.28)" }}
+            style={theme === "dark" ? { backgroundColor: "rgba(59,130,246,0.18)" } : undefined}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
-                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-white/20 backdrop-blur-sm" : "glass-primary"}`}>
                   <CreditCard className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -2489,14 +2489,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+              <div className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-white/10 backdrop-blur-sm border-white/20" : "glass-primary"}`}>
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingUp className="w-3 h-3 text-emerald-300" />
                   <span className="text-xs text-white/90">Доходы</span>
                 </div>
                 <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
               </div>
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+              <div className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-white/10 backdrop-blur-sm border-white/20" : "glass-primary"}`}>
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingDown className="w-3 h-3 text-rose-300" />
                   <span className="text-xs text-white/90">Расходы</span>
@@ -2538,12 +2538,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     vibrate()
                   }}
                   className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
+                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "glass-primary-strong"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
-                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
+                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "glass-primary-soft"}`}>
                         <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                       </div>
                       <div>
@@ -2590,12 +2590,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       vibrate()
                     }}
                     className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                      theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
+                      theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "glass-primary-strong"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "bg-purple-100"}`}>
+                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "glass-primary-soft"}`}>
                           <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
                         </div>
                         <div>
@@ -2639,8 +2639,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-2xl p-4 border backdrop-blur-2xl ${
-                    theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/85 border-white/40"
+                  className={`rounded-2xl p-4 border ${
+                    theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2752,8 +2752,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border backdrop-blur-2xl ${
-                  theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/85 border-white/40"
+                className={`rounded-2xl p-4 border ${
+                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2808,8 +2808,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/85 border-white/40"
+                className={`rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2937,7 +2937,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setShowSecondGoalModal(true)
                         vibrate()
                       }}
-                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
+                    className={`p-2 rounded-xl transition-all touch-none ${theme === "dark" ? "bg-white/20 hover:bg-white/30" : "glass-primary"}`}
                       title="Добавить вторую цель"
                     >
                       <Plus className="w-5 h-5 text-white" />
@@ -2947,11 +2947,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setShowSavingsSettingsModal(true)
                         vibrate()
                       }}
-                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
+                    className={`p-2 rounded-xl transition-all touch-none ${theme === "dark" ? "bg-white/20 hover:bg-white/30" : "glass-primary"}`}
                     >
                       <Settings className="w-5 h-5 text-white" />
                     </button>
-                    <div className="p-2 rounded-xl bg-white/20">
+                    <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-white/20" : "glass-primary"}`}>
                       <PiggyBank className="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -3032,8 +3032,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/85 border-white/40"
+                className={`rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3098,8 +3098,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                   {/* Список долгов */}
                   {debts.length === 0 ? (
-                    <div className={`rounded-2xl p-8 text-center mx-4 border backdrop-blur-2xl ${
-                      theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/90 border-white/40"
+                    <div className={`rounded-2xl p-8 text-center mx-4 border ${
+                      theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                     }`}>
                       <div className="text-6xl mb-4">💰</div>
                       <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3193,8 +3193,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Приветствие с аватаркой - только для незалогиненных */}
               {!isAuthenticated && (
                 <div
-                  className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-lg ${
-                    theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/85 border-white/40"
+                  className={`rounded-2xl p-4 border shadow-lg ${
+                    theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -3226,8 +3226,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/85 border-white/40"
+                className={`rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                 }`}
               >
                 {linkedUsers.length > 1 && (
@@ -3401,8 +3401,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/85 border-white/40"
+                className={`rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3488,8 +3488,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты */}
               <div
-                className={`backdrop-blur-xl rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/70 border-white/30"
+                className={`rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3520,8 +3520,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                className={`rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
                 }`}
               >
                 <button
@@ -3636,7 +3636,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl backdrop-blur-2xl border ${theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/90 border-white/40"}`}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border ${theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"}`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Цель накопления (USD)
@@ -3771,7 +3771,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showSavingsSettingsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-[60] p-4">
-          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden backdrop-blur-2xl border ${theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/90 border-white/40"}`}>
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden border ${theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"}`}>
           <div className="p-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -4104,7 +4104,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showSecondGoalModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl backdrop-blur-2xl border ${theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/90 border-white/40"}`}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border ${theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"}`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Вторая цель накопления
@@ -4185,8 +4185,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showChart && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto backdrop-blur-2xl border ${
-              theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/90 border-white/40"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto border ${
+              theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5368,8 +5368,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl border ${
-              theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/90 border-white/40"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border ${
+              theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5516,8 +5516,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showChangePasswordModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl border ${
-              theme === "dark" ? "bg-gray-800/90 border-gray-700/40" : "bg-white/90 border-white/40"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border ${
+              theme === "dark" ? "backdrop-blur-2xl bg-gray-800/90 border-gray-700/40" : "glass-primary-strong"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5648,9 +5648,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <div
-              className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-                theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
-              }`}
+            className={`w-full max-w-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
+              theme === "dark" ? "backdrop-blur-xl bg-gray-800/25 border-gray-700/30" : "glass-primary"
+            }`}
             >
               <NavButton
                 active={activeTab === "overview"}
