@@ -102,37 +102,7 @@
     @apply bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500;
   }
 
-.gradient-card {
-  @apply bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900;
-}
-/* Enhanced glass bottom bar */
-.glass-bottom {
-  backdrop-filter: blur(18px) saturate(130%);
-  background: rgba(255,255,255,0.35);
-}
-
-  .slide-up {
-    animation: slide-up 0.25s ease-out both;
+  .gradient-card {
+    @apply bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900;
   }
-  .slide-down {
-    animation: slide-down 0.25s ease-in both;
-  }
-  .pulse-once {
-    animation: pulse-once 0.35s ease-out 1;
-  }
-}
-
-@keyframes slide-up {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-@keyframes slide-down {
-  from { transform: translateY(0); opacity: 1; }
-  to { transform: translateY(100%); opacity: 0; }
-}
-
-@keyframes pulse-once {
-  0% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.4); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.6; }
 }
