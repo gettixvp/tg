@@ -101,6 +101,40 @@ async function initDB() {
 
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_telegram_id BIGINT;`)
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_name TEXT;`)
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
+
+    // Добавляем колонку для отслеживания какая копилка была пополнена
+    await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS savings_goal TEXT DEFAULT 'main';`)
+
+    // Добавляем колонки для настроек копилки
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_name TEXT DEFAULT 'Моя цель';`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS initial_savings_amount NUMERIC DEFAULT 0;`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_goal_name TEXT DEFAULT '';`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_goal_amount NUMERIC DEFAULT 0;`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_goal_savings NUMERIC DEFAULT 0;`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS second_goal_initial_amount NUMERIC DEFAULT 0;`)
+    
+    // Добавляем колонку для бюджетов (JSON)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS budgets JSONB DEFAULT '{}'::jsonb;`)
+
+    // Таблица комментариев к транзакциям
+    await pool.query(`CREATE TABLE IF NOT EXISTS transaction_comments (
+      id BIGSERIAL PRIMARY KEY,
+      transaction_id BIGINT NOT NULL,
+      author TEXT NOT NULL,
+      text TEXT NOT NULL,
+      date TIMESTAMP DEFAULT NOW(),
+      telegram_id BIGINT
+    );`)
+
+    // Добавляем telegram_photo_url в linked_telegram_users
+    await pool.query(`ALTER TABLE linked_telegram_users ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
+
+    // Создаем индексы для оптимизации запросов
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user_email ON transactions(user_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date DESC);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transaction_comments_transaction_id ON transaction_comments(transaction_id);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_linked_users_email ON linked_telegram_users(user_email);`)
 
     console.log("БД готова!")
   } catch (error) {
