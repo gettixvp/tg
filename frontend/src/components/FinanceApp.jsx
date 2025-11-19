@@ -3560,7 +3560,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       className={`w-full p-3 border rounded-xl focus:outline-none focus:ring-0 focus:border-transparent transition-all text-sm ${
                         theme === "dark"
                           ? "bg-gray-700 border-gray-600 text-gray-100"
-                          : "bg-white/15 border-white/30 text-gray-900 backdrop-blur-lg"
+                          : "bg-white/95 border-slate-200 text-slate-900 shadow-sm"
                       }`}
                     >
                       {currencies.map((c) => (
