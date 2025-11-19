@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    --background: 223 22% 96%;
+    --foreground: 310 21% 11%;
+    --card: 223 22% 98%;
+    --card-foreground: 310 21% 11%;
+    --popover: 223 22% 98%;
+    --popover-foreground: 310 21% 11%;
+    --primary: 207 56% 56%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
+    --secondary: 223 22% 95%;
+    --secondary-foreground: 310 21% 11%;
+    --muted: 223 16% 96%;
+    --muted-foreground: 223 16% 47%;
+    --accent: 353 98% 76%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 39%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 223 22% 91%;
+    --input: 223 22% 91%;
+    --ring: 207 56% 56%;
     --radius: 1rem;
   }
 
@@ -99,10 +99,10 @@
   }
 
   .gradient-primary {
-    @apply bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500;
+    background-image: linear-gradient(135deg, #5196CE 0%, #FE8492 60%, #A42527 100%);
   }
 
   .gradient-card {
-    @apply bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900;
+    background-image: linear-gradient(135deg, #262F45 0%, #5196CE 40%, #FE8492 75%, #A42527 100%);
   }
 }

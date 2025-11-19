@@ -2434,12 +2434,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
-      }`}
+      className="fixed inset-0 flex flex-col overflow-hidden"
       style={{
+        background:
+          theme === "dark"
+            ? "linear-gradient(135deg, #0f172a 0%, #1f2937 40%, #1e3a8a 100%)"
+            : "linear-gradient(135deg, #262F45 0%, #5196CE 40%, #FE8492 75%, #A42527 100%)",
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
         paddingLeft: safeAreaInset.left || 0,
         paddingRight: safeAreaInset.right || 0,
@@ -2459,8 +2459,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
           />
           <div
-            className="relative overflow-hidden rounded-2xl p-4 z-10"
-            style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
+            className={`relative overflow-hidden rounded-2xl p-4 z-10 ${
+              theme === "dark"
+                ? "border border-gray-700/30 backdrop-blur-xl"
+                : "border border-white/20 backdrop-blur-xl"
+            }`}
+            style={{ backgroundColor: theme === "dark" ? "rgba(59,130,246,0.18)" : "rgba(81,150,206,0.28)" }}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
@@ -2635,8 +2639,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-2xl p-4 border ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  className={`rounded-2xl p-4 border backdrop-blur-xl ${
+                    theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/70 border-white/30"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2748,8 +2752,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                className={`rounded-2xl p-4 border backdrop-blur-xl ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/30" : "bg-white/70 border-white/30"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
