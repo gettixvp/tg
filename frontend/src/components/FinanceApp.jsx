@@ -370,7 +370,11 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer glass`}
+          className={`relative p-3 cursor-pointer ${
+            theme === "dark"
+              ? "bg-gray-800"
+              : "bg-white shadow-sm"
+          }`}
         >
           {/* Лайк в правом верхнем углу */}
           {tx.liked && (
@@ -597,7 +601,9 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         onTouchStart={!isCurrentUser ? handleTouchStart : undefined}
         onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
         onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
-        className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 glass-strong`}
+        className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
+          theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
+        }`}
       >
         {linkedUser.telegram_photo_url ? (
           <img
@@ -3626,7 +3632,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showGoalModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl glass-strong`}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Цель накопления (USD)
@@ -3761,7 +3767,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showSavingsSettingsModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden glass-strong`}>
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
           <div className="p-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -4094,7 +4100,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showSecondGoalModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl glass-strong`}
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Вторая цель накопления
@@ -4435,7 +4441,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showTransactionDetails && selectedTransaction && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 glass-strong"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
           onClick={() => setShowTransactionDetails(false)}
         >
           {/* Header вне модального окна */}
@@ -4622,7 +4628,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl glass-strong`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             {/* Контент - прокручиваемый */}
@@ -4723,7 +4729,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl glass-strong`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
@@ -4984,7 +4990,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl glass-strong`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
             style={{ 
               maxHeight: "85vh",
               display: "flex",
@@ -5141,7 +5147,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
         >
           <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl glass-strong`}
+            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
           >
             <div
@@ -5358,7 +5364,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className="w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto glass-strong"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
+              theme === "dark" ? "bg-gray-800" : "bg-white"
+            }`}
+            style={{ WebkitOverflowScrolling: "touch" }}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               {authMode === "login" ? "Вход через Email" : "Регистрация"}
