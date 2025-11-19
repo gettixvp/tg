@@ -2419,7 +2419,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         className={`w-full h-screen flex items-center justify-center ${
           theme === "dark"
             ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-            : "bg-gradient-to-br from-blue-400 via-pink-400 to-rose-500"
+            : "bg-white"
         }`}
       >
         <div className="text-center">
@@ -2437,7 +2437,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
+          : "bg-gradient-to-br from-blue-400 via-pink-400 to-rose-500"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
