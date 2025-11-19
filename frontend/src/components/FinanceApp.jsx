@@ -3892,7 +3892,7 @@ const getVisibleTransactions = () => {
       {showWalletModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => { setClosingWalletModal(true); setTimeout(() => { setShowWalletModal(false); setClosingWalletModal(false) }, 250) }}>
           <div className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${closingWalletModal ? 'slide-down' : 'slide-up'}`} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column', willChange: 'transform' }} onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 overflow-y-auto flex-1">
+            <div className="p-4 overflow-y-auto flex-1 space-y-4">
               <div className="mb-3">
                 <div className="rounded-2xl p-4" style={{ backgroundColor: theme==='dark'?commonWallet.colorDark:commonWallet.colorLight }}>
                   <div className="flex items-center gap-2">
@@ -3904,6 +3904,7 @@ const getVisibleTransactions = () => {
                   </div>
                 </div>
               </div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Настройки общего кошелька</h3>
               <div className="space-y-3 mb-4">
                 <input type="text" value={commonWallet.name} onChange={(e)=>{ const v=e.target.value; setCommonWallet(prev=>{ const next={...prev,name:v}; try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({name:v,icon:prev.icon,colorLight:prev.colorLight,colorDark:prev.colorDark}))}catch{}; return next }) }} placeholder="Название общего кошелька" className={`w-full p-3 border rounded-xl ${theme==='dark'?'bg-gray-700 border-gray-600 text-gray-100':'bg-gray-50 border-gray-200 text-gray-900'}`} />
                 <div className="grid grid-cols-6 gap-2">
@@ -3917,6 +3918,10 @@ const getVisibleTransactions = () => {
                   <button key={c.l} onClick={() => { setCommonWallet({...commonWallet, colorLight:c.l, colorDark:c.d}); try{localStorage.setItem('finance_common_wallet_v1', JSON.stringify({colorLight:c.l,colorDark:c.d}))}catch{} }} className="h-8 rounded-full" style={{ backgroundColor: theme==='dark'?c.d:c.l }} />
                 ))}
               </div>
+              <button onClick={() => { const inviteText = `🎉 Присоединяйся к моему кошельку!\n\nНажми на ссылку, чтобы автоматически подключиться к моему аккаунту и следить за общими расходами!`; webApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href.split('?')[0] + '?startapp=' + user.id)}&text=${encodeURIComponent(inviteText)}`) }} className={`w-full py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 ${theme==='dark' ? 'bg-green-700 text-white' : 'bg-green-500 text-white'}`}>
+                <UserPlus className="w-5 h-5" />
+                Пригласить пользователя
+              </button>
               <button onClick={() => setShowCreateWallet(true)} disabled={wallets.length>=3} className={`w-full py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 ${wallets.length>=3 ? 'opacity-50 cursor-not-allowed' : theme==='dark' ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'}`}>
                 <Plus className="w-5 h-5" />
                 Добавить кошелек
@@ -3951,6 +3956,8 @@ const getVisibleTransactions = () => {
                   </div>
                 </div>
               )}
+              <hr className="border-gray-200 dark:border-gray-700" />
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Другие кошельки</h3>
               <div className="mt-4 space-y-2">
                 <p className={`text-xs mb-2 ${theme==='dark'?'text-gray-400':'text-gray-600'}`}>Нажмите на кошелек, чтобы сделать активным</p>
                 {wallets.map((w, idx) => (
