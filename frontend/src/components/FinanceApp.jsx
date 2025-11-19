@@ -2612,7 +2612,7 @@ const getVisibleTransactions = () => {
             }}
           />
           <div
-            className="relative rounded-2xl p-4 z-10"
+            className="relative rounded-3xl p-4 z-10 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
             style={{ backgroundColor: activeWalletIndex === 0 ? (theme === 'dark' ? commonWallet.colorDark : commonWallet.colorLight) : (theme === 'dark' ? (wallets[activeWalletIndex-1]?.colorDark || '#3b82f6') : (wallets[activeWalletIndex-1]?.colorLight || '#6366f1')) }}
             onTouchStart={(e) => { headerStartX.current = e.touches[0].clientX; headerIsSwiping.current = true }}
             onTouchMove={(e) => { if (!headerIsSwiping.current) return; headerSwipeX.current = e.touches[0].clientX - headerStartX.current }}
@@ -2681,11 +2681,11 @@ const getVisibleTransactions = () => {
                 
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setShowWalletModal(true)} className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none">
-                  <Settings className="w-4 h-4 text-white" />
+                <button onClick={() => setShowWalletModal(true)} className="p-2.5 rounded-xl bg-white/25 hover:bg-white/35 transition-all touch-none shadow-sm">
+                  <Settings className="w-5 h-5 text-white" />
                 </button>
-                <button onClick={() => setBalanceVisible(!balanceVisible)} className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none">
-                  {balanceVisible ? (<Eye className="w-4 h-4 text-white" />) : (<EyeOff className="w-4 h-4 text-white" />)}
+                <button onClick={() => setBalanceVisible(!balanceVisible)} className="p-2.5 rounded-xl bg-white/25 hover:bg-white/35 transition-all touch-none shadow-sm">
+                  {balanceVisible ? (<Eye className="w-5 h-5 text-white" />) : (<EyeOff className="w-5 h-5 text-white" />)}
                 </button>
               </div>
             </div>
