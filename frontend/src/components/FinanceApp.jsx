@@ -347,19 +347,23 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   return (
     <div className="mb-1.5">
       <div className="relative overflow-hidden rounded-xl">
-        <div
-          onClick={() => {
-            if (swipeX === -80) {
-              onDelete(tx.id)
-              setSwipeX(0)
-            }
-          }}
-          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-xl ${
-            theme === "dark" ? "bg-red-600" : "bg-red-500"
-          }`}
-        >
-          <Trash2 className="w-5 h-5 text-white" />
-        </div>
+        {onDelete && (
+          <div
+            onClick={() => {
+              if (swipeX === -80) {
+                onDelete(tx.id)
+                setSwipeX(0)
+              }
+            }}
+            className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-xl transition-opacity ${
+              swipeX < -20 ? 'opacity-100' : 'opacity-0'
+            } ${
+              theme === "dark" ? "bg-red-600" : "bg-red-500"
+            }`}
+          >
+            <Trash2 className="w-5 h-5 text-white" />
+          </div>
+        )}
 
         <div
           style={{
