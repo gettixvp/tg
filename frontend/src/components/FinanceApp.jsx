@@ -2469,11 +2469,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
                 <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-white/20 backdrop-blur-sm" : "glass-primary"}`}>
-                  <CreditCard className="w-5 h-5 text-white" />
+                  <CreditCard className={`w-5 h-5 ${theme === "dark" ? "text-white" : "text-blue-700"}`} />
                 </div>
                 <div>
-                  <p className="text-xs text-white/80">Общий баланс</p>
-                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                  <p className={`text-xs ${theme === "dark" ? "text-white/80" : "text-gray-700"}`}>Общий баланс</p>
+                  <p className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
                 </div>
               </div>
               <button
@@ -2481,9 +2481,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
               >
                 {balanceVisible ? (
-                  <Eye className="w-4 h-4 text-white" />
+                  <Eye className={`w-4 h-4 ${theme === "dark" ? "text-white" : "text-gray-700"}`} />
                 ) : (
-                  <EyeOff className="w-4 h-4 text-white" />
+                  <EyeOff className={`w-4 h-4 ${theme === "dark" ? "text-white" : "text-gray-700"}`} />
                 )}
               </button>
             </div>
@@ -2491,17 +2491,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="grid grid-cols-2 gap-2.5">
               <div className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-white/10 backdrop-blur-sm border-white/20" : "glass-primary"}`}>
                 <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingUp className="w-3 h-3 text-emerald-300" />
-                  <span className="text-xs text-white/90">Доходы</span>
+                  <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-300" : "text-emerald-600"}`} />
+                  <span className={`text-xs ${theme === "dark" ? "text-white/90" : "text-gray-700"}`}>Доходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+                <p className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{balanceVisible ? formatCurrency(income) : "••••••"}</p>
               </div>
               <div className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-white/10 backdrop-blur-sm border-white/20" : "glass-primary"}`}>
                 <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingDown className="w-3 h-3 text-rose-300" />
-                  <span className="text-xs text-white/90">Расходы</span>
+                  <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-300" : "text-rose-600"}`} />
+                  <span className={`text-xs ${theme === "dark" ? "text-white/90" : "text-gray-700"}`}>Расходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+                <p className={`text-base font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
               </div>
             </div>
           </div>
@@ -4451,7 +4451,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {/* Header вне модального окна */}
           <div className="fixed top-4 left-0 right-0 flex justify-center z-10 px-4">
             <div className="flex items-center justify-between w-full max-w-md">
-              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-white"}`}>
+              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                 Детали операции
               </h3>
               <button 
@@ -4461,7 +4461,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }} 
                 className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className={`w-5 h-5 ${theme === "dark" ? "text-white" : "text-gray-700"}`} />
               </button>
             </div>
           </div>
