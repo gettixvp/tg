@@ -3754,7 +3754,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       </main>
 
       {showGoalModal && (
-        <div className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
+        <div
+          className={`fixed inset-0 backdrop-blur-2xl flex items-center justify-center z-50 p-4 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
+        >
           <div
             className={`w-full max-w-sm rounded-3xl p-4 shadow-xl border backdrop-blur-2xl ${
               theme === "dark"
@@ -3894,7 +3900,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSavingsSettingsModal && (
-        <div className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-center justify-center z-[60] p-4">
+        <div
+          className={`fixed inset-0 backdrop-blur-2xl flex items-center justify-center z-[60] p-4 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
+        >
           <div className={`w-full max-w-sm rounded-3xl shadow-xl overflow-hidden border backdrop-blur-2xl ${
             theme === "dark" ? "bg-gray-900/70 border-gray-700/70" : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
           }`}>
@@ -4311,10 +4323,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showChart && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div
+          className={`fixed inset-0 backdrop-blur-2xl flex items-center justify-center z-50 p-4 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
+        >
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
+            className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[80vh] overflow-y-auto border backdrop-blur-2xl ${
+              theme === "dark"
+                ? "bg-gray-900/70 border-gray-700/70"
+                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -4573,27 +4593,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showTransactionDetails && selectedTransaction && (
         <div 
-          className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-end justify-center z-50"
+          className={`fixed inset-0 backdrop-blur-2xl flex items-end justify-center z-50 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
           onClick={() => setShowTransactionDetails(false)}
         >
-          {/* Header вне модального окна */}
-          <div className="fixed top-4 left-0 right-0 flex justify-center z-10 px-4">
-            <div className="flex items-center justify-between w-full max-w-md">
-              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-white"}`}>
-                Детали операции
-              </h3>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowTransactionDetails(false)
-                }} 
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
-            </div>
-          </div>
-          
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-xl border backdrop-blur-2xl ${
               theme === "dark"
@@ -4712,8 +4718,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   value={detailsCommentText}
                   onChange={(e) => setDetailsCommentText(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendDetailsComment()}
+                  onFocus={(e) => {
+                    setTimeout(() => {
+                      e.target.scrollIntoView({ block: "center", behavior: "smooth" })
+                    }, 100)
+                  }}
                   placeholder="Написать комментарий..."
-                  className={`flex-1 p-2 rounded-xl border text-sm ${
+                  className={`flex-1 p-2 rounded-xl border text-sm focus:outline-none focus:ring-0 ${
                     theme === "dark"
                       ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
                       : "bg-white/15 border-white/30 text-gray-900 placeholder-gray-500 backdrop-blur-lg"
@@ -4758,7 +4769,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно списка бюджетов */}
       {showBudgetModal && !selectedBudgetCategory && (
         <div 
-          className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-end justify-center z-50"
+          className={`fixed inset-0 backdrop-blur-2xl flex items-end justify-center z-50 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
           style={{ touchAction: "none" }}
         >
           <div
@@ -4863,7 +4878,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно редактирования бюджета */}
       {showBudgetModal && selectedBudgetCategory && (
         <div
-          className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-end justify-center z-50"
+          className={`fixed inset-0 backdrop-blur-2xl flex items-end justify-center z-50 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
           style={{ touchAction: "none" }}
         >
           <div
@@ -5123,7 +5142,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно добавления долга */}
       {showAddDebtModal && (
         <div 
-          className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-end justify-center z-50"
+          className={`fixed inset-0 backdrop-blur-2xl flex items-end justify-center z-50 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
           onClick={() => {
             setShowAddDebtModal(false)
             setDebtPerson('')
@@ -5289,7 +5312,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showAddModal && (
         <div
-          className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-end justify-center z-50"
+          className={`fixed inset-0 backdrop-blur-2xl flex items-end justify-center z-50 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
           style={{ touchAction: "none" }}
         >
           <div
@@ -5512,7 +5539,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 backdrop-blur-2xl flex items-center justify-center z-50 p-4">
+        <div
+          className={`fixed inset-0 backdrop-blur-2xl flex items-center justify-center z-50 p-4 ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80"
+              : "bg-gradient-to-br from-white/60 via-sky-100/60 to-indigo-100/40"
+          }`}
+        >
           <div
             className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[90vh] overflow-y-auto border backdrop-blur-2xl ${
               theme === "dark"
