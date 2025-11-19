@@ -682,7 +682,7 @@ const WalletRow = ({ wallet, theme, onDelete, onUpdate, onActivate, isActive }) 
         onClick={() => onActivate && onActivate(wallet.id)}
       >
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 absolute top-0 right-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center`} style={{ backgroundColor: theme === 'dark' ? wallet.colorDark : wallet.colorLight }}>
               <span className="text-xl">{wallet.icon}</span>
             </div>
@@ -2622,9 +2622,9 @@ const getVisibleTransactions = () => {
               <div className={`h-1.5 rounded-full bg-white/70 transition-all ${activeWalletIndex===0?'w-3':'w-1.5'}`} />
               <div className={`h-1.5 rounded-full bg-white/70 transition-all ${activeWalletIndex!==0?'w-3':'w-1.5'}`} />
             </div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5 flex-1">
-                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+            <div className="relative mb-3">
+              <div className="flex flex-col items-start gap-2">
+                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm absolute top-0 left-0">
                   {activeWalletIndex === 0 ? <CreditCard className="w-5 h-5 text-white" /> : <span className="text-xl">{wallets[activeWalletIndex-1]?.icon || '💼'}</span>}
                 </div>
                 <div>
@@ -2638,14 +2638,14 @@ const getVisibleTransactions = () => {
                             <TrendingUp className="w-3 h-3 text-emerald-300" />
                             <span className="text-xs text-white/90">Доходы</span>
                           </div>
-                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? income.toLocaleString('ru-RU') : "••••••"}</p>
                         </div>
                         <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                           <div className="flex items-center gap-1 mb-0.5">
                             <TrendingDown className="w-3 h-3 text-rose-300" />
                             <span className="text-xs text-white/90">Расходы</span>
                           </div>
-                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? expenses.toLocaleString('ru-RU') : "••••••"}</p>
                         </div>
                       </div>
                     </>
@@ -2665,14 +2665,14 @@ const getVisibleTransactions = () => {
                             <TrendingUp className="w-3 h-3 text-emerald-300" />
                             <span className="text-xs text-white/90">Доходы</span>
                           </div>
-                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.income || 0) : "••••••"}</p>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? (wallets[activeWalletIndex-1]?.income || 0).toLocaleString('ru-RU') : "••••••"}</p>
                         </div>
                         <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                           <div className="flex items-center gap-1 mb-0.5">
                             <TrendingDown className="w-3 h-3 text-rose-300" />
                             <span className="text-xs text-white/90">Расходы</span>
                           </div>
-                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? formatCurrency(wallets[activeWalletIndex-1]?.expenses || 0) : "••••••"}</p>
+                          <p className="text-base font-bold text-white whitespace-nowrap">{balanceVisible ? (wallets[activeWalletIndex-1]?.expenses || 0).toLocaleString('ru-RU') : "••••••"}</p>
                         </div>
                       </div>
                     </>
