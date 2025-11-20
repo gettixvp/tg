@@ -4339,10 +4339,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSecondGoalModal && (
-        <div className="fixed inset-0 bg-black flex items-center justify-center z-50 p-4">
+        <div className={`fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
+          theme === "dark" 
+            ? "bg-black/50 backdrop-blur-md" 
+            : "bg-white/50 backdrop-blur-sm"
+        }`}>
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border ${
-              theme === "dark" ? "bg-gray-900 border-gray-700/70" : "bg-white border-slate-200"
+            className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border transform transition-all duration-250 ease-out ${
+              theme === "dark" 
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg" 
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md"
             }`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
