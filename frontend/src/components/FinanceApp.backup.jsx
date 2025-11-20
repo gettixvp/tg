@@ -184,8 +184,8 @@ function NavButton({ active, onClick, icon, theme }) {
       className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
         active
           ? theme === "dark"
-            ? "bg-gray-700/80 text-blue-400 backdrop-blur-md"
-            : "bg-white/50 text-blue-600 backdrop-blur-sm shadow-md"
+            ? "bg-gray-700 text-blue-400"
+            : "bg-blue-100 text-blue-600"
           : theme === "dark"
             ? "text-gray-400 hover:text-gray-300"
             : "text-gray-600 hover:text-gray-900"
@@ -237,8 +237,8 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
             }
           }}
           className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-2xl ${
-            theme === "dark" ? "bg-red-600/90" : "bg-red-500/90"
-          } backdrop-blur-md`}
+            theme === "dark" ? "bg-red-600" : "bg-red-500"
+          }`}
         >
           <Trash2 className="w-5 h-5 text-white" />
         </div>
@@ -259,7 +259,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
               : "bg-blue-500 text-white ml-8 shadow-sm"
             : theme === "dark"
               ? "bg-gray-800/80 text-gray-100 mr-8 border border-gray-700"
-              : "bg-white/70 text-gray-900 mr-8 border border-gray-300/60 shadow-sm backdrop-blur-lg"
+              : "bg-white/90 text-gray-900 mr-8 border border-gray-200 shadow-sm"
         }`}
       >
         <div className="flex items-start justify-between gap-2">
