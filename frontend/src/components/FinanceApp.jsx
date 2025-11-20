@@ -671,6 +671,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const handleSheetTouchStart = (e) => {
     if (!e.touches || e.touches.length === 0) return
     sheetSwipeStartY.current = e.touches[0].clientY
+    lastTouchY.current = e.touches[0].clientY
+    lastTouchTime.current = Date.now()
+    setIsSheetDragging(true)
   }
 
   const handleSheetTouchMove = (e) => {
@@ -680,9 +683,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const diffY = currentY - sheetSwipeStartY.current
     if (diffY <= 0) {
       setSheetDragOffset(0)
-    } else {
-      setSheetDragOffset(diffY)
+      return
     }
+    if (e.cancelable && diffY > 0) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setSheetDragOffset(diffY)
+    lastTouchY.current = currentY
+  }
+
+  const handleSheetTouchCancel = () => {
+    sheetSwipeStartY.current = null
+    setSheetDragOffset(0)
+    setIsSheetDragging(false)
+    lastTouchY.current = null
   }
 
   const createSheetTouchEndHandler = (closeFn) => (e) => {
@@ -690,6 +705,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!e.changedTouches || e.changedTouches.length === 0) {
       sheetSwipeStartY.current = null
       setSheetDragOffset(0)
+      setIsSheetDragging(false)
       return
     }
     const endY = e.changedTouches[0].clientY
@@ -697,11 +713,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (diffY > 60) {
       sheetSwipeStartY.current = null
       setSheetDragOffset(0)
+      setIsSheetDragging(false)
       closeFn()
       return
     }
     sheetSwipeStartY.current = null
     setSheetDragOffset(0)
+    setIsSheetDragging(false)
   }
 
   // UseState hooks should be at the top level of the component
@@ -753,6 +771,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [sheetDragOffset, setSheetDragOffset] = useState(0)
+  const lastTouchY = useRef(null)
+  const lastTouchTime = useRef(0)
+  const [isSheetDragging, setIsSheetDragging] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
 
   const [linkedUsers, setLinkedUsers] = useState([])
@@ -790,12 +811,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [debts, setDebts] = useState([]) // Список долгов
   const [showAddDebtModal, setShowAddDebtModal] = useState(false)
   const [debtType, setDebtType] = useState('owe') // 'owe' (я должен) или 'owed' (мне должны)
+  const [debtModalDragOffset, setDebtModalDragOffset] = useState(0)
+  const [isDebtModalDragging, setIsDebtModalDragging] = useState(false)
   
   // Раскрываемое меню системных настроек
   const [showSystemSettings, setShowSystemSettings] = useState(false)
   const [debtPerson, setDebtPerson] = useState('')
   const [debtAmount, setDebtAmount] = useState('')
   const [debtDescription, setDebtDescription] = useState('')
+  const [systemSettingsDragOffset, setSystemSettingsDragOffset] = useState(0)
+  const [isSystemSettingsDragging, setIsSystemSettingsDragging] = useState(false)
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -803,6 +828,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const vibrateSuccess = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("success")
   const vibrateError = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("error")
   const vibrateSelect = () => haptic && haptic.selectionChanged && haptic.selectionChanged()
+
+  const getSheetStyle = (extraStyles = {}) => ({
+    transform: `translateY(calc(max(0, ${sheetDragOffset}px)))`,
+    transition: isSheetDragging ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
+    willChange: 'transform',
+    touchAction: 'pan-y',
+    WebkitOverflowScrolling: 'touch',
+    ...extraStyles,
+  })
 
   const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
   const tgUserId = tgUser && tgUser.id
@@ -3804,8 +3838,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div
           className={`fixed inset-0 flex items-end justify-center z-50 p-4 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black"
-              : "bg-white"
+              ? "bg-black/50 backdrop-blur-md"
+              : "bg-white/50 backdrop-blur-sm"
           }`}
           onClick={() => setShowGoalModal(false)}
           onTouchStart={handleSheetTouchStart}
@@ -3815,8 +3849,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-3xl p-4 shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70 translate-y-0"
-                : "bg-white border-slate-200 translate-y-0"
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg translate-y-0"
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md translate-y-0"
             }`}
             style={{ transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -3955,10 +3989,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showSavingsSettingsModal && (
         <div
-          className={`fixed inset-0 flex items-end justify-center z-[60] p-4 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-50 p-4 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black"
-              : "bg-white"
+              ? "bg-black/50 backdrop-blur-md"
+              : "bg-white/50 backdrop-blur-sm"
           }`}
           onClick={() => setShowSavingsSettingsModal(false)}
           onTouchStart={handleSheetTouchStart}
@@ -3966,10 +4000,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           onTouchEnd={createSheetTouchEndHandler(() => setShowSavingsSettingsModal(false))}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden border transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md max-h-[90vh] overflow-hidden border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70 translate-y-0"
-                : "bg-white border-slate-200 translate-y-0"
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg translate-y-0"
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md translate-y-0"
             }`}
             style={{ transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -4671,8 +4705,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70"
-                : "bg-white border-slate-200"
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg"
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -4866,8 +4900,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70"
-                : "bg-white border-slate-200"
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg"
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -4981,8 +5015,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70"
-                : "bg-white border-slate-200"
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg"
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -5239,8 +5273,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div 
           className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black"
-              : "bg-white"
+              ? "bg-black/50 backdrop-blur-md"
+              : "bg-white/50 backdrop-blur-sm"
           }`}
           onClick={() => {
             setShowAddDebtModal(false)
@@ -5260,8 +5294,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70"
-                : "bg-white border-slate-200"
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg"
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -5431,8 +5465,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70"
-                : "bg-white border-slate-200"
+                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg"
+                : "bg-white/90 border-slate-200/80 backdrop-blur-md"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
