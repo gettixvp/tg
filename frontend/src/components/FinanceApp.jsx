@@ -59,6 +59,14 @@ import {
   calculateTotals,
   calculateCategoryTotals,
 } from "../utils/calculations"
+import {
+  useTransactions,
+  useBudgets,
+  useDebts,
+  useFinance,
+  useAuth,
+  useUIState,
+} from "../hooks"
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement)
 
