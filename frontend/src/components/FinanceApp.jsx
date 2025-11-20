@@ -2468,7 +2468,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         className={`w-full h-screen flex items-center justify-center ${
           theme === "dark"
             ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-            : "bg-white"
+            : "bg-gradient-to-br from-sky-50 via-indigo-50 to-rose-50"
         }`}
       >
         <div className="text-center">
@@ -2486,7 +2486,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-          : "bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300"
+          : "bg-gradient-to-br from-sky-50 via-indigo-50 to-rose-50"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -3065,7 +3065,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className={`rounded-2xl p-4 text-white shadow-2xl ${
                   theme === "dark"
                     ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-                    : "bg-gradient-to-br from-blue-500 to-purple-600"
+                    : "bg-gradient-to-br from-sky-500 via-indigo-500 to-fuchsia-500"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">

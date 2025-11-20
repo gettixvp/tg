@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
+    --background: 210 100% 97%;
+    --foreground: 222 47% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 47% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 222 47% 15%;
+    --primary: 222 84% 56%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --secondary: 190 95% 94%;
+    --secondary-foreground: 222 47% 20%;
+    --muted: 215 20% 90%;
+    --muted-foreground: 215 16% 40%;
+    --accent: 330 100% 96%;
+    --accent-foreground: 336 80% 35%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
-    --radius: 1rem;
+    --border: 215 25% 88%;
+    --input: 215 25% 88%;
+    --ring: 222 84% 56%;
+    --radius: 1.25rem;
   }
 
   .dark {
@@ -99,10 +99,10 @@
   }
 
   .gradient-primary {
-    @apply bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500;
+    @apply bg-gradient-to-br from-sky-500 via-indigo-500 to-fuchsia-500;
   }
 
   .gradient-card {
-    @apply bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900;
+    @apply bg-gradient-to-br from-sky-50 via-indigo-50 to-rose-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-900;
   }
 }
