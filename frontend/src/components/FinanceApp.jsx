@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, memo, useMemo, useCallback } from "react"
+import { useEffect, useState, useRef, memo, useMemo } from "react"
 import {
   Wallet,
   TrendingUp,
@@ -35,40 +35,134 @@ import {
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
-import {
-  API_BASE,
-  API_URL,
-  categoriesMeta,
-  TRANSACTION_TYPES,
-  DEBT_TYPES,
-  DEFAULT_EXCHANGE_RATE,
-  DEFAULT_GOAL_AMOUNT,
-} from "../utils/constants"
-import {
-  formatCurrency,
-  formatDate,
-  formatDateWithTime,
-  formatBalance,
-  transliterate,
-} from "../utils/formatting"
-import { createVibrationFunctions } from "../utils/vibration"
-import { financeStorage } from "../utils/storage"
-import {
-  calculateCategorySpending,
-  calculateBudgetStatus,
-  calculateTotals,
-  calculateCategoryTotals,
-} from "../utils/calculations"
-import {
-  useTransactions,
-  useBudgets,
-  useDebts,
-  useFinance,
-  useAuth,
-  useUIState,
-} from "../hooks"
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement)
+
+const API_BASE = "https://walletback-aghp.onrender.com"
+const LS_KEY = "finance_settings_v3"
+const SESSION_KEY = "finance_session_v2"
+
+const categoriesMeta = {
+  Еда: {
+    color: "from-orange-400 to-red-400",
+    icon: "🍕",
+    bgColor: "bg-orange-100",
+    textColor: "text-orange-700",
+    chartColor: "#f97316",
+  },
+  Транспорт: {
+    color: "from-blue-400 to-cyan-400",
+    icon: "🚗",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
+    chartColor: "#3b82f6",
+  },
+  Развлечения: {
+    color: "from-pink-400 to-purple-400",
+    icon: "🎉",
+    bgColor: "bg-pink-100",
+    textColor: "text-pink-700",
+    chartColor: "#ec4899",
+  },
+  Счета: {
+    color: "from-teal-400 to-green-400",
+    icon: "💡",
+    bgColor: "bg-teal-100",
+    textColor: "text-teal-700",
+    chartColor: "#14b8a6",
+  },
+  Покупки: {
+    color: "from-purple-400 to-indigo-400",
+    icon: "🛍",
+    bgColor: "bg-purple-100",
+    textColor: "text-purple-700",
+    chartColor: "#a855f7",
+  },
+  Здоровье: {
+    color: "from-yellow-400 to-orange-400",
+    icon: "💊",
+    bgColor: "bg-yellow-100",
+    textColor: "text-yellow-700",
+    chartColor: "#eab308",
+  },
+  Другое: {
+    color: "from-gray-400 to-slate-400",
+    icon: "💼",
+    bgColor: "bg-gray-100",
+    textColor: "text-gray-700",
+    chartColor: "#64748b",
+  },
+  Зарплата: {
+    color: "from-green-400 to-emerald-400",
+    icon: "💵",
+    bgColor: "bg-green-100",
+    textColor: "text-green-700",
+    chartColor: "#10b981",
+  },
+  Фриланс: {
+    color: "from-cyan-400 to-blue-400",
+    icon: "👨‍💻",
+    bgColor: "bg-cyan-100",
+    textColor: "text-cyan-700",
+    chartColor: "#06b6d4",
+  },
+  Подарки: {
+    color: "from-yellow-300 to-amber-300",
+    icon: "🎁",
+    bgColor: "bg-yellow-100",
+    textColor: "text-yellow-700",
+    chartColor: "#fbbf24",
+  },
+  Инвестиции: {
+    color: "from-indigo-400 to-purple-400",
+    icon: "📈",
+    bgColor: "bg-indigo-100",
+    textColor: "text-indigo-700",
+    chartColor: "#6366f1",
+  },
+  Долги: {
+    color: "from-red-400 to-rose-400",
+    icon: "📤",
+    bgColor: "bg-red-100",
+    textColor: "text-red-700",
+    chartColor: "#ef4444",
+  },
+  "Возврат долга": {
+    color: "from-green-400 to-emerald-400",
+    icon: "📥",
+    bgColor: "bg-green-100",
+    textColor: "text-green-700",
+    chartColor: "#10b981",
+  },
+  Отпуск: {
+    color: "from-blue-300 to-sky-300",
+    icon: "🖼️",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
+    chartColor: "#38bdf8",
+  },
+  Накопления: {
+    color: "from-blue-800 to-indigo-800",
+    icon: "💰",
+    bgColor: "bg-blue-100",
+    textColor: "text-blue-700",
+    chartColor: "#1e40af",
+  },
+  "Экстренный фонд": {
+    color: "from-red-400 to-pink-400",
+    icon: "🚨",
+    bgColor: "bg-red-100",
+    textColor: "text-red-700",
+    chartColor: "#ef4444",
+  },
+  Цель: {
+    color: "from-emerald-300 to-green-300",
+    icon: "🎯",
+    bgColor: "bg-emerald-100",
+    textColor: "text-emerald-700",
+    chartColor: "#34d399",
+  },
+}
 
 const categoriesList = {
   expense: ["Еда", "Транспорт", "Развлечения", "Счета", "Покупки", "Здоровье", "Другое"],
@@ -283,7 +377,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all ${
             theme === "dark"
               ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
-              : "bg-white/90 border-white/60 hover:shadow-md shadow-sm"
+              : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -539,7 +633,7 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         className={`relative flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-2xl transition-all duration-300 ${
           theme === "dark"
             ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
-            : "bg-white/90 border-white/60 hover:shadow-md shadow-sm"
+            : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
         }`}
       >
         {linkedUser.telegram_photo_url ? (
@@ -674,20 +768,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Система долгов
   const [debts, setDebts] = useState([]) // Список долгов
   const [showAddDebtModal, setShowAddDebtModal] = useState(false)
+  const [debtType, setDebtType] = useState('owe') // 'owe' (я должен) или 'owed' (мне должны)
   
   // Раскрываемое меню системных настроек
   const [showSystemSettings, setShowSystemSettings] = useState(false)
-  const [debtForm, setDebtForm] = useState({
-    person: '',
-    amount: '',
-    description: '',
-    type: 'owe'
-  })
-
-  // Initialize vibration functions
-  const { vibrate, vibrateSuccess, vibrateError, vibrateSelect } = createVibrationFunctions()
+  const [debtPerson, setDebtPerson] = useState('')
+  const [debtAmount, setDebtAmount] = useState('')
+  const [debtDescription, setDebtDescription] = useState('')
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
+  const haptic = tg && tg.HapticFeedback
+  const vibrate = () => haptic && haptic.impactOccurred && haptic.impactOccurred("light")
+  const vibrateSuccess = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("success")
+  const vibrateError = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("error")
+  const vibrateSelect = () => haptic && haptic.selectionChanged && haptic.selectionChanged()
+
   const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
   const tgUserId = tgUser && tgUser.id
   const displayName = (tgUser && tgUser.first_name) || "Пользователь"
@@ -1030,8 +1125,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const currentCurrency = currencies.find((c) => c.code === currency) || currencies[1]
-  
-  const formatCurrency = useCallback((value, curr = currency) => {
+  const formatCurrency = (value, curr = currency) => {
     const num = Number(value)
     if (!isFinite(num)) return `${curr === "USD" ? "$" : currentCurrency.symbol}0`
     const symbol = curr === "USD" ? "$" : currentCurrency.symbol
@@ -1050,9 +1144,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     } catch {
       return `${symbol}${Math.round(num)}`
     }
-  }, [currency, currentCurrency])
+  }
 
-  const formatDate = useCallback((dateString) => {
+  const formatDate = (dateString) => {
     if (!dateString) return ""
     const d = new Date(dateString)
     const today = new Date()
@@ -1065,7 +1159,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       return `Вчера, ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
     }
     return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
-  }, [])
+  }
 
   const loadLinkedUsers = async (email) => {
     if (!email) return
@@ -1497,8 +1591,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const addDebt = async () => {
-    const amount = Number(debtForm.amount)
-    if (!debtForm.person.trim() || !amount || amount <= 0) {
+    const amount = Number(debtAmount)
+    if (!debtPerson.trim() || !amount || amount <= 0) {
       vibrateError()
       alert('Заполните все обязательные поля')
       return
@@ -1515,10 +1609,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: debtForm.type,
-          person: debtForm.person,
+          type: debtType,
+          person: debtPerson,
           amount: amount,
-          description: debtForm.description
+          description: debtDescription
         })
       })
 
@@ -1526,12 +1620,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       if (data.debt) {
         setDebts([data.debt, ...debts])
         setShowAddDebtModal(false)
-        setDebtForm({
-          person: '',
-          amount: '',
-          description: '',
-          type: 'owe'
-        })
+        setDebtPerson('')
+        setDebtAmount('')
+        setDebtDescription('')
         vibrateSuccess()
       }
     } catch (e) {
@@ -1962,6 +2053,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   // Кэшируем статусы бюджетов для автоматического обновления при изменении транзакций
   const budgetStatuses = useMemo(() => {
+    console.log('[BUDGET DEBUG] Пересчет бюджетов...')
+    console.log('[BUDGET DEBUG] Всего транзакций:', transactions.length)
+    console.log('[BUDGET DEBUG] Бюджеты:', budgets)
+    
     const statuses = {}
     Object.keys(budgets).forEach(category => {
       const budget = budgets[category]
@@ -1974,13 +2069,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       if (budget.period === 'week') {
         startDate.setDate(now.getDate() - 7)
       } else if (budget.period === 'month') {
+        // Если задан день начала месяца
         if (budget.startDay) {
           const currentDay = now.getDate()
           const startDay = budget.startDay
           
           if (currentDay >= startDay) {
+            // Текущий период начался в этом месяце
             startDate = new Date(now.getFullYear(), now.getMonth(), startDay)
           } else {
+            // Текущий период начался в прошлом месяце
             startDate = new Date(now.getFullYear(), now.getMonth() - 1, startDay)
           }
         } else {
@@ -1990,32 +2088,67 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         startDate.setFullYear(now.getFullYear() - 1)
       }
       
+      // ВАЖНО: Если есть дата создания бюджета, используем её как минимальную дату
       const budgetCreatedAt = budget.createdAt ? new Date(budget.createdAt) : null
       if (budgetCreatedAt && budgetCreatedAt > startDate) {
         startDate = budgetCreatedAt
       }
       
-      const spent = transactions.reduce((sum, tx) => {
-        if (tx.type !== 'expense' || tx.category !== category) return sum
+      console.log(`[BUDGET DEBUG] Категория: ${category}, Период: ${budget.period}`)
+      console.log(`[BUDGET DEBUG] Дата создания бюджета:`, budgetCreatedAt)
+      console.log(`[BUDGET DEBUG] Дата начала периода:`, startDate)
+      
+      const categoryTransactions = transactions.filter(tx => {
         const txDate = new Date(tx.date || tx.created_at)
-        if (txDate < startDate) return sum
-        if (budgetCreatedAt && txDate < budgetCreatedAt) return sum
-        return sum + Number(tx.amount || 0)
+        const isExpense = tx.type === 'expense'
+        const isCategory = tx.category === category
+        const isInPeriod = txDate >= startDate
+        const isAfterBudgetCreated = budgetCreatedAt ? txDate >= budgetCreatedAt : true
+        
+        console.log(`[BUDGET DEBUG] Транзакция:`, {
+          category: tx.category,
+          type: tx.type,
+          amount: tx.amount,
+          date: tx.date || tx.created_at,
+          isExpense,
+          isCategory,
+          isInPeriod,
+          isAfterBudgetCreated
+        })
+        
+        return isExpense && isCategory && isInPeriod && isAfterBudgetCreated
+      })
+      
+      console.log(`[BUDGET DEBUG] Найдено транзакций для ${category}:`, categoryTransactions.length)
+      
+      const spent = categoryTransactions.reduce((sum, tx) => {
+        const amount = Number(tx.amount || 0)
+        console.log(`[BUDGET DEBUG] Добавляем к сумме: ${amount}`)
+        return sum + amount
       }, 0)
       
       const limit = Number(budget.limit)
       const percentage = limit > 0 ? (spent / limit) * 100 : 0
+      const remaining = limit - spent
+      
+      console.log(`[BUDGET DEBUG] Итого для ${category}:`, {
+        spent,
+        limit,
+        percentage,
+        remaining
+      })
       
       statuses[category] = {
         spent,
         limit,
         percentage: Math.min(percentage, 100),
-        remaining: limit - spent,
+        remaining,
         isOverBudget: spent > limit,
         isNearLimit: percentage >= 80 && percentage < 100
       }
     })
     
+    console.log('[BUDGET DEBUG] Финальные статусы:', statuses)
     return statuses
   }, [budgets, transactions])
 
@@ -2203,7 +2336,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1)
   const savingsPct = Math.round(savingsProgress * 100)
 
-  const toggleLike = useCallback((txId) => {
+  const toggleLike = (txId) => {
     vibrate()
     setLikedTransactions((prev) => {
       const newSet = new Set(prev)
@@ -2214,9 +2347,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
       return newSet
     })
-  }, [vibrate])
+  }
 
-  const openTransactionDetails = useCallback(async (tx) => {
+  const openTransactionDetails = async (tx) => {
     setSelectedTransaction(tx)
     setShowTransactionDetails(true)
     vibrate()
@@ -2236,7 +2369,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         console.warn('Failed to load comments', e)
       }
     }
-  }, [user, API_URL, transactionComments, vibrate])
+  }
 
   const addComment = async (txId, commentText) => {
     vibrate()
@@ -2353,7 +2486,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-          : "bg-gradient-to-br from-amber-50 via-orange-50 to-blue-50"
+          : "bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -2382,7 +2515,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`relative overflow-hidden rounded-3xl p-4 z-10 border backdrop-blur-2xl shadow-lg transition-all ${
               theme === "dark"
                 ? "bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-500 border-white/10 shadow-blue-900/40"
-                : "bg-white/90 border-white/60 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                : "bg-white/96 border-slate-200/80 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
             }`}
           >
             <div className="flex items-center justify-between mb-3">
@@ -2420,7 +2553,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className={`p-2 rounded-full border transition-all touch-none backdrop-blur-md ${
                   theme === "dark"
                     ? "bg-white/15 border-white/20 hover:bg-white/25"
-                    : "bg-white/90 border-white/50 hover:bg-white/95 shadow-sm"
+                    : "bg-white/80 border-slate-200 hover:bg-slate-50 shadow-sm"
                 }`}
               >
                 {balanceVisible ? (
@@ -2441,58 +2574,58 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
             <div className="grid grid-cols-2 gap-2.5">
               <div
-                className={`rounded-xl p-2.5 border backdrop-blur-2xl transition-all ${
+                className={`rounded-xl p-2.5 border backdrop-blur-xl transition-all ${
                   theme === "dark"
-                    ? "bg-white/15 border-white/25 shadow-lg hover:bg-white/20"
-                    : "bg-white/90 border-white/60 shadow-md hover:shadow-lg"
+                    ? "bg-white/10 border-white/20"
+                    : "bg-white/96 border-slate-200/80 shadow-sm"
                 }`}
               >
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingUp
                     className={`w-3 h-3 ${
-                      theme === "dark" ? "text-emerald-300" : "text-emerald-600"
+                      theme === "dark" ? "text-emerald-300" : "text-emerald-500"
                     }`}
                   />
                   <span
-                    className={`text-xs font-medium ${
-                      theme === "dark" ? "text-white/95" : "text-slate-600"
+                    className={`text-xs ${
+                      theme === "dark" ? "text-white/90" : "text-slate-500"
                     }`}
                   >
                     Доходы
                   </span>
                 </div>
                 <p
-                  className={`text-base font-bold ${
-                    theme === "dark" ? "text-emerald-300" : "text-emerald-600"
+                  className={`text-base font-semibold ${
+                    theme === "dark" ? "text-white" : "text-slate-900"
                   }`}
                 >
                   {balanceVisible ? formatCurrency(income) : "••••••"}
                 </p>
               </div>
               <div
-                className={`rounded-xl p-2.5 border backdrop-blur-2xl transition-all ${
+                className={`rounded-xl p-2.5 border backdrop-blur-xl transition-all ${
                   theme === "dark"
-                    ? "bg-white/15 border-white/25 shadow-lg hover:bg-white/20"
-                    : "bg-white/90 border-white/60 shadow-md hover:shadow-lg"
+                    ? "bg-white/10 border-white/20"
+                    : "bg-white/80 border-white/80 shadow-sm"
                 }`}
               >
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingDown
                     className={`w-3 h-3 ${
-                      theme === "dark" ? "text-rose-300" : "text-rose-600"
+                      theme === "dark" ? "text-rose-300" : "text-rose-500"
                     }`}
                   />
                   <span
-                    className={`text-xs font-medium ${
-                      theme === "dark" ? "text-white/95" : "text-slate-600"
+                    className={`text-xs ${
+                      theme === "dark" ? "text-white/90" : "text-slate-500"
                     }`}
                   >
                     Расходы
                   </span>
                 </div>
                 <p
-                  className={`text-base font-bold ${
-                    theme === "dark" ? "text-rose-300" : "text-rose-600"
+                  className={`text-base font-semibold ${
+                    theme === "dark" ? "text-white" : "text-slate-900"
                   }`}
                 >
                   {balanceVisible ? formatCurrency(expenses) : "••••••"}
@@ -2532,10 +2665,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border shadow-md ${
+                  className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
                     theme === "dark"
-                      ? "bg-white/15 border-white/25 hover:bg-white/20"
-                      : "bg-white/90 border-white/60 hover:shadow-lg"
+                      ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
+                      : "bg-white/96 border-slate-200/80 hover:bg-white shadow-md"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -2586,10 +2719,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border shadow-md ${
+                    className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
                       theme === "dark"
-                        ? "bg-white/15 border-white/25 hover:bg-white/20"
-                        : "bg-white/90 border-white/60 hover:shadow-lg"
+                        ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
+                        : "bg-white/96 border-slate-200/80 hover:bg-white shadow-md"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -2638,10 +2771,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-3xl p-4 border backdrop-blur-2xl shadow-md ${
+                  className={`rounded-3xl p-4 border backdrop-blur-2xl shadow-lg ${
                     theme === "dark"
-                      ? "bg-white/15 border-white/25"
-                      : "bg-white/98 border-white/90 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+                      ? "bg-gray-900/40 border-gray-700/60"
+                      : "bg-white/96 border-slate-200/80 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2682,7 +2815,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                 : "bg-amber-50/90 border-amber-200/80"
                               : theme === "dark"
                               ? "bg-gray-900/40 border-gray-700/60"
-                              : "bg-white/90 border-white/60"
+                              : "bg-white/96 border-slate-200/80"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -2759,10 +2892,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border backdrop-blur-2xl shadow-md ${
+                className={`rounded-2xl p-4 border backdrop-blur-lg shadow-lg ${
                   theme === "dark"
-                    ? "bg-white/15 border-white/25"
-                    : "bg-white/98 border-white/90"
+                    ? "bg-gray-900/70 border-gray-700/70"
+                    : "bg-white/96 border-slate-200/80"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2817,10 +2950,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
+                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
                   theme === "dark"
-                    ? "bg-white/15 border-white/25"
-                    : "bg-white/98 border-white/90"
+                    ? "bg-gray-900/70 border-gray-700/70"
+                    : "bg-white/96 border-slate-200/80"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -3043,11 +3176,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
-                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
+                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/96 border-slate-200/80"
                 }`}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   История пополнений
                 </h3>
                 {transactions.filter((t) => t.type === "savings").length === 0 ? (
@@ -3207,7 +3340,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
                     theme === "dark"
                       ? "bg-gray-900/70 border-gray-700/70"
-                      : "bg-white/90 border-white/60"
+                      : "bg-white/96 border-slate-200/80"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -3239,17 +3372,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
-                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
+                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/96 border-slate-200/80"
                 }`}
               >
                 {linkedUsers.length > 1 && (
-                  <p className={`text-xs mb-1 ${theme === "dark" ? "text-white/80" : "text-gray-500"}`}>
+                  <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                     Семейный аккаунт
                   </p>
                 )}
 
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   Аккаунт
                 </h3>
 
@@ -3414,11 +3547,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
-                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
+                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
                 }`}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   Настройки
                 </h3>
 
@@ -3501,11 +3634,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты */}
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
-                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
+                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
                 }`}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   Бюджеты и лимиты
                 </h3>
                 <button
@@ -3533,8 +3666,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
-                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
+                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
                 }`}
               >
                 <button
@@ -3544,11 +3677,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }}
                   className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
                     theme === "dark" 
-                      ? "bg-white/10 border-white/25 hover:bg-white/15" 
-                      : "bg-white/80 border-white/80 hover:bg-white/90 shadow-sm"
+                      ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
+                      : "bg-white border-slate-200 hover:bg-gray-50 shadow-sm"
                   }`}
                 >
-                  <span className={`text-sm font-medium ${theme === "dark" ? "text-white/95" : "text-gray-700"}`}>
+                  <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
                     ⚙️ Системные настройки
                   </span>
                   {showSystemSettings ? (
@@ -3661,7 +3794,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl p-4 shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
-                : "bg-white/90 border-white/60 shadow-2xl translate-y-0"
+                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -3812,7 +3945,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
-                : "bg-white/90 border-white/60 shadow-2xl translate-y-0"
+                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -4150,7 +4283,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-900/80 border-gray-700/70" : "bg-white border-white shadow-2xl"
+              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
             }`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -4241,7 +4374,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[80vh] overflow-y-auto border backdrop-blur-2xl ${
               theme === "dark"
                 ? "bg-gray-900/70 border-gray-700/70"
-                : "bg-white border-white shadow-2xl"
+                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -4513,7 +4646,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/90 border-white/60 shadow-2xl"
+                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -4706,7 +4839,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white border-white shadow-2xl"
+                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}
@@ -4820,7 +4953,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/90 border-white/60 shadow-2xl"
+                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}
@@ -5082,29 +5215,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }`}
           onClick={() => {
             setShowAddDebtModal(false)
-            setDebtForm({
-              person: '',
-              amount: '',
-              description: '',
-              type: 'owe'
-            })
+            setDebtPerson('')
+            setDebtAmount('')
+            setDebtDescription('')
           }}
           onTouchStart={handleSheetTouchStart}
           onTouchEnd={createSheetTouchEndHandler(() => {
             setShowAddDebtModal(false)
-            setDebtForm({
-              person: '',
-              amount: '',
-              description: '',
-              type: 'owe'
-            })
+            setDebtPerson('')
+            setDebtAmount('')
+            setDebtDescription('')
           })}
         >
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/90 border-white/60 shadow-2xl"
+                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -5134,11 +5261,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    setDebtForm(prev => ({ ...prev, type: 'owe' }))
+                    setDebtType('owe')
                     vibrateSelect()
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    debtForm.type === 'owe'
+                    debtType === 'owe'
                       ? theme === "dark"
                         ? "bg-red-600 text-white"
                         : "bg-red-500 text-white"
@@ -5151,11 +5278,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </button>
                 <button
                   onClick={() => {
-                    setDebtForm(prev => ({ ...prev, type: 'owed' }))
+                    setDebtType('owed')
                     vibrateSelect()
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    debtForm.type === 'owed'
+                    debtType === 'owed'
                       ? theme === "dark"
                         ? "bg-green-600 text-white"
                         : "bg-green-500 text-white"
@@ -5172,12 +5299,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             {/* Кто должен */}
             <div className="mb-4">
               <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                {debtForm.type === 'owe' ? 'Кому я должен' : 'Кто мне должен'}
+                {debtType === 'owe' ? 'Кому я должен' : 'Кто мне должен'}
               </label>
               <input
                 type="text"
-                value={debtForm.person}
-                onChange={(e) => setDebtForm(prev => ({ ...prev, person: e.target.value }))}
+                value={debtPerson}
+                onChange={(e) => setDebtPerson(e.target.value)}
                 placeholder="Имя человека"
                 className={`w-full p-3 border rounded-xl ${
                   theme === "dark"
@@ -5194,8 +5321,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </label>
               <input
                 type="number"
-                value={debtForm.amount}
-                onChange={(e) => setDebtForm(prev => ({ ...prev, amount: e.target.value }))}
+                value={debtAmount}
+                onChange={(e) => setDebtAmount(e.target.value)}
                 placeholder="0"
                 className={`w-full p-3 border rounded-xl text-lg font-bold ${
                   theme === "dark"
@@ -5211,8 +5338,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Описание (необязательно)
               </label>
               <textarea
-                value={debtForm.description}
-                onChange={(e) => setDebtForm(prev => ({ ...prev, description: e.target.value }))}
+                value={debtDescription}
+                onChange={(e) => setDebtDescription(e.target.value)}
                 placeholder="За что долг..."
                 rows={3}
                 className={`w-full p-3 border rounded-xl resize-none ${
@@ -5228,12 +5355,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <button
                 onClick={() => {
                   setShowAddDebtModal(false)
-                  setDebtForm({
-                    person: '',
-                    amount: '',
-                    description: '',
-                    type: 'owe'
-                  })
+                  setDebtPerson('')
+                  setDebtAmount('')
+                  setDebtDescription('')
                   vibrate()
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
@@ -5276,7 +5400,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/90 border-white/60 shadow-2xl"
+                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}
@@ -5286,7 +5410,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
-              <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 Новая операция
               </h3>
 
@@ -5505,7 +5629,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[90vh] overflow-y-auto border backdrop-blur-2xl ${
               theme === "dark"
                 ? "bg-gray-900/70 border-gray-700/70"
-                : "bg-white border-white shadow-2xl"
+                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5653,7 +5777,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-900/80 border-gray-700/70" : "bg-white border-white shadow-2xl"
+              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
