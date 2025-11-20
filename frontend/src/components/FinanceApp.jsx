@@ -377,7 +377,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all ${
             theme === "dark"
               ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
-              : "bg-white/90 border-white/80 hover:shadow-md shadow-sm"
+              : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -2484,7 +2484,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
           ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-          : "bg-gradient-to-br from-blue-600 via-purple-500 to-sky-300"
+          : "bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
