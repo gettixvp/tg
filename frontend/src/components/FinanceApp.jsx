@@ -35,134 +35,32 @@ import {
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
+import {
+  API_BASE,
+  API_URL,
+  categoriesMeta,
+  TRANSACTION_TYPES,
+  DEBT_TYPES,
+  DEFAULT_EXCHANGE_RATE,
+  DEFAULT_GOAL_AMOUNT,
+} from "../utils/constants"
+import {
+  formatCurrency,
+  formatDate,
+  formatDateWithTime,
+  formatBalance,
+  transliterate,
+} from "../utils/formatting"
+import { createVibrationFunctions } from "../utils/vibration"
+import { financeStorage } from "../utils/storage"
+import {
+  calculateCategorySpending,
+  calculateBudgetStatus,
+  calculateTotals,
+  calculateCategoryTotals,
+} from "../utils/calculations"
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement)
-
-const API_BASE = "https://walletback-aghp.onrender.com"
-const LS_KEY = "finance_settings_v3"
-const SESSION_KEY = "finance_session_v2"
-
-const categoriesMeta = {
-  Еда: {
-    color: "from-orange-400 to-red-400",
-    icon: "🍕",
-    bgColor: "bg-orange-100",
-    textColor: "text-orange-700",
-    chartColor: "#f97316",
-  },
-  Транспорт: {
-    color: "from-blue-400 to-cyan-400",
-    icon: "🚗",
-    bgColor: "bg-blue-100",
-    textColor: "text-blue-700",
-    chartColor: "#3b82f6",
-  },
-  Развлечения: {
-    color: "from-pink-400 to-purple-400",
-    icon: "🎉",
-    bgColor: "bg-pink-100",
-    textColor: "text-pink-700",
-    chartColor: "#ec4899",
-  },
-  Счета: {
-    color: "from-teal-400 to-green-400",
-    icon: "💡",
-    bgColor: "bg-teal-100",
-    textColor: "text-teal-700",
-    chartColor: "#14b8a6",
-  },
-  Покупки: {
-    color: "from-purple-400 to-indigo-400",
-    icon: "🛍",
-    bgColor: "bg-purple-100",
-    textColor: "text-purple-700",
-    chartColor: "#a855f7",
-  },
-  Здоровье: {
-    color: "from-yellow-400 to-orange-400",
-    icon: "💊",
-    bgColor: "bg-yellow-100",
-    textColor: "text-yellow-700",
-    chartColor: "#eab308",
-  },
-  Другое: {
-    color: "from-gray-400 to-slate-400",
-    icon: "💼",
-    bgColor: "bg-gray-100",
-    textColor: "text-gray-700",
-    chartColor: "#64748b",
-  },
-  Зарплата: {
-    color: "from-green-400 to-emerald-400",
-    icon: "💵",
-    bgColor: "bg-green-100",
-    textColor: "text-green-700",
-    chartColor: "#10b981",
-  },
-  Фриланс: {
-    color: "from-cyan-400 to-blue-400",
-    icon: "👨‍💻",
-    bgColor: "bg-cyan-100",
-    textColor: "text-cyan-700",
-    chartColor: "#06b6d4",
-  },
-  Подарки: {
-    color: "from-yellow-300 to-amber-300",
-    icon: "🎁",
-    bgColor: "bg-yellow-100",
-    textColor: "text-yellow-700",
-    chartColor: "#fbbf24",
-  },
-  Инвестиции: {
-    color: "from-indigo-400 to-purple-400",
-    icon: "📈",
-    bgColor: "bg-indigo-100",
-    textColor: "text-indigo-700",
-    chartColor: "#6366f1",
-  },
-  Долги: {
-    color: "from-red-400 to-rose-400",
-    icon: "📤",
-    bgColor: "bg-red-100",
-    textColor: "text-red-700",
-    chartColor: "#ef4444",
-  },
-  "Возврат долга": {
-    color: "from-green-400 to-emerald-400",
-    icon: "📥",
-    bgColor: "bg-green-100",
-    textColor: "text-green-700",
-    chartColor: "#10b981",
-  },
-  Отпуск: {
-    color: "from-blue-300 to-sky-300",
-    icon: "🖼️",
-    bgColor: "bg-blue-100",
-    textColor: "text-blue-700",
-    chartColor: "#38bdf8",
-  },
-  Накопления: {
-    color: "from-blue-800 to-indigo-800",
-    icon: "💰",
-    bgColor: "bg-blue-100",
-    textColor: "text-blue-700",
-    chartColor: "#1e40af",
-  },
-  "Экстренный фонд": {
-    color: "from-red-400 to-pink-400",
-    icon: "🚨",
-    bgColor: "bg-red-100",
-    textColor: "text-red-700",
-    chartColor: "#ef4444",
-  },
-  Цель: {
-    color: "from-emerald-300 to-green-300",
-    icon: "🎯",
-    bgColor: "bg-emerald-100",
-    textColor: "text-emerald-700",
-    chartColor: "#34d399",
-  },
-}
 
 const categoriesList = {
   expense: ["Еда", "Транспорт", "Развлечения", "Счета", "Покупки", "Здоровье", "Другое"],
@@ -778,13 +676,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     type: 'owe'
   })
 
-  const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
-  const haptic = tg && tg.HapticFeedback
-  const vibrate = () => haptic && haptic.impactOccurred && haptic.impactOccurred("light")
-  const vibrateSuccess = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("success")
-  const vibrateError = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("error")
-  const vibrateSelect = () => haptic && haptic.selectionChanged && haptic.selectionChanged()
+  // Initialize vibration functions
+  const { vibrate, vibrateSuccess, vibrateError, vibrateSelect } = createVibrationFunctions()
 
+  const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
   const tgUserId = tgUser && tgUser.id
   const displayName = (tgUser && tgUser.first_name) || "Пользователь"
