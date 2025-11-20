@@ -670,18 +670,42 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const handleSheetTouchStart = (e) => {
     if (!e.touches || e.touches.length === 0) return
+    const target = e.target
+    if (target && target.closest && !target.closest('[data-sheet-handle="true"]')) {
+      return
+    }
     sheetSwipeStartY.current = e.touches[0].clientY
   }
 
-  const createSheetTouchEndHandler = (closeFn) => (e) => {
-    if (!e.changedTouches || e.changedTouches.length === 0) return
+  const handleSheetTouchMove = (e) => {
     if (sheetSwipeStartY.current == null) return
+    if (!e.touches || e.touches.length === 0) return
+    const currentY = e.touches[0].clientY
+    const diffY = currentY - sheetSwipeStartY.current
+    if (diffY <= 0) {
+      setSheetDragOffset(0)
+    } else {
+      setSheetDragOffset(diffY)
+    }
+  }
+
+  const createSheetTouchEndHandler = (closeFn) => (e) => {
+    if (sheetSwipeStartY.current == null) return
+    if (!e.changedTouches || e.changedTouches.length === 0) {
+      sheetSwipeStartY.current = null
+      setSheetDragOffset(0)
+      return
+    }
     const endY = e.changedTouches[0].clientY
     const diffY = endY - sheetSwipeStartY.current
-    if (diffY > 60) {
+    if (diffY > 80) {
+      sheetSwipeStartY.current = null
+      setSheetDragOffset(0)
       closeFn()
+      return
     }
     sheetSwipeStartY.current = null
+    setSheetDragOffset(0)
   }
 
   // UseState hooks should be at the top level of the component
@@ -732,6 +756,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [fullscreenEnabled, setFullscreenEnabled] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
+  const [sheetDragOffset, setSheetDragOffset] = useState(0)
   const [exchangeRate, setExchangeRate] = useState(3.2)
 
   const [linkedUsers, setLinkedUsers] = useState([])
@@ -3788,6 +3813,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }`}
           onClick={() => setShowGoalModal(false)}
           onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
           onTouchEnd={createSheetTouchEndHandler(() => setShowGoalModal(false))}
         >
           <div
@@ -3796,9 +3822,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
                 : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
             }`}
+            style={{ transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mb-3 opacity-80" />
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Цель накопления (USD)
             </h3>
@@ -3939,6 +3966,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }`}
           onClick={() => setShowSavingsSettingsModal(false)}
           onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
           onTouchEnd={createSheetTouchEndHandler(() => setShowSavingsSettingsModal(false))}
         >
           <div
@@ -3947,9 +3975,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
                 : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
             }`}
+            style={{ transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-          <div className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+          <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
           <div className="px-4 pb-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -4640,6 +4669,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }`}
           onClick={() => setShowTransactionDetails(false)}
           onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
           onTouchEnd={createSheetTouchEndHandler(() => setShowTransactionDetails(false))}
         >
           <div
@@ -4651,11 +4681,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             style={{ 
               maxHeight: "85vh",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              transform: `translateY(${sheetDragOffset}px)`
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
             <div
               ref={detailsScrollRef}
               className="overflow-y-auto flex-1 p-4"
@@ -4833,6 +4864,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
           onClick={() => setShowBudgetModal(false)}
           onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
           onTouchEnd={createSheetTouchEndHandler(() => setShowBudgetModal(false))}
         >
           <div
@@ -4841,10 +4873,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 ? "bg-gray-900/80 border-gray-700/70"
                 : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
             {/* Контент - прокручиваемый */}
             <div 
               className="p-4 overflow-y-auto flex-1"
@@ -4947,6 +4979,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
           onClick={() => setShowBudgetModal(false)}
           onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
           onTouchEnd={createSheetTouchEndHandler(() => setShowBudgetModal(false))}
         >
           <div
@@ -4955,10 +4988,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 ? "bg-gray-900/80 border-gray-700/70"
                 : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
             <div
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
@@ -5220,6 +5253,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             setDebtDescription('')
           }}
           onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
           onTouchEnd={createSheetTouchEndHandler(() => {
             setShowAddDebtModal(false)
             setDebtPerson('')
@@ -5236,11 +5270,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             style={{ 
               maxHeight: "85vh",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              transform: `translateY(${sheetDragOffset}px)`
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
             {/* Контент - прокручиваемый */}
             <div 
               className="p-6 overflow-y-auto flex-1"
@@ -5394,6 +5429,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           style={{ touchAction: "none" }}
           onClick={() => setShowAddModal(false)}
           onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
           onTouchEnd={createSheetTouchEndHandler(() => setShowAddModal(false))}
         >
           <div
@@ -5402,10 +5438,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 ? "bg-gray-900/80 border-gray-700/70"
                 : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
             }`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
             <div
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
