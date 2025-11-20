@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, memo, useMemo } from "react"
+import { useEffect, useState, useRef, memo, useMemo, useCallback } from "react"
 import {
   Wallet,
   TrendingUp,
@@ -768,13 +768,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Система долгов
   const [debts, setDebts] = useState([]) // Список долгов
   const [showAddDebtModal, setShowAddDebtModal] = useState(false)
-  const [debtType, setDebtType] = useState('owe') // 'owe' (я должен) или 'owed' (мне должны)
   
   // Раскрываемое меню системных настроек
   const [showSystemSettings, setShowSystemSettings] = useState(false)
-  const [debtPerson, setDebtPerson] = useState('')
-  const [debtAmount, setDebtAmount] = useState('')
-  const [debtDescription, setDebtDescription] = useState('')
+  const [debtForm, setDebtForm] = useState({
+    person: '',
+    amount: '',
+    description: '',
+    type: 'owe'
+  })
 
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
@@ -1125,7 +1127,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const currentCurrency = currencies.find((c) => c.code === currency) || currencies[1]
-  const formatCurrency = (value, curr = currency) => {
+  
+  const formatCurrency = useCallback((value, curr = currency) => {
     const num = Number(value)
     if (!isFinite(num)) return `${curr === "USD" ? "$" : currentCurrency.symbol}0`
     const symbol = curr === "USD" ? "$" : currentCurrency.symbol
@@ -1144,9 +1147,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     } catch {
       return `${symbol}${Math.round(num)}`
     }
-  }
+  }, [currency, currentCurrency])
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     if (!dateString) return ""
     const d = new Date(dateString)
     const today = new Date()
@@ -1159,7 +1162,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       return `Вчера, ${d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
     }
     return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
-  }
+  }, [])
 
   const loadLinkedUsers = async (email) => {
     if (!email) return
@@ -1591,8 +1594,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const addDebt = async () => {
-    const amount = Number(debtAmount)
-    if (!debtPerson.trim() || !amount || amount <= 0) {
+    const amount = Number(debtForm.amount)
+    if (!debtForm.person.trim() || !amount || amount <= 0) {
       vibrateError()
       alert('Заполните все обязательные поля')
       return
@@ -1609,10 +1612,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: debtType,
-          person: debtPerson,
+          type: debtForm.type,
+          person: debtForm.person,
           amount: amount,
-          description: debtDescription
+          description: debtForm.description
         })
       })
 
@@ -1620,9 +1623,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       if (data.debt) {
         setDebts([data.debt, ...debts])
         setShowAddDebtModal(false)
-        setDebtPerson('')
-        setDebtAmount('')
-        setDebtDescription('')
+        setDebtForm({
+          person: '',
+          amount: '',
+          description: '',
+          type: 'owe'
+        })
         vibrateSuccess()
       }
     } catch (e) {
@@ -2053,10 +2059,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   // Кэшируем статусы бюджетов для автоматического обновления при изменении транзакций
   const budgetStatuses = useMemo(() => {
-    console.log('[BUDGET DEBUG] Пересчет бюджетов...')
-    console.log('[BUDGET DEBUG] Всего транзакций:', transactions.length)
-    console.log('[BUDGET DEBUG] Бюджеты:', budgets)
-    
     const statuses = {}
     Object.keys(budgets).forEach(category => {
       const budget = budgets[category]
@@ -2069,16 +2071,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       if (budget.period === 'week') {
         startDate.setDate(now.getDate() - 7)
       } else if (budget.period === 'month') {
-        // Если задан день начала месяца
         if (budget.startDay) {
           const currentDay = now.getDate()
           const startDay = budget.startDay
           
           if (currentDay >= startDay) {
-            // Текущий период начался в этом месяце
             startDate = new Date(now.getFullYear(), now.getMonth(), startDay)
           } else {
-            // Текущий период начался в прошлом месяце
             startDate = new Date(now.getFullYear(), now.getMonth() - 1, startDay)
           }
         } else {
@@ -2088,67 +2087,32 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         startDate.setFullYear(now.getFullYear() - 1)
       }
       
-      // ВАЖНО: Если есть дата создания бюджета, используем её как минимальную дату
       const budgetCreatedAt = budget.createdAt ? new Date(budget.createdAt) : null
       if (budgetCreatedAt && budgetCreatedAt > startDate) {
         startDate = budgetCreatedAt
       }
       
-      console.log(`[BUDGET DEBUG] Категория: ${category}, Период: ${budget.period}`)
-      console.log(`[BUDGET DEBUG] Дата создания бюджета:`, budgetCreatedAt)
-      console.log(`[BUDGET DEBUG] Дата начала периода:`, startDate)
-      
-      const categoryTransactions = transactions.filter(tx => {
+      const spent = transactions.reduce((sum, tx) => {
+        if (tx.type !== 'expense' || tx.category !== category) return sum
         const txDate = new Date(tx.date || tx.created_at)
-        const isExpense = tx.type === 'expense'
-        const isCategory = tx.category === category
-        const isInPeriod = txDate >= startDate
-        const isAfterBudgetCreated = budgetCreatedAt ? txDate >= budgetCreatedAt : true
-        
-        console.log(`[BUDGET DEBUG] Транзакция:`, {
-          category: tx.category,
-          type: tx.type,
-          amount: tx.amount,
-          date: tx.date || tx.created_at,
-          isExpense,
-          isCategory,
-          isInPeriod,
-          isAfterBudgetCreated
-        })
-        
-        return isExpense && isCategory && isInPeriod && isAfterBudgetCreated
-      })
-      
-      console.log(`[BUDGET DEBUG] Найдено транзакций для ${category}:`, categoryTransactions.length)
-      
-      const spent = categoryTransactions.reduce((sum, tx) => {
-        const amount = Number(tx.amount || 0)
-        console.log(`[BUDGET DEBUG] Добавляем к сумме: ${amount}`)
-        return sum + amount
+        if (txDate < startDate) return sum
+        if (budgetCreatedAt && txDate < budgetCreatedAt) return sum
+        return sum + Number(tx.amount || 0)
       }, 0)
       
       const limit = Number(budget.limit)
       const percentage = limit > 0 ? (spent / limit) * 100 : 0
-      const remaining = limit - spent
-      
-      console.log(`[BUDGET DEBUG] Итого для ${category}:`, {
-        spent,
-        limit,
-        percentage,
-        remaining
-      })
       
       statuses[category] = {
         spent,
         limit,
         percentage: Math.min(percentage, 100),
-        remaining,
+        remaining: limit - spent,
         isOverBudget: spent > limit,
         isNearLimit: percentage >= 80 && percentage < 100
       }
     })
     
-    console.log('[BUDGET DEBUG] Финальные статусы:', statuses)
     return statuses
   }, [budgets, transactions])
 
@@ -2336,7 +2300,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1)
   const savingsPct = Math.round(savingsProgress * 100)
 
-  const toggleLike = (txId) => {
+  const toggleLike = useCallback((txId) => {
     vibrate()
     setLikedTransactions((prev) => {
       const newSet = new Set(prev)
@@ -2347,9 +2311,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
       return newSet
     })
-  }
+  }, [vibrate])
 
-  const openTransactionDetails = async (tx) => {
+  const openTransactionDetails = useCallback(async (tx) => {
     setSelectedTransaction(tx)
     setShowTransactionDetails(true)
     vibrate()
@@ -2369,7 +2333,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         console.warn('Failed to load comments', e)
       }
     }
-  }
+  }, [user, API_URL, transactionComments, vibrate])
 
   const addComment = async (txId, commentText) => {
     vibrate()
@@ -5261,11 +5225,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    setDebtType('owe')
+                    setDebtForm(prev => ({ ...prev, type: 'owe' }))
                     vibrateSelect()
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    debtType === 'owe'
+                    debtForm.type === 'owe'
                       ? theme === "dark"
                         ? "bg-red-600 text-white"
                         : "bg-red-500 text-white"
@@ -5278,11 +5242,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </button>
                 <button
                   onClick={() => {
-                    setDebtType('owed')
+                    setDebtForm(prev => ({ ...prev, type: 'owed' }))
                     vibrateSelect()
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    debtType === 'owed'
+                    debtForm.type === 'owed'
                       ? theme === "dark"
                         ? "bg-green-600 text-white"
                         : "bg-green-500 text-white"
@@ -5299,12 +5263,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             {/* Кто должен */}
             <div className="mb-4">
               <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                {debtType === 'owe' ? 'Кому я должен' : 'Кто мне должен'}
+                {debtForm.type === 'owe' ? 'Кому я должен' : 'Кто мне должен'}
               </label>
               <input
                 type="text"
-                value={debtPerson}
-                onChange={(e) => setDebtPerson(e.target.value)}
+                value={debtForm.person}
+                onChange={(e) => setDebtForm(prev => ({ ...prev, person: e.target.value }))}
                 placeholder="Имя человека"
                 className={`w-full p-3 border rounded-xl ${
                   theme === "dark"
@@ -5321,8 +5285,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </label>
               <input
                 type="number"
-                value={debtAmount}
-                onChange={(e) => setDebtAmount(e.target.value)}
+                value={debtForm.amount}
+                onChange={(e) => setDebtForm(prev => ({ ...prev, amount: e.target.value }))}
                 placeholder="0"
                 className={`w-full p-3 border rounded-xl text-lg font-bold ${
                   theme === "dark"
@@ -5338,8 +5302,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Описание (необязательно)
               </label>
               <textarea
-                value={debtDescription}
-                onChange={(e) => setDebtDescription(e.target.value)}
+                value={debtForm.description}
+                onChange={(e) => setDebtForm(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="За что долг..."
                 rows={3}
                 className={`w-full p-3 border rounded-xl resize-none ${
@@ -5355,9 +5319,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <button
                 onClick={() => {
                   setShowAddDebtModal(false)
-                  setDebtPerson('')
-                  setDebtAmount('')
-                  setDebtDescription('')
+                  setDebtForm({
+                    person: '',
+                    amount: '',
+                    description: '',
+                    type: 'owe'
+                  })
                   vibrate()
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
