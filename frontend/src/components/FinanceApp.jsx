@@ -2574,58 +2574,58 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
             <div className="grid grid-cols-2 gap-2.5">
               <div
-                className={`rounded-xl p-2.5 border backdrop-blur-xl transition-all ${
+                className={`rounded-xl p-2.5 border backdrop-blur-2xl transition-all ${
                   theme === "dark"
-                    ? "bg-white/10 border-white/20"
-                    : "bg-white/96 border-slate-200/80 shadow-sm"
+                    ? "bg-white/15 border-white/25 shadow-lg hover:bg-white/20"
+                    : "bg-white/98 border-white/90 shadow-md hover:shadow-lg"
                 }`}
               >
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingUp
                     className={`w-3 h-3 ${
-                      theme === "dark" ? "text-emerald-300" : "text-emerald-500"
+                      theme === "dark" ? "text-emerald-300" : "text-emerald-600"
                     }`}
                   />
                   <span
-                    className={`text-xs ${
-                      theme === "dark" ? "text-white/90" : "text-slate-500"
+                    className={`text-xs font-medium ${
+                      theme === "dark" ? "text-white/95" : "text-slate-600"
                     }`}
                   >
                     Доходы
                   </span>
                 </div>
                 <p
-                  className={`text-base font-semibold ${
-                    theme === "dark" ? "text-white" : "text-slate-900"
+                  className={`text-base font-bold ${
+                    theme === "dark" ? "text-emerald-300" : "text-emerald-600"
                   }`}
                 >
                   {balanceVisible ? formatCurrency(income) : "••••••"}
                 </p>
               </div>
               <div
-                className={`rounded-xl p-2.5 border backdrop-blur-xl transition-all ${
+                className={`rounded-xl p-2.5 border backdrop-blur-2xl transition-all ${
                   theme === "dark"
-                    ? "bg-white/10 border-white/20"
-                    : "bg-white/80 border-white/80 shadow-sm"
+                    ? "bg-white/15 border-white/25 shadow-lg hover:bg-white/20"
+                    : "bg-white/98 border-white/90 shadow-md hover:shadow-lg"
                 }`}
               >
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingDown
                     className={`w-3 h-3 ${
-                      theme === "dark" ? "text-rose-300" : "text-rose-500"
+                      theme === "dark" ? "text-rose-300" : "text-rose-600"
                     }`}
                   />
                   <span
-                    className={`text-xs ${
-                      theme === "dark" ? "text-white/90" : "text-slate-500"
+                    className={`text-xs font-medium ${
+                      theme === "dark" ? "text-white/95" : "text-slate-600"
                     }`}
                   >
                     Расходы
                   </span>
                 </div>
                 <p
-                  className={`text-base font-semibold ${
-                    theme === "dark" ? "text-white" : "text-slate-900"
+                  className={`text-base font-bold ${
+                    theme === "dark" ? "text-rose-300" : "text-rose-600"
                   }`}
                 >
                   {balanceVisible ? formatCurrency(expenses) : "••••••"}
@@ -2665,10 +2665,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
+                  className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border shadow-md ${
                     theme === "dark"
-                      ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
-                      : "bg-white/96 border-slate-200/80 hover:bg-white shadow-md"
+                      ? "bg-white/15 border-white/25 hover:bg-white/20"
+                      : "bg-white/98 border-white/90 hover:shadow-lg"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -2719,10 +2719,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
+                    className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border shadow-md ${
                       theme === "dark"
-                        ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
-                        : "bg-white/96 border-slate-200/80 hover:bg-white shadow-md"
+                        ? "bg-white/15 border-white/25 hover:bg-white/20"
+                        : "bg-white/98 border-white/90 hover:shadow-lg"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -2771,10 +2771,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-3xl p-4 border backdrop-blur-2xl shadow-lg ${
+                  className={`rounded-3xl p-4 border backdrop-blur-2xl shadow-md ${
                     theme === "dark"
-                      ? "bg-gray-900/40 border-gray-700/60"
-                      : "bg-white/96 border-slate-200/80 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+                      ? "bg-white/15 border-white/25"
+                      : "bg-white/98 border-white/90 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2892,10 +2892,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border backdrop-blur-lg shadow-lg ${
+                className={`rounded-2xl p-4 border backdrop-blur-2xl shadow-md ${
                   theme === "dark"
-                    ? "bg-gray-900/70 border-gray-700/70"
-                    : "bg-white/96 border-slate-200/80"
+                    ? "bg-white/15 border-white/25"
+                    : "bg-white/98 border-white/90"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2950,10 +2950,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
-                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
+                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
                   theme === "dark"
-                    ? "bg-gray-900/70 border-gray-700/70"
-                    : "bg-white/96 border-slate-200/80"
+                    ? "bg-white/15 border-white/25"
+                    : "bg-white/98 border-white/90"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -3176,11 +3176,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/96 border-slate-200/80"
+                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
+                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
                 }`}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                   История пополнений
                 </h3>
                 {transactions.filter((t) => t.type === "savings").length === 0 ? (
@@ -3372,17 +3372,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/96 border-slate-200/80"
+                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
+                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
                 }`}
               >
                 {linkedUsers.length > 1 && (
-                  <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                  <p className={`text-xs mb-1 ${theme === "dark" ? "text-white/80" : "text-gray-500"}`}>
                     Семейный аккаунт
                   </p>
                 )}
 
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                   Аккаунт
                 </h3>
 
@@ -3547,11 +3547,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
+                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
+                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
                 }`}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                   Настройки
                 </h3>
 
@@ -3634,11 +3634,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты */}
               <div
-                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
+                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
+                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
                 }`}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                   Бюджеты и лимиты
                 </h3>
                 <button
@@ -3666,8 +3666,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
+                className={`backdrop-blur-2xl rounded-2xl p-4 border shadow-md ${
+                  theme === "dark" ? "bg-white/15 border-white/25" : "bg-white/98 border-white/90"
                 }`}
               >
                 <button
@@ -3677,11 +3677,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }}
                   className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
                     theme === "dark" 
-                      ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
-                      : "bg-white border-slate-200 hover:bg-gray-50 shadow-sm"
+                      ? "bg-white/10 border-white/25 hover:bg-white/15" 
+                      : "bg-white/80 border-white/80 hover:bg-white/90 shadow-sm"
                   }`}
                 >
-                  <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                  <span className={`text-sm font-medium ${theme === "dark" ? "text-white/95" : "text-gray-700"}`}>
                     ⚙️ Системные настройки
                   </span>
                   {showSystemSettings ? (
@@ -3794,7 +3794,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl p-4 shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
+                : "bg-white border-white shadow-2xl translate-y-0"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -3945,7 +3945,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
+                : "bg-white border-white shadow-2xl translate-y-0"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -4283,7 +4283,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
+              theme === "dark" ? "bg-gray-900/80 border-gray-700/70" : "bg-white border-white shadow-2xl"
             }`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -4374,7 +4374,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[80vh] overflow-y-auto border backdrop-blur-2xl ${
               theme === "dark"
                 ? "bg-gray-900/70 border-gray-700/70"
-                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
+                : "bg-white border-white shadow-2xl"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -4646,7 +4646,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                : "bg-white border-white shadow-2xl"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -4839,7 +4839,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                : "bg-white border-white shadow-2xl"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}
@@ -4953,7 +4953,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                : "bg-white border-white shadow-2xl"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}
@@ -5231,7 +5231,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                : "bg-white border-white shadow-2xl"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -5400,7 +5400,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                : "bg-white border-white shadow-2xl"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
             onClick={(e) => e.stopPropagation()}
@@ -5629,7 +5629,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[90vh] overflow-y-auto border backdrop-blur-2xl ${
               theme === "dark"
                 ? "bg-gray-900/70 border-gray-700/70"
-                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
+                : "bg-white border-white shadow-2xl"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5777,7 +5777,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
           <div
             className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
+              theme === "dark" ? "bg-gray-900/80 border-gray-700/70" : "bg-white border-white shadow-2xl"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
