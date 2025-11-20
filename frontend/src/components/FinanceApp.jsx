@@ -3806,10 +3806,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showGoalModal && (
         <div
-          className={`fixed inset-0 backdrop-blur-md flex items-end justify-center z-50 p-4 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-50 p-4 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
           onClick={() => setShowGoalModal(false)}
           onTouchStart={handleSheetTouchStart}
@@ -3817,10 +3817,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           onTouchEnd={createSheetTouchEndHandler(() => setShowGoalModal(false))}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl p-4 shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md rounded-t-3xl p-4 shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
+                ? "bg-gray-900 border-gray-700/70 translate-y-0"
+                : "bg-white border-slate-200 translate-y-0"
             }`}
             style={{ transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -3959,10 +3959,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showSavingsSettingsModal && (
         <div
-          className={`fixed inset-0 backdrop-blur-md flex items-end justify-center z-[60] p-4 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-[60] p-4 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
           onClick={() => setShowSavingsSettingsModal(false)}
           onTouchStart={handleSheetTouchStart}
@@ -3970,10 +3970,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           onTouchEnd={createSheetTouchEndHandler(() => setShowSavingsSettingsModal(false))}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70 translate-y-0"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)] translate-y-0"
+                ? "bg-gray-900 border-gray-700/70 translate-y-0"
+                : "bg-white border-slate-200 translate-y-0"
             }`}
             style={{ transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -4309,10 +4309,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       )}
 
       {showSecondGoalModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl border ${
+              theme === "dark" ? "bg-gray-900 border-gray-700/70" : "bg-white border-slate-200"
             }`}
           >
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -4393,17 +4393,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showChart && (
         <div
-          className={`fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
         >
           <div
-            className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[80vh] overflow-y-auto border backdrop-blur-2xl ${
+            className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[80vh] overflow-y-auto border ${
               theme === "dark"
-                ? "bg-gray-900/70 border-gray-700/70"
-                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
+                ? "bg-gray-900 border-gray-700/70"
+                : "bg-white border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -4662,10 +4662,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showTransactionDetails && selectedTransaction && (
         <div 
-          className={`fixed inset-0 backdrop-blur-md flex items-end justify-center z-50 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
           onClick={() => setShowTransactionDetails(false)}
           onTouchStart={handleSheetTouchStart}
@@ -4673,10 +4673,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           onTouchEnd={createSheetTouchEndHandler(() => setShowTransactionDetails(false))}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                ? "bg-gray-900 border-gray-700/70"
+                : "bg-white border-slate-200"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -4856,10 +4856,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно списка бюджетов */}
       {showBudgetModal && !selectedBudgetCategory && (
         <div 
-          className={`fixed inset-0 backdrop-blur-md flex items-end justify-center z-50 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
           style={{ touchAction: "none" }}
           onClick={() => setShowBudgetModal(false)}
@@ -4868,10 +4868,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           onTouchEnd={createSheetTouchEndHandler(() => setShowBudgetModal(false))}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                ? "bg-gray-900 border-gray-700/70"
+                : "bg-white border-slate-200"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -4971,10 +4971,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно редактирования бюджета */}
       {showBudgetModal && selectedBudgetCategory && (
         <div
-          className={`fixed inset-0 backdrop-blur-md flex items-end justify-center z-50 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
           style={{ touchAction: "none" }}
           onClick={() => setShowBudgetModal(false)}
@@ -4983,10 +4983,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           onTouchEnd={createSheetTouchEndHandler(() => setShowBudgetModal(false))}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                ? "bg-gray-900 border-gray-700/70"
+                : "bg-white border-slate-200"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -5241,10 +5241,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {/* Модальное окно добавления долга */}
       {showAddDebtModal && (
         <div 
-          className={`fixed inset-0 backdrop-blur-md flex items-end justify-center z-50 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
           onClick={() => {
             setShowAddDebtModal(false)
@@ -5262,10 +5262,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           })}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                ? "bg-gray-900 border-gray-700/70"
+                : "bg-white border-slate-200"
             }`}
             style={{ 
               maxHeight: "85vh",
@@ -5421,10 +5421,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showAddModal && (
         <div
-          className={`fixed inset-0 backdrop-blur-md flex items-end justify-center z-50 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
           style={{ touchAction: "none" }}
           onClick={() => setShowAddModal(false)}
@@ -5433,10 +5433,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           onTouchEnd={createSheetTouchEndHandler(() => setShowAddModal(false))}
         >
           <div
-            className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
+            className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70"
-                : "bg-white/95 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.22)]"
+                ? "bg-gray-900 border-gray-700/70"
+                : "bg-white border-slate-200"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -5655,17 +5655,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showAuthModal && (
         <div
-          className={`fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
+          className={`fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black/30"
-              : "bg-white/20"
+              ? "bg-black"
+              : "bg-white"
           }`}
         >
           <div
-            className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[90vh] overflow-y-auto border backdrop-blur-2xl ${
+            className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[90vh] overflow-y-auto border ${
               theme === "dark"
-                ? "bg-gray-900/70 border-gray-700/70"
-                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
+                ? "bg-gray-900 border-gray-700/70"
+                : "bg-white border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -5810,10 +5810,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* Модальное окно смены пароля */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50 p-4">
           <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
+            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border ${
+              theme === "dark" ? "bg-gray-900 border-gray-700" : "bg-white border-slate-200"
             }`}
             style={{ WebkitOverflowScrolling: "touch" }}
           >
