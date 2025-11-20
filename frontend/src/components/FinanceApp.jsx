@@ -670,10 +670,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const handleSheetTouchStart = (e) => {
     if (!e.touches || e.touches.length === 0) return
-    const target = e.target
-    if (target && target.closest && !target.closest('[data-sheet-handle="true"]')) {
-      return
-    }
     sheetSwipeStartY.current = e.touches[0].clientY
   }
 
@@ -698,7 +694,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
     const endY = e.changedTouches[0].clientY
     const diffY = endY - sheetSwipeStartY.current
-    if (diffY > 80) {
+    if (diffY > 60) {
       sheetSwipeStartY.current = null
       setSheetDragOffset(0)
       closeFn()
