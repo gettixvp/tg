@@ -4909,7 +4909,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             : "bg-blue-50 border-blue-200"
                           : theme === "dark"
                             ? "bg-gray-700 border-gray-600 hover:bg-gray-650"
-                            : "bg-white/15 border-white/30 hover:bg-white/20 backdrop-blur-lg"
+                            : "bg-white/15 border-white/30 hover:bg-white/20"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -5935,7 +5935,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div className="flex items-center justify-between px-4 h-16">
             {/* Навигационная панель (уменьшена до 82% ширины) */}
             <div className="relative" style={{ width: '82%', height: '64px' }}>
-              <div className="absolute inset-0 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
+              <div className="absolute inset-0 bg-white/15 shadow-2xl rounded-full border border-white/20" />
               <div className="relative flex items-center justify-around h-full px-3">
                 {/* Главная */}
                 <button
@@ -6027,7 +6027,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 setShowNumKeyboard(false)
                 vibrate()
               }}
-              className="relative w-16 h-16 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20 flex items-center justify-center transition-all duration-200 cursor-pointer pointer-events-auto hover:transform hover:-translate-y-0.5 active:scale-90"
+              className="relative w-16 h-16 bg-white/15 shadow-2xl rounded-full border border-white/20 flex items-center justify-center transition-all duration-200 cursor-pointer pointer-events-auto hover:transform hover:-translate-y-0.5 active:scale-90"
             >
               <Plus className="w-6 h-6 text-white transition-all duration-200" />
             </button>
