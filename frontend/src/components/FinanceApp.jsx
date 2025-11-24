@@ -5945,7 +5945,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             paddingRight: safeAreaInset.right || 0,
           }}
         >
-          <div className="flex items-center justify-between px-4 h-16">
+          <div className="flex items-center justify-between px-4 h-14">
             {/* Навигационная панель (70% ширины как в примере) */}
             <div className="relative" style={{ width: '70%' }}>
               <div className="absolute inset-0 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
