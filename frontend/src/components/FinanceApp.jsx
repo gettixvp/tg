@@ -184,11 +184,11 @@ function NavButton({ active, onClick, icon, theme }) {
       className={`p-4 rounded-full transition-all transform active:scale-95 touch-none hover:scale-110 ${
         active
           ? theme === "dark"
-            ? "bg-gradient-to-br from-white/20 to-white/10 text-white border border-white/20 shadow-lg"
-            : "bg-gradient-to-br from-white/40 to-white/20 text-slate-800 border border-white/30 shadow-lg"
+            ? "bg-gray-700 text-white border border-gray-600 shadow-lg"
+            : "bg-gray-200 text-gray-800 border border-gray-300 shadow-lg"
           : theme === "dark"
-            ? "text-gray-400 hover:text-gray-200 hover:bg-white/10"
-            : "text-gray-600 hover:text-gray-900 hover:bg-white/20"
+            ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+            : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
       }`}
     >
       {icon}
