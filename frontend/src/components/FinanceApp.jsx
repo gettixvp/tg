@@ -181,7 +181,7 @@ function NavButton({ active, onClick, icon, theme }) {
   return (
     <button
       onClick={onClick}
-      className={`p-3 rounded-full transition-all transform active:scale-95 touch-none ${
+      className={`p-4 rounded-full transition-all transform active:scale-95 touch-none hover:scale-110 ${
         active
           ? theme === "dark"
             ? "bg-gradient-to-br from-white/20 to-white/10 text-white border border-white/20 shadow-lg"
@@ -2480,8 +2480,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       <div
         className={`w-full h-screen flex items-center justify-center ${
           theme === "dark"
-            ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-            : "bg-white"
+            ? "bg-gray-900"
+            : "bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50"
         }`}
       >
         <div className="text-center">
@@ -2499,7 +2499,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden relative ${
         theme === "dark"
           ? "bg-gray-900"
-          : "bg-gradient-to-br from-orange-400 via-blue-500 to-indigo-600"
+          : "bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -2507,12 +2507,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      {/* Анимированный фон для Glassmorphism */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-orange-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-orange-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
       {activeTab === "overview" && (
         <header
           className="relative flex-shrink-0 z-20 px-4 pb-4"
@@ -4334,7 +4328,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className={`w-full p-3 border rounded-xl transition-all text-sm ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:outline-none focus:ring-0"
-                    : "bg-white/15 border-white/30 text-gray-900 focus:outline-none focus:ring-0 focus:border-transparent backdrop-blur-lg"
+                    : "bg-white/15 border-white/30 text-gray-900 focus:outline-none focus:ring-0 focus:border-transparent"
                 }`}
                 placeholder="Например: Отпуск"
               />
@@ -5939,10 +5933,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           <div className="flex items-center justify-between px-4 h-16">
-            {/* Навигационная панель (увеличена до 75% ширины) */}
-            <div className="relative" style={{ width: '75%', height: '64px' }}>
+            {/* Навигационная панель (увеличена до 85% ширины) */}
+            <div className="relative" style={{ width: '85%', height: '64px' }}>
               <div className="absolute inset-0 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
-              <div className="relative flex items-center justify-around h-full px-2">
+              <div className="relative flex items-center justify-around h-full px-3">
                 {/* Главная */}
                 <button
                   onClick={() => {
@@ -5950,7 +5944,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("overview")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
+                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "overview"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -5970,7 +5964,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("history")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
+                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "history"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -5990,7 +5984,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
+                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "savings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -6010,7 +6004,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("settings")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
+                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "settings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
