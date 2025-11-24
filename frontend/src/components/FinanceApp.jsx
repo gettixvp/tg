@@ -35,6 +35,7 @@ import {
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
+import '../styles/modern-theme.css'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement)
 
@@ -499,11 +500,16 @@ function FinanceApp() {
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col overflow-hidden gradient-bg`}
+      className={`fixed inset-0 flex flex-col overflow-hidden ${
+        theme === 'dark' ? 'gradient-bg' : 'modern-theme'
+      }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
         paddingLeft: safeAreaInset.left || 0,
         paddingRight: safeAreaInset.right || 0,
+        background: theme === 'dark' 
+          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+          : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
       }}
     >
       {/* Основной контент - используем табы */}
@@ -730,20 +736,27 @@ function FinanceApp() {
         )}
       </div>
       
-      {/* Навигация - оригинальный дизайн */}
+      {/* Навигация - современный дизайн */}
       <div
         className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
         style={{
-          paddingBottom: Math.max(safeAreaInset.bottom, 8),
-          paddingLeft: safeAreaInset.left || 0,
-          paddingRight: safeAreaInset.right || 0,
+          paddingBottom: Math.max(safeAreaInset.bottom, 16),
+          paddingLeft: safeAreaInset.left || 16,
+          paddingRight: safeAreaInset.right || 16,
         }}
       >
-        <div className="flex items-center justify-center p-2">
+        <div className="flex items-center justify-center">
           <div
-            className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-              theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
+            className={`w-full max-w-md nav-modern flex items-center justify-around pointer-events-auto px-6 py-4 ${
+              theme === "dark" 
+                ? "bg-gray-800/90 border-gray-700/50" 
+                : "bg-white/95 border-gray-200/60"
             }`}
+            style={{
+              boxShadow: theme === 'dark' 
+                ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                : '0 25px 50px -12px rgba(0, 0, 0, 0.15)'
+            }}
           >
             <NavButton
               active={activeTab === "overview"}
@@ -751,7 +764,7 @@ function FinanceApp() {
                 setActiveTab("overview")
                 vibrate()
               }}
-              icon={<Wallet className="h-4 w-7" />}
+              icon={<Wallet className="h-5 w-5" />}
               theme={theme}
             />
             <NavButton
@@ -760,7 +773,7 @@ function FinanceApp() {
                 setActiveTab("history")
                 vibrate()
               }}
-              icon={<History className="h-4 w-7" />}
+              icon={<History className="h-5 w-5" />}
               theme={theme}
             />
             <button
@@ -769,9 +782,12 @@ function FinanceApp() {
                 setShowNumKeyboard(false)
                 vibrate()
               }}
-              className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95"
+              className={`p-3 rounded-full btn-gradient shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95`}
+              style={{
+                boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.4)'
+              }}
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5 text-white" />
             </button>
             <NavButton
               active={activeTab === "savings"}
@@ -779,7 +795,7 @@ function FinanceApp() {
                 setActiveTab("savings")
                 vibrate()
               }}
-              icon={<PiggyBank className="h-4 w-7" />}
+              icon={<PiggyBank className="h-5 w-5" />}
               theme={theme}
             />
             <NavButton
@@ -788,7 +804,7 @@ function FinanceApp() {
                 setActiveTab("settings")
                 vibrate()
               }}
-              icon={<Settings className="h-4 w-7" />}
+              icon={<Settings className="h-5 w-5" />}
               theme={theme}
             />
           </div>

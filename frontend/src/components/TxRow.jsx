@@ -102,10 +102,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all ${
+          className={`relative p-4 cursor-pointer rounded-2xl border backdrop-blur-xl transition-all modern-card transaction-item ${
             theme === "dark"
-              ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
-              : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
+              ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
+              : "bg-white/96 border-slate-200/80 hover:bg-white shadow-md"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -118,9 +118,9 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           <div className="flex items-start gap-2.5">
             {/* Иконка категории */}
             <div
-              className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
+              className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
             >
-              <span className="text-xl">{categoryInfo.icon}</span>
+              <span className="text-2xl">{categoryInfo.icon}</span>
             </div>
 
             {/* Основная информация */}
@@ -141,7 +141,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                 
                 {/* Сумма */}
                 <p
-                  className={`font-bold text-base whitespace-nowrap ${
+                  className={`font-bold text-lg whitespace-nowrap ${
                     tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"
                   }`}
                 >
@@ -207,7 +207,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               {/* Текст комментария */}
               <div className="flex-1 min-w-0">
                 <div
-                  className={`inline-block px-2.5 py-1.5 rounded-xl ${
+                  className={`inline-block px-3 py-2 rounded-xl ${
                     theme === "dark"
                       ? "bg-gray-700/80 text-gray-100"
                       : "bg-gray-100 text-gray-900"
