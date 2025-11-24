@@ -181,7 +181,7 @@ function NavButton({ active, onClick, icon, theme }) {
   return (
     <button
       onClick={onClick}
-      className={`p-3 rounded-full transition-all transform active:scale-95 touch-none backdrop-blur-xl ${
+      className={`p-3 rounded-full transition-all transform active:scale-95 touch-none backdrop-blur-sm ${
         active
           ? theme === "dark"
             ? "bg-gradient-to-br from-white/20 to-white/10 text-white border border-white/20 shadow-lg"
@@ -252,7 +252,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`p-3 rounded-2xl relative z-10 backdrop-blur-xl ${
+        className={`p-3 rounded-2xl relative z-10 backdrop-blur-sm ${
           String(comment.telegram_id) === String(tgUserId)
             ? theme === "dark"
               ? "bg-blue-600/80 text-white ml-8 border border-blue-400/60 shadow-md"
@@ -374,7 +374,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all ${
+          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-sm transition-all ${
             theme === "dark"
               ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
               : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
@@ -630,7 +630,7 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         onTouchStart={!isCurrentUser ? handleTouchStart : undefined}
         onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
         onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
-        className={`relative flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-2xl transition-all duration-300 ${
+        className={`relative flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-sm transition-all duration-300 ${
           theme === "dark"
             ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
             : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
@@ -2507,7 +2507,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {/* Карточка баланса в стиле Glassmorphism */}
           <div
-            className={`relative rounded-3xl p-6 border backdrop-blur-3xl shadow-2xl transition-all hover:shadow-3xl ${
+            className={`relative rounded-3xl p-6 border backdrop-blur-sm shadow-2xl transition-all hover:shadow-3xl ${
               theme === "dark"
                 ? "bg-white/5 border-white/10 shadow-black/20"
                 : "bg-white/20 border-white/30 shadow-white/10"
@@ -2520,7 +2520,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3 flex-1">
                   <div
-                    className={`p-3 rounded-2xl backdrop-blur-xl transition-all hover:scale-105 ${
+                    className={`p-3 rounded-2xl backdrop-blur-sm transition-all hover:scale-105 ${
                       theme === "dark" 
                         ? "bg-gradient-to-br from-white/10 to-white/5 border border-white/10" 
                         : "bg-gradient-to-br from-white/30 to-white/10 border border-white/20"
@@ -2551,7 +2551,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
                 <button
                   onClick={() => setBalanceVisible(!balanceVisible)}
-                  className={`p-3 rounded-2xl border transition-all touch-none backdrop-blur-xl hover:scale-105 ${
+                  className={`p-3 rounded-2xl border transition-all touch-none backdrop-blur-sm hover:scale-105 ${
                     theme === "dark"
                       ? "bg-white/10 border-white/20 hover:bg-white/20"
                       : "bg-white/30 border-white/40 hover:bg-white/40"
@@ -2575,7 +2575,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className={`rounded-2xl p-4 border backdrop-blur-xl transition-all hover:scale-105 ${
+                  className={`rounded-2xl p-4 border backdrop-blur-sm transition-all hover:scale-105 ${
                     theme === "dark"
                       ? "bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-400/20"
                       : "bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border-emerald-200/50"
@@ -2608,7 +2608,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </p>
                 </div>
                 <div
-                  className={`rounded-2xl p-4 border backdrop-blur-xl transition-all hover:scale-105 ${
+                  className={`rounded-2xl p-4 border backdrop-blur-sm transition-all hover:scale-105 ${
                     theme === "dark"
                       ? "bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-400/20"
                       : "bg-gradient-to-br from-rose-50/80 to-rose-100/40 border-rose-200/50"
@@ -2676,7 +2676,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border hover:shadow-2xl ${
+                  className={`relative rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-sm border hover:shadow-2xl ${
                     theme === "dark"
                       ? "bg-white/5 border-white/10 hover:bg-white/10"
                       : "bg-white/20 border-white/30 hover:bg-white/30"
@@ -2687,7 +2687,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   
                   <div className="relative z-10 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
-                      <div className={`p-2 rounded-xl backdrop-blur-xl transition-all ${
+                      <div className={`p-2 rounded-xl backdrop-blur-sm transition-all ${
                         theme === "dark" 
                           ? "bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-400/20" 
                           : "bg-gradient-to-br from-blue-200/50 to-blue-300/30 border border-blue-300/40"
@@ -2743,7 +2743,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border hover:shadow-2xl ${
+                    className={`relative rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-sm border hover:shadow-2xl ${
                       theme === "dark"
                         ? "bg-white/5 border-white/10 hover:bg-white/10"
                         : "bg-white/20 border-white/30 hover:bg-white/30"
@@ -2754,7 +2754,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     
                     <div className="relative z-10 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        <div className={`p-2 rounded-xl backdrop-blur-xl transition-all ${
+                        <div className={`p-2 rounded-xl backdrop-blur-sm transition-all ${
                           theme === "dark" 
                             ? "bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-400/20" 
                             : "bg-gradient-to-br from-purple-200/50 to-purple-300/30 border border-purple-300/40"
@@ -2808,11 +2808,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты в стиле Glassmorphism */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-3xl p-5 border backdrop-blur-2xl shadow-2xl transition-all hover:shadow-3xl ${
-                    theme === "dark"
-                      ? "bg-white/5 border-white/10"
-                      : "bg-white/20 border-white/30"
-                  }`}
+                  className={`relative rounded-3xl p-5 border backdrop-blur-sm shadow-2xl transition-all hover:shadow-3xl ${
+                theme === "dark"
+                  ? "bg-white/5 border-white/10"
+                  : "bg-white/20 border-white/30"
+              }`}
                 >
                   {/* Внутренний градиент для глубины */}
                   <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-cyan-400/5 to-transparent pointer-events-none" />
@@ -2843,7 +2843,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       return (
                         <div
                           key={category}
-                          className={`p-3 rounded-xl border transition-all backdrop-blur-xl shadow-sm ${
+                          className={`p-3 rounded-xl border transition-all backdrop-blur-sm shadow-sm ${
                             status.isOverBudget
                               ? theme === "dark"
                                 ? "bg-red-900/30 border-red-700/60"
