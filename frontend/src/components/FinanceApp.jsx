@@ -183,12 +183,10 @@ function NavButton({ active, onClick, icon, theme }) {
       onClick={onClick}
       className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
         active
-          ? theme === "dark"
-            ? "bg-gray-700/80 text-blue-400 backdrop-blur-md"
-            : "bg-white/50 text-blue-600 backdrop-blur-sm shadow-md"
+          ? "glass-button text-blue-600 dark:text-blue-400 hover:scale-110"
           : theme === "dark"
-            ? "text-gray-400 hover:text-gray-300"
-            : "text-gray-600 hover:text-gray-900"
+            ? "text-gray-400 hover:text-gray-300 glass-button hover:bg-white/20"
+            : "text-gray-600 hover:text-gray-900 glass-button hover:bg-white/30"
       }`}
     >
       {icon}
@@ -374,10 +372,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all ${
+          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all glass-card hover:shadow-xl hover:scale-[1.02] ${
             theme === "dark"
-              ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
-              : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
+              ? "glass-morphism-dark"
+              : "glass-morphism"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -2520,15 +2518,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   if (!isReady || isLoading) {
     return (
       <div
-        className={`w-full h-screen flex items-center justify-center ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-            : "bg-gradient-to-br from-sky-50 via-indigo-50 to-rose-50"
-        }`}
+        className={`w-full h-screen flex items-center justify-center gradient-bg-animated`}
       >
         <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
-          <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>
+          <div className="w-12 h-12 rounded-full border-4 border-white/30 border-t-blue-600 animate-spin mx-auto mb-4 glass-button"></div>
+          <p className="text-white/80 font-medium">
             {!isReady ? "Инициализация..." : "Загрузка данных..."}
           </p>
         </div>
@@ -2538,11 +2532,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-          : "bg-gradient-to-br from-sky-50 via-indigo-50 to-rose-50"
-      }`}
+      className={`fixed inset-0 flex flex-col overflow-hidden gradient-bg-animated`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
         paddingLeft: safeAreaInset.left || 0,
@@ -2567,18 +2557,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
           />
           <div
-            className={`relative overflow-hidden rounded-3xl p-4 z-10 border backdrop-blur-2xl shadow-lg transition-all ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-500 border-white/10 shadow-blue-900/40"
-                : "bg-white/96 border-slate-200/80 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
-            }`}
+            className={`relative overflow-hidden rounded-3xl p-4 z-10 glass-morphism transition-all hover:shadow-2xl`}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5 flex-1">
                 <div
-                  className={`p-2 rounded-xl backdrop-blur-md ${
-                    theme === "dark" ? "bg-white/15" : "bg-indigo-50"
-                  }`}
+                  className={`p-2 rounded-xl glass-button`}
                 >
                   <CreditCard
                     className={`w-5 h-5 ${
@@ -2605,11 +2589,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
               <button
                 onClick={() => setBalanceVisible(!balanceVisible)}
-                className={`p-2 rounded-full border transition-all touch-none backdrop-blur-md ${
-                  theme === "dark"
-                    ? "bg-white/15 border-white/20 hover:bg-white/25"
-                    : "bg-white/80 border-slate-200 hover:bg-slate-50 shadow-sm"
-                }`}
+                className={`p-2 rounded-full transition-all touch-none glass-button hover:scale-110`}
               >
                 {balanceVisible ? (
                   <Eye
@@ -5455,8 +5435,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div
           className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
             theme === "dark"
-              ? "bg-black"
-              : "bg-white"
+              ? "bg-black/60 backdrop-blur-sm"
+              : "bg-black/30 backdrop-blur-sm"
           }`}
           style={{ touchAction: "none" }}
           onClick={() => setShowAddModal(false)}
@@ -5467,8 +5447,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900/80 border-gray-700/70 backdrop-blur-lg"
-                : "bg-white/90 border-slate-200/80 backdrop-blur-md"
+                ? "glass-modal-dark"
+                : "glass-modal"
             }`}
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
@@ -5976,9 +5956,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <div
-              className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-                theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
-              }`}
+              className={`w-full max-w-md glass-strong rounded-full p-1.5 flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5`}
             >
               <NavButton
                 active={activeTab === "overview"}
@@ -6004,7 +5982,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setShowNumKeyboard(false)
                   vibrate()
                 }}
-                className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
+                className="p-2.5 rounded-full gradient-primary text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none glass-button"
               >
                 <Plus className="w-4 h-4" />
               </button>
