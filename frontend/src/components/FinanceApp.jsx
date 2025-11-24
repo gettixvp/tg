@@ -3141,7 +3141,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Прогресс</span>
                     <span className="text-white font-bold">{savingsPct}%</span>
                   </div>
-                  <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                  <div className="w-full glass-button rounded-full h-2 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-500 shadow-lg"
                       style={{ width: `${savingsPct}%` }}
@@ -3165,7 +3165,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           {Math.round((secondGoalSavings / secondGoalAmount) * 100)}%
                         </span>
                       </div>
-                      <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div className="w-full glass-button rounded-full h-2 overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500 shadow-lg"
                           style={{ width: `${Math.min((secondGoalSavings / secondGoalAmount) * 100, 100)}%` }}
@@ -3187,7 +3187,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setShowGoalModal(true)
                       vibrate()
                     }}
-                    className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-all text-sm touch-none"
+                    className="flex-1 py-2 glass-button hover:scale-105 rounded-xl font-medium transition-all text-sm touch-none"
                   >
                     Изменить цель
                   </button>
@@ -3198,10 +3198,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setShowNumKeyboard(false)
                       vibrate()
                     }}
-                    className={`flex items-center gap-1 px-4 py-2 rounded-xl font-medium transition-all shadow-lg text-sm touch-none ${
+                    className={`flex items-center gap-1 px-4 py-2 rounded-xl font-medium transition-all shadow-lg text-sm touch-none glass-button hover:scale-105 ${
                       theme === "dark"
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-white/15 text-blue-600 hover:bg-white/20 backdrop-blur-lg"
+                        ? "text-white hover:bg-white/25"
+                        : "text-blue-600 hover:bg-white/30"
                     }`}
                   >
                     <Plus className="w-4 h-4" />
@@ -3211,9 +3211,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/96 border-slate-200/80"
-                }`}
+                className={`glass-card rounded-2xl p-4 border shadow-lg hover:shadow-xl transition-all`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   История пополнений
@@ -3982,13 +3980,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           <div
             className={`w-full max-w-md max-h-[90vh] overflow-hidden border transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
-                ? "bg-gray-900 border-gray-700/70 translate-y-0"
-                : "bg-white border-slate-200 translate-y-0"
+                ? "glass-modal-dark"
+                : "glass-modal"
             }`}
             style={{ transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-          <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+          <div data-sheet-handle="true" className="w-10 h-1.5 glass-button rounded-full mx-auto mt-2 mb-3 opacity-80" />
           <div className="px-4 pb-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
@@ -4698,7 +4696,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 glass-button rounded-full mx-auto mt-2 mb-3 opacity-80" />
             <div
               ref={detailsScrollRef}
               className="overflow-y-auto flex-1 p-4"
@@ -4888,7 +4886,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 glass-button rounded-full mx-auto mt-2 mb-3 opacity-80" />
             {/* Контент - прокручиваемый */}
             <div 
               className="p-4 overflow-y-auto flex-1"
@@ -5003,7 +5001,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 glass-button rounded-full mx-auto mt-2 mb-3 opacity-80" />
             <div
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
@@ -5287,7 +5285,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 glass-button rounded-full mx-auto mt-2 mb-3 opacity-80" />
             {/* Контент - прокручиваемый */}
             <div 
               className="p-6 overflow-y-auto flex-1"
@@ -5453,7 +5451,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div data-sheet-handle="true" className="w-10 h-1.5 bg-gray-400/70 rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div data-sheet-handle="true" className="w-10 h-1.5 glass-button rounded-full mx-auto mt-2 mb-3 opacity-80" />
             <div
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
