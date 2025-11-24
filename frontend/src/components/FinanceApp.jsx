@@ -1482,6 +1482,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       created_by_name: displayName || null,
       telegram_photo_url: tgPhotoUrl || null,
       savings_goal: transactionType === 'savings' ? selectedSavingsGoal : null,
+      walletId: selectedTransactionWallet, // Добавляем привязку к кошельку
     }
 
     setTransactions((p) => [newTx, ...p])
@@ -2549,6 +2550,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const currentWallet = wallets.find(w => w.id === currentWalletId) || wallets[0]
+  
+  // Фильтрация транзакций по текущему кошельку
+  const filteredTransactions = useMemo(() => {
+    if (currentWalletId === 'main') {
+      // Основной кошелек показывает все транзакции
+      return transactions
+    } else {
+      // Другие кошельки показывают только свои транзакции
+      return transactions.filter(tx => tx.walletId === currentWalletId)
+    }
+  }, [transactions, currentWalletId])
 
   return (
     <div
@@ -2999,7 +3011,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Последние операции
+                    Последние операции {currentWalletId !== 'main' && `(${currentWallet.name})`}
                   </h3>
                   <button
                     onClick={() => setActiveTab("history")}
@@ -3008,7 +3020,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     Все →
                   </button>
                 </div>
-                {transactions.length === 0 ? (
+                {filteredTransactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -3018,15 +3030,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
                     </div>
                     <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                      Пока нет операций
+                      {currentWalletId !== 'main' ? `Нет операций в ${currentWallet.name}` : 'Пока нет операций'}
                     </p>
                     <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                      Добавьте первую транзакцию
+                      {currentWalletId !== 'main' ? 'Добавьте первую операцию в этот кошелек' : 'Добавьте первую транзакцию'}
                     </p>
                   </div>
                 ) : (
                   <div>
-                    {transactions.slice(0, 4).map((tx) => (
+                    {filteredTransactions.slice(0, 4).map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -3057,12 +3069,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    История операций
+                    История операций {currentWalletId !== 'main' && `(${currentWallet.name})`}
                   </h3>
                   <div className="flex items-center gap-2">
-                    {/* Кнопка экспорта в PDF */}
+                    {/* Кнопка выбора кошелька */}
                     <button
-                      onClick={exportToPDF}
+                      onClick={() => setSelectedTransactionWallet(
+                        wallets[(wallets.findIndex(w => w.id === selectedTransactionWallet) + 1) % wallets.length].id
+                      )}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg glass-button-matte transition-all`}
+                    >
+                      <span className="text-lg">{wallets.find(w => w.id === selectedTransactionWallet)?.icon}</span>
+                      <span className={`text-sm ${
+                        theme === "dark" ? "text-white" : "text-gray-700"
+                      }`}>
+                        {wallets.find(w => w.id === selectedTransactionWallet)?.name}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 ${
+                        theme === "dark" ? "text-white" : "text-gray-700"
+                      }`} />
+                    </button>
+                    {/* Кнопка экспорта */}
+                    <button
+                      onClick={() => exportToPDF()}
                       className={`p-2 rounded-lg transition-colors touch-none ${
                         theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
                       }`}
@@ -3085,7 +3114,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </button>
                   </div>
                 </div>
-                {transactions.length === 0 ? (
+                {filteredTransactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
                       className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
@@ -3094,11 +3123,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     >
                       <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
                     </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                      {currentWalletId !== 'main' ? `Нет операций в ${currentWallet.name}` : 'Нет операций'}
+                    </p>
                   </div>
                 ) : (
                   <div>
-                    {transactions.map((tx) => (
+                    {filteredTransactions.map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
@@ -5639,19 +5670,40 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                     <div className="flex items-center gap-2">
                       {!wallet.isMain && (
-                        <button
-                          onClick={() => {
-                            setEditingWallet(wallet)
-                            setWalletName(wallet.name)
-                            setWalletIcon(wallet.icon)
-                            setWalletColor(wallet.color)
-                          }}
-                          className={`p-2 rounded-lg ${
-                            theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          <Settings className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditingWallet(wallet)
+                              setWalletName(wallet.name)
+                              setWalletIcon(wallet.icon)
+                              setWalletColor(wallet.color)
+                            }}
+                            className={`p-2 rounded-lg ${
+                              theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            <Settings className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Удалить кошелек "${wallet.name}"? Все операции в этом кошельке будут удалены.`)) {
+                                setWallets(prev => prev.filter(w => w.id !== wallet.id))
+                                // Удаляем транзакции этого кошелька
+                                setTransactions(prev => prev.filter(tx => tx.walletId !== wallet.id))
+                                // Переключаемся на основной кошелек, если удалили текущий
+                                if (currentWalletId === wallet.id) {
+                                  setCurrentWalletId('main')
+                                }
+                                vibrateSuccess()
+                              }
+                            }}
+                            className={`p-2 rounded-lg ${
+                              theme === "dark" ? "bg-red-700 text-red-300" : "bg-red-100 text-red-600"
+                            }`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
