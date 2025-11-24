@@ -1146,6 +1146,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  const formatNumberWithoutCurrency = (value) => {
+    const num = Number(value)
+    if (!isFinite(num)) return "0"
+    try {
+      return new Intl.NumberFormat("ru-RU", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(num)
+    } catch {
+      return Math.round(num).toString()
+    }
+  }
+
   const formatDate = (dateString) => {
     if (!dateString) return ""
     const d = new Date(dateString)
@@ -2505,9 +2518,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           className="relative flex-shrink-0 z-20 px-4 pb-4"
           style={{ paddingTop: isFullscreen ? '48px' : '16px' }}
         >
-          {/* Карточка баланса */}
+          {/* Карточка баланса в стиле Glassmorphism */}
           <div
-            className={`relative rounded-2xl p-5 border shadow-lg transition-all hover:shadow-xl ${
+            className={`relative rounded-2xl p-4 border backdrop-blur-sm shadow-xl transition-all hover:shadow-2xl ${
               theme === "dark"
                 ? "bg-white/5 border-white/10 shadow-black/20"
                 : "bg-white/20 border-white/30 shadow-white/10"
@@ -2517,41 +2530,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
             
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5 flex-1">
                   <div
-                    className={`p-3 rounded-2xl backdrop-blur-sm transition-all hover:scale-105 ${
+                    className={`p-2 rounded-xl backdrop-blur-sm transition-all hover:scale-105 ${
                       theme === "dark" 
                         ? "bg-gradient-to-br from-white/10 to-white/5 border border-white/10" 
                         : "bg-gradient-to-br from-white/30 to-white/10 border border-white/20"
                     }`}
                   >
                     <CreditCard
-                      className={`w-6 h-6 ${
+                      className={`w-5 h-5 ${
                         theme === "dark" ? "text-white/90" : "text-slate-700"
                       }`}
                     />
                   </div>
                   <div>
                     <p
-                      className={`text-sm font-medium mb-1 ${
+                      className={`text-xs font-medium mb-0.5 ${
                         theme === "dark" ? "text-white/70" : "text-slate-600"
                       }`}
                     >
                       Общий баланс
                     </p>
                     <p
-                      className={`text-3xl font-bold tracking-tight ${
+                      className={`text-2xl font-bold tracking-tight ${
                         theme === "dark" ? "text-white" : "text-slate-900"
                       }`}
                     >
-                      {balanceVisible ? formatCurrency(balance) : "••••••"}
+                      {balanceVisible ? formatNumberWithoutCurrency(balance) : "••••••"}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setBalanceVisible(!balanceVisible)}
-                  className={`p-3 rounded-2xl border transition-all touch-none backdrop-blur-sm hover:scale-105 ${
+                  className={`p-2 rounded-xl border transition-all touch-none backdrop-blur-sm hover:scale-105 ${
                     theme === "dark"
                       ? "bg-white/10 border-white/20 hover:bg-white/20"
                       : "bg-white/30 border-white/40 hover:bg-white/40"
@@ -2575,69 +2588,69 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className={`rounded-2xl p-4 border backdrop-blur-sm transition-all hover:scale-105 ${
+                  className={`rounded-2xl p-3 border backdrop-blur-sm transition-all hover:scale-105 ${
                     theme === "dark"
-                      ? "bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-400/20"
-                      : "bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border-emerald-200/50"
+                      ? "bg-gray-800/40 border-gray-700/60"
+                      : "bg-white/80 border-gray-200/80"
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-1">
                     <div className={`p-1.5 rounded-lg ${
-                      theme === "dark" ? "bg-emerald-500/20" : "bg-emerald-200/50"
+                      theme === "dark" ? "bg-gray-700/50" : "bg-gray-100/80"
                     }`}>
                       <TrendingUp
                         className={`w-4 h-4 ${
-                          theme === "dark" ? "text-emerald-300" : "text-emerald-600"
+                          theme === "dark" ? "text-gray-300" : "text-gray-600"
                         }`}
                       />
                     </div>
                     <span
                       className={`text-sm font-medium ${
-                        theme === "dark" ? "text-emerald-300/90" : "text-emerald-700"
+                        theme === "dark" ? "text-gray-300/90" : "text-gray-700"
                       }`}
                     >
                       Доходы
                     </span>
                   </div>
                   <p
-                    className={`text-xl font-bold ${
-                      theme === "dark" ? "text-white" : "text-emerald-800"
+                    className={`text-lg font-bold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    {balanceVisible ? formatCurrency(income) : "••••••"}
+                    {balanceVisible ? formatNumberWithoutCurrency(income) : "••••••"}
                   </p>
                 </div>
                 <div
-                  className={`rounded-2xl p-4 border backdrop-blur-sm transition-all hover:scale-105 ${
+                  className={`rounded-2xl p-3 border backdrop-blur-sm transition-all hover:scale-105 ${
                     theme === "dark"
-                      ? "bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-400/20"
-                      : "bg-gradient-to-br from-rose-50/80 to-rose-100/40 border-rose-200/50"
+                      ? "bg-gray-800/40 border-gray-700/60"
+                      : "bg-white/80 border-gray-200/80"
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-1">
                     <div className={`p-1.5 rounded-lg ${
-                      theme === "dark" ? "bg-rose-500/20" : "bg-rose-200/50"
+                      theme === "dark" ? "bg-gray-700/50" : "bg-gray-100/80"
                     }`}>
                       <TrendingDown
                         className={`w-4 h-4 ${
-                          theme === "dark" ? "text-rose-300" : "text-rose-600"
+                          theme === "dark" ? "text-gray-300" : "text-gray-600"
                         }`}
                       />
                     </div>
                     <span
                       className={`text-sm font-medium ${
-                        theme === "dark" ? "text-rose-300/90" : "text-rose-700"
+                        theme === "dark" ? "text-gray-300/90" : "text-gray-700"
                       }`}
                     >
                       Расходы
                     </span>
                   </div>
                   <p
-                    className={`text-xl font-bold ${
-                      theme === "dark" ? "text-white" : "text-rose-800"
+                    className={`text-lg font-bold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
                     }`}
                   >
-                    {balanceVisible ? formatCurrency(expenses) : "••••••"}
+                    {balanceVisible ? formatNumberWithoutCurrency(expenses) : "••••••"}
                   </p>
                 </div>
               </div>
