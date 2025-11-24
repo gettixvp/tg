@@ -2505,16 +2505,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           className="relative flex-shrink-0 z-20 px-4 pb-4"
           style={{ paddingTop: isFullscreen ? '48px' : '16px' }}
         >
-          {/* Карточка баланса в стиле Glassmorphism */}
+          {/* Карточка баланса */}
           <div
-            className={`relative rounded-3xl p-6 border backdrop-blur-sm shadow-2xl transition-all hover:shadow-3xl ${
+            className={`relative rounded-2xl p-5 border shadow-lg transition-all hover:shadow-xl ${
               theme === "dark"
                 ? "bg-white/5 border-white/10 shadow-black/20"
                 : "bg-white/20 border-white/30 shadow-white/10"
             }`}
           >
             {/* Внутренний градиент для глубины */}
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
             
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
