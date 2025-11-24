@@ -2486,7 +2486,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       className={`fixed inset-0 flex flex-col overflow-hidden relative ${
         theme === "dark"
           ? "bg-gray-900"
-          : "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100"
+          : "bg-gradient-to-br from-orange-400 via-blue-500 to-indigo-600"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -2496,9 +2496,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     >
       {/* Анимированный фон для Glassmorphism */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-cyan-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-indigo-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-orange-400/20 to-blue-400/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-orange-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
       {activeTab === "overview" && (
         <header
@@ -5940,39 +5940,33 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div
           className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
-            paddingBottom: Math.max(safeAreaInset.bottom, 12),
+            paddingBottom: Math.max(safeAreaInset.bottom, 8),
             paddingLeft: safeAreaInset.left || 0,
             paddingRight: safeAreaInset.right || 0,
           }}
         >
-          <div className="flex items-center justify-center px-4">
-            {/* Основная навигационная панель */}
-            <div className="relative">
-              {/* Фоновая панель в стиле Glassmorphism */}
-              <div className="absolute inset-0 w-96 h-20 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
-              
-              {/* Навигационные иконки */}
-              <div className="relative flex items-center justify-between h-20 px-8">
+          <div className="flex items-center justify-between px-4">
+            {/* Основная навигационная панель (овал) */}
+            <div className="relative flex-1">
+              <div className="absolute inset-0 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
+              <div className="relative flex items-center justify-around h-16 px-4">
                 {/* Главная */}
                 <button
                   onClick={() => {
                     setActiveTab("overview")
                     vibrate()
                   }}
-                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                  className={`group p-2.5 rounded-full transition-all duration-200 ${
                     activeTab === "overview"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
                   }`}
                 >
-                  <Wallet className={`w-6 h-6 transition-all duration-200 ${
+                  <Wallet className={`w-5 h-5 transition-all duration-200 ${
                     activeTab === "overview" 
                       ? "text-white scale-110" 
                       : "text-white/80 group-hover:text-white group-hover:scale-110"
                   }`} />
-                  {activeTab === "overview" && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                  )}
                 </button>
 
                 {/* История */}
@@ -5981,20 +5975,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("history")
                     vibrate()
                   }}
-                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                  className={`group p-2.5 rounded-full transition-all duration-200 ${
                     activeTab === "history"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
                   }`}
                 >
-                  <History className={`w-6 h-6 transition-all duration-200 ${
+                  <History className={`w-5 h-5 transition-all duration-200 ${
                     activeTab === "history" 
                       ? "text-white scale-110" 
                       : "text-white/80 group-hover:text-white group-hover:scale-110"
                   }`} />
-                  {activeTab === "history" && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-                  )}
                 </button>
 
                 {/* Копилка */}
@@ -6003,34 +5994,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                  className={`group p-2.5 rounded-full transition-all duration-200 ${
                     activeTab === "savings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
                   }`}
                 >
-                  <PiggyBank className={`w-6 h-6 transition-all duration-200 ${
+                  <PiggyBank className={`w-5 h-5 transition-all duration-200 ${
                     activeTab === "savings" 
                       ? "text-white scale-110" 
                       : "text-white/80 group-hover:text-white group-hover:scale-110"
                   }`} />
-                  {activeTab === "savings" && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-pink-400 rounded-full animate-pulse" />
-                  )}
-                </button>
-
-                {/* Кнопка добавления транзакции */}
-                <button
-                  onClick={() => {
-                    setShowAddModal(true)
-                    setShowNumKeyboard(false)
-                    vibrate()
-                  }}
-                  className="relative p-4 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-110 active:scale-95 border border-white/30"
-                >
-                  <Plus className="w-6 h-6 text-white" />
-                  {/* Анимированный эффект свечения */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/50 to-purple-400/50 animate-pulse" />
                 </button>
 
                 {/* Настройки */}
@@ -6039,27 +6013,37 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("settings")
                     vibrate()
                   }}
-                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                  className={`group p-2.5 rounded-full transition-all duration-200 ${
                     activeTab === "settings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
                   }`}
                 >
-                  <Settings className={`w-6 h-6 transition-all duration-200 ${
+                  <Settings className={`w-5 h-5 transition-all duration-200 ${
                     activeTab === "settings" 
                       ? "text-white scale-110" 
                       : "text-white/80 group-hover:text-white group-hover:scale-110"
                   }`} />
-                  {activeTab === "settings" && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
-                  )}
                 </button>
               </div>
-
-              {/* Декоративные элементы фона */}
-              <div className="absolute -top-10 -left-10 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-2xl animate-pulse" />
-              <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-gradient-to-br from-pink-400/20 to-orange-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
+
+            {/* Отступ между панелями */}
+            <div className="w-3" />
+
+            {/* Отдельный пузырек для плюса */}
+            <button
+              onClick={() => {
+                setShowAddModal(true)
+                setShowNumKeyboard(false)
+                vibrate()
+              }}
+              className="relative w-14 h-14 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+            >
+              <Plus className="w-6 h-6 text-white" />
+              {/* Анимированный эффект свечения */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-400/30 to-blue-400/30 animate-pulse" />
+            </button>
           </div>
         </div>
       )}
