@@ -181,14 +181,14 @@ function NavButton({ active, onClick, icon, theme }) {
   return (
     <button
       onClick={onClick}
-      className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
+      className={`p-3 rounded-full transition-all transform active:scale-95 touch-none backdrop-blur-xl ${
         active
           ? theme === "dark"
-            ? "bg-gray-700 text-blue-400"
-            : "bg-blue-100 text-blue-600"
+            ? "bg-gradient-to-br from-white/20 to-white/10 text-white border border-white/20 shadow-lg"
+            : "bg-gradient-to-br from-white/40 to-white/20 text-slate-800 border border-white/30 shadow-lg"
           : theme === "dark"
-            ? "text-gray-400 hover:text-gray-300"
-            : "text-gray-600 hover:text-gray-900"
+            ? "text-gray-400 hover:text-gray-200 hover:bg-white/10"
+            : "text-gray-600 hover:text-gray-900 hover:bg-white/20"
       }`}
     >
       {icon}
@@ -2483,10 +2483,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col overflow-hidden ${
+      className={`fixed inset-0 flex flex-col overflow-hidden relative ${
         theme === "dark"
-          ? "bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-          : "bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300"
+          ? "bg-gray-900"
+          : "bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -2494,142 +2494,152 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
+      {/* Анимированный фон для Glassmorphism */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-cyan-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-indigo-400/10 to-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
       {activeTab === "overview" && (
         <header
-          className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4"
+          className="relative flex-shrink-0 z-20 px-4 pb-4"
           style={{ paddingTop: isFullscreen ? '48px' : '16px' }}
         >
-          {/* Градиент на заднем плане */}
+          {/* Карточка баланса в стиле Glassmorphism */}
           <div
-            className="absolute inset-0 opacity-30 blur-3xl"
-            style={{
-              background:
-                theme === "dark"
-                  ? "radial-gradient(circle at 50% 20%, #3b82f6 0%, transparent 70%)"
-                  : "radial-gradient(circle at 50% 20%, #6366f1 0%, transparent 70%)",
-              top: "-20px",
-              height: "200px",
-            }}
-          />
-          <div
-            className={`relative overflow-hidden rounded-3xl p-4 z-10 border backdrop-blur-2xl shadow-lg transition-all ${
+            className={`relative rounded-3xl p-6 border backdrop-blur-3xl shadow-2xl transition-all hover:shadow-3xl ${
               theme === "dark"
-                ? "bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-500 border-white/10 shadow-blue-900/40"
-                : "bg-white/96 border-slate-200/80 shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                ? "bg-white/5 border-white/10 shadow-black/20"
+                : "bg-white/20 border-white/30 shadow-white/10"
             }`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5 flex-1">
-                <div
-                  className={`p-2 rounded-xl backdrop-blur-md ${
-                    theme === "dark" ? "bg-white/15" : "bg-indigo-50"
+            {/* Внутренний градиент для глубины */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <div
+                    className={`p-3 rounded-2xl backdrop-blur-xl transition-all hover:scale-105 ${
+                      theme === "dark" 
+                        ? "bg-gradient-to-br from-white/10 to-white/5 border border-white/10" 
+                        : "bg-gradient-to-br from-white/30 to-white/10 border border-white/20"
+                    }`}
+                  >
+                    <CreditCard
+                      className={`w-6 h-6 ${
+                        theme === "dark" ? "text-white/90" : "text-slate-700"
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <p
+                      className={`text-sm font-medium mb-1 ${
+                        theme === "dark" ? "text-white/70" : "text-slate-600"
+                      }`}
+                    >
+                      Общий баланс
+                    </p>
+                    <p
+                      className={`text-3xl font-bold tracking-tight ${
+                        theme === "dark" ? "text-white" : "text-slate-900"
+                      }`}
+                    >
+                      {balanceVisible ? formatCurrency(balance) : "••••••"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setBalanceVisible(!balanceVisible)}
+                  className={`p-3 rounded-2xl border transition-all touch-none backdrop-blur-xl hover:scale-105 ${
+                    theme === "dark"
+                      ? "bg-white/10 border-white/20 hover:bg-white/20"
+                      : "bg-white/30 border-white/40 hover:bg-white/40"
                   }`}
                 >
-                  <CreditCard
-                    className={`w-5 h-5 ${
-                      theme === "dark" ? "text-white" : "text-indigo-500"
-                    }`}
-                  />
-                </div>
-                <div>
-                  <p
-                    className={`text-xs ${
-                      theme === "dark" ? "text-white/80" : "text-slate-500"
-                    }`}
-                  >
-                    Общий баланс
-                  </p>
-                  <p
-                    className={`text-2xl font-semibold tracking-tight ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    {balanceVisible ? formatCurrency(balance) : "••••••"}
-                  </p>
-                </div>
+                  {balanceVisible ? (
+                    <Eye
+                      className={`w-5 h-5 ${
+                        theme === "dark" ? "text-white/90" : "text-slate-700"
+                      }`}
+                    />
+                  ) : (
+                    <EyeOff
+                      className={`w-5 h-5 ${
+                        theme === "dark" ? "text-white/90" : "text-slate-700"
+                      }`}
+                    />
+                  )}
+                </button>
               </div>
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className={`p-2 rounded-full border transition-all touch-none backdrop-blur-md ${
-                  theme === "dark"
-                    ? "bg-white/15 border-white/20 hover:bg-white/25"
-                    : "bg-white/80 border-slate-200 hover:bg-slate-50 shadow-sm"
-                }`}
-              >
-                {balanceVisible ? (
-                  <Eye
-                    className={`w-4 h-4 ${
-                      theme === "dark" ? "text-white" : "text-slate-700"
-                    }`}
-                  />
-                ) : (
-                  <EyeOff
-                    className={`w-4 h-4 ${
-                      theme === "dark" ? "text-white" : "text-slate-700"
-                    }`}
-                  />
-                )}
-              </button>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              <div
-                className={`rounded-xl p-2.5 border backdrop-blur-xl transition-all ${
-                  theme === "dark"
-                    ? "bg-white/10 border-white/20"
-                    : "bg-white/96 border-slate-200/80 shadow-sm"
-                }`}
-              >
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingUp
-                    className={`w-3 h-3 ${
-                      theme === "dark" ? "text-emerald-300" : "text-emerald-500"
-                    }`}
-                  />
-                  <span
-                    className={`text-xs ${
-                      theme === "dark" ? "text-white/90" : "text-slate-500"
-                    }`}
-                  >
-                    Доходы
-                  </span>
-                </div>
-                <p
-                  className={`text-base font-semibold ${
-                    theme === "dark" ? "text-white" : "text-slate-900"
+              <div className="grid grid-cols-2 gap-3">
+                <div
+                  className={`rounded-2xl p-4 border backdrop-blur-xl transition-all hover:scale-105 ${
+                    theme === "dark"
+                      ? "bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-400/20"
+                      : "bg-gradient-to-br from-emerald-50/80 to-emerald-100/40 border-emerald-200/50"
                   }`}
                 >
-                  {balanceVisible ? formatCurrency(income) : "••••••"}
-                </p>
-              </div>
-              <div
-                className={`rounded-xl p-2.5 border backdrop-blur-xl transition-all ${
-                  theme === "dark"
-                    ? "bg-white/10 border-white/20"
-                    : "bg-white/80 border-white/80 shadow-sm"
-                }`}
-              >
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingDown
-                    className={`w-3 h-3 ${
-                      theme === "dark" ? "text-rose-300" : "text-rose-500"
-                    }`}
-                  />
-                  <span
-                    className={`text-xs ${
-                      theme === "dark" ? "text-white/90" : "text-slate-500"
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-1.5 rounded-lg ${
+                      theme === "dark" ? "bg-emerald-500/20" : "bg-emerald-200/50"
+                    }`}>
+                      <TrendingUp
+                        className={`w-4 h-4 ${
+                          theme === "dark" ? "text-emerald-300" : "text-emerald-600"
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`text-sm font-medium ${
+                        theme === "dark" ? "text-emerald-300/90" : "text-emerald-700"
+                      }`}
+                    >
+                      Доходы
+                    </span>
+                  </div>
+                  <p
+                    className={`text-xl font-bold ${
+                      theme === "dark" ? "text-white" : "text-emerald-800"
                     }`}
                   >
-                    Расходы
-                  </span>
+                    {balanceVisible ? formatCurrency(income) : "••••••"}
+                  </p>
                 </div>
-                <p
-                  className={`text-base font-semibold ${
-                    theme === "dark" ? "text-white" : "text-slate-900"
+                <div
+                  className={`rounded-2xl p-4 border backdrop-blur-xl transition-all hover:scale-105 ${
+                    theme === "dark"
+                      ? "bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-400/20"
+                      : "bg-gradient-to-br from-rose-50/80 to-rose-100/40 border-rose-200/50"
                   }`}
                 >
-                  {balanceVisible ? formatCurrency(expenses) : "••••••"}
-                </p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`p-1.5 rounded-lg ${
+                      theme === "dark" ? "bg-rose-500/20" : "bg-rose-200/50"
+                    }`}>
+                      <TrendingDown
+                        className={`w-4 h-4 ${
+                          theme === "dark" ? "text-rose-300" : "text-rose-600"
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`text-sm font-medium ${
+                        theme === "dark" ? "text-rose-300/90" : "text-rose-700"
+                      }`}
+                    >
+                      Расходы
+                    </span>
+                  </div>
+                  <p
+                    className={`text-xl font-bold ${
+                      theme === "dark" ? "text-white" : "text-rose-800"
+                    }`}
+                  >
+                    {balanceVisible ? formatCurrency(expenses) : "••••••"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -2658,6 +2668,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {activeTab === "overview" && (
             <div className="space-y-3">
+              {/* Карточки копилок в стиле Glassmorphism */}
               <div className="flex gap-3">
                 {/* Основная копилка */}
                 <div
@@ -2665,46 +2676,59 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
+                  className={`rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border hover:shadow-2xl ${
                     theme === "dark"
-                      ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
-                      : "bg-white/96 border-slate-200/80 hover:bg-white shadow-md"
+                      ? "bg-white/5 border-white/10 hover:bg-white/10"
+                      : "bg-white/20 border-white/30 hover:bg-white/30"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  {/* Внутренний градиент для глубины */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-400/10 to-transparent pointer-events-none" />
+                  
+                  <div className="relative z-10 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
-                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
-                        <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                      <div className={`p-2 rounded-xl backdrop-blur-xl transition-all ${
+                        theme === "dark" 
+                          ? "bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-400/20" 
+                          : "bg-gradient-to-br from-blue-200/50 to-blue-300/30 border border-blue-300/40"
+                      }`}>
+                        <PiggyBank className={`w-5 h-5 ${theme === "dark" ? "text-blue-300" : "text-blue-600"}`} />
                       </div>
                       <div>
-                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{goalName || "Копилка"}</p>
+                        <p className={`text-sm font-medium ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
+                          {goalName || "Копилка"}
+                        </p>
+                        <p className={`text-xs ${theme === "dark" ? "text-blue-300/70" : "text-blue-600/70"}`}>
+                          {formatCurrency(savings, "USD")}
+                        </p>
                       </div>
                     </div>
-                    {/* Маленькая круговая диаграмма */}
-                    <div className="relative w-14 h-14 flex-shrink-0">
-                      <svg className="w-14 h-14 transform -rotate-90">
+                    {/* Круговая диаграмма */}
+                    <div className="relative w-16 h-16 flex-shrink-0">
+                      <svg className="w-16 h-16 transform -rotate-90">
                         <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
-                          stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-                          strokeWidth="5"
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          stroke={theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.3)"}
+                          strokeWidth="6"
                           fill="none"
                         />
                         <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
+                          cx="32"
+                          cy="32"
+                          r="28"
                           stroke={theme === "dark" ? "#3b82f6" : "#6366f1"}
-                          strokeWidth="5"
+                          strokeWidth="6"
                           fill="none"
-                          strokeDasharray={`${2 * Math.PI * 24}`}
-                          strokeDashoffset={`${2 * Math.PI * 24 * (1 - savingsProgress)}`}
+                          strokeDasharray={`${2 * Math.PI * 28}`}
+                          strokeDashoffset={`${2 * Math.PI * 28 * (1 - savingsProgress)}`}
                           strokeLinecap="round"
+                          className="drop-shadow-lg"
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                        <span className={`text-sm font-bold ${theme === "dark" ? "text-white" : "text-slate-800"}`}>
                           {savingsPct || 0}%
                         </span>
                       </div>
@@ -2719,46 +2743,59 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-2xl p-3 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border ${
+                    className={`rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 backdrop-blur-2xl border hover:shadow-2xl ${
                       theme === "dark"
-                        ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
-                        : "bg-white/96 border-slate-200/80 hover:bg-white shadow-md"
+                        ? "bg-white/5 border-white/10 hover:bg-white/10"
+                        : "bg-white/20 border-white/30 hover:bg-white/30"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
+                    {/* Внутренний градиент для глубины */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-400/10 to-transparent pointer-events-none" />
+                    
+                    <div className="relative z-10 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "bg-purple-100"}`}>
-                          <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+                        <div className={`p-2 rounded-xl backdrop-blur-xl transition-all ${
+                          theme === "dark" 
+                            ? "bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-400/20" 
+                            : "bg-gradient-to-br from-purple-200/50 to-purple-300/30 border border-purple-300/40"
+                        }`}>
+                          <PiggyBank className={`w-5 h-5 ${theme === "dark" ? "text-purple-300" : "text-purple-600"}`} />
                         </div>
                         <div>
-                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{secondGoalName}</p>
+                          <p className={`text-sm font-medium ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
+                            {secondGoalName}
+                          </p>
+                          <p className={`text-xs ${theme === "dark" ? "text-purple-300/70" : "text-purple-600/70"}`}>
+                            {formatCurrency(secondGoalSavings, "USD")}
+                          </p>
                         </div>
                       </div>
-                      {/* Маленькая круговая диаграмма для второй цели */}
-                      <div className="relative w-14 h-14 flex-shrink-0">
-                        <svg className="w-14 h-14 transform -rotate-90">
+                      {/* Круговая диаграмма для второй цели */}
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <svg className="w-16 h-16 transform -rotate-90">
                           <circle
-                            cx="28"
-                            cy="28"
-                            r="24"
-                            stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-                            strokeWidth="5"
+                            cx="32"
+                            cy="32"
+                            r="28"
+                            stroke={theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.3)"}
+                            strokeWidth="6"
                             fill="none"
                           />
                           <circle
-                            cx="28"
-                            cy="28"
-                            r="24"
+                            cx="32"
+                            cy="32"
+                            r="28"
                             stroke={theme === "dark" ? "#a855f7" : "#9333ea"}
-                            strokeWidth="5"
+                            strokeWidth="6"
                             fill="none"
-                            strokeDasharray={`${2 * Math.PI * 24}`}
-                            strokeDashoffset={`${2 * Math.PI * 24 * (1 - (secondGoalSavings / secondGoalAmount))}`}
+                            strokeDasharray={`${2 * Math.PI * 28}`}
+                            strokeDashoffset={`${2 * Math.PI * 28 * (1 - (secondGoalSavings / secondGoalAmount))}`}
                             strokeLinecap="round"
+                            className="drop-shadow-lg"
                           />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                          <span className={`text-sm font-bold ${theme === "dark" ? "text-white" : "text-slate-800"}`}>
                             {Math.round((secondGoalSavings / secondGoalAmount) * 100) || 0}%
                           </span>
                         </div>
@@ -2768,15 +2805,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 )}
               </div>
 
-              {/* Бюджеты и лимиты */}
+              {/* Бюджеты в стиле Glassmorphism */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-3xl p-4 border backdrop-blur-2xl shadow-lg ${
+                  className={`rounded-3xl p-5 border backdrop-blur-2xl shadow-2xl transition-all hover:shadow-3xl ${
                     theme === "dark"
-                      ? "bg-gray-900/40 border-gray-700/60"
-                      : "bg-white/96 border-slate-200/80 shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+                      ? "bg-white/5 border-white/10"
+                      : "bg-white/20 border-white/30"
                   }`}
                 >
+                  {/* Внутренний градиент для глубины */}
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-cyan-400/5 to-transparent pointer-events-none" />
                   <div className="flex items-center justify-between mb-4">
                     <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                       Бюджеты
@@ -5907,11 +5946,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           <div className="flex items-center justify-center p-2">
-            <div
-              className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-                theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
-              }`}
-            >
+          <div
+            className={`w-full max-w-md backdrop-blur-3xl rounded-full p-2 border shadow-2xl flex items-center justify-around pointer-events-auto ${
+              theme === "dark" 
+                ? "bg-white/10 border-white/20 shadow-black/30" 
+                : "bg-white/30 border-white/40 shadow-white/20"
+            }`}
+          >
+            {/* Внутренний градиент для глубины */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
               <NavButton
                 active={activeTab === "overview"}
                 onClick={() => {
@@ -5936,9 +5979,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setShowNumKeyboard(false)
                   vibrate()
                 }}
-                className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
+                className="p-3 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-110 active:scale-95 touch-none backdrop-blur-xl border border-white/20"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
               </button>
               <NavButton
                 active={activeTab === "savings"}
