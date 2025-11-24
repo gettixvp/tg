@@ -5947,7 +5947,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-between px-4 h-14">
             {/* Навигационная панель (70% ширины как в примере) */}
-            <div className="relative" style={{ width: '70%' }}>
+            <div className="relative" style={{ width: '70%', height: '56px' }}>
               <div className="absolute inset-0 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
               <div className="relative flex items-center justify-around h-full px-2">
                 {/* Главная */}
