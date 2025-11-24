@@ -377,7 +377,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           className={`relative p-3 cursor-pointer rounded-2xl border transition-all ${
             theme === "dark"
               ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
-              : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
+              : "bg-white border-gray-200 hover:shadow-md shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -633,7 +633,7 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
         className={`relative flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300 ${
           theme === "dark"
             ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55"
-            : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
+            : "bg-white border-gray-200 hover:shadow-md shadow-sm"
         }`}
       >
         {linkedUser.telegram_photo_url ? (
@@ -2517,7 +2517,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             className={`relative rounded-2xl p-4 border shadow-xl transition-all hover:shadow-2xl ${
               theme === "dark"
                 ? "bg-white/5 border-white/10 shadow-black/20"
-                : "bg-white/20 border-white/30 shadow-white/10"
+                : "bg-white border-gray-200 shadow-gray-200"
             }`}
           >
             {/* Внутренний градиент для глубины */}
@@ -2841,7 +2841,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                 : "bg-amber-50/90 border-amber-200/80"
                               : theme === "dark"
                               ? "bg-gray-900/40 border-gray-700/60"
-                              : "bg-white/96 border-slate-200/80"
+                              : "bg-white border-gray-200"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -2921,7 +2921,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className={`rounded-2xl p-4 border shadow-lg ${
                   theme === "dark"
                     ? "bg-gray-900/70 border-gray-700/70"
-                    : "bg-white/96 border-slate-200/80"
+                    : "bg-white border-gray-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2979,7 +2979,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className={`rounded-2xl p-4 border shadow-lg ${
                   theme === "dark"
                     ? "bg-gray-900/70 border-gray-700/70"
-                    : "bg-white/96 border-slate-200/80"
+                    : "bg-white border-gray-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -3203,7 +3203,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               <div
                 className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/96 border-slate-200/80"
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white border-gray-200"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3366,7 +3366,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   className={`rounded-2xl p-4 border shadow-lg ${
                     theme === "dark"
                       ? "bg-gray-900/70 border-gray-700/70"
-                      : "bg-white/96 border-slate-200/80"
+                      : "bg-white border-gray-200"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -3399,7 +3399,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               <div
                 className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/96 border-slate-200/80"
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white border-gray-200"
                 }`}
               >
                 {linkedUsers.length > 1 && (
