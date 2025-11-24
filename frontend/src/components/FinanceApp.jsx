@@ -5940,23 +5940,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div
           className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
-            paddingBottom: Math.max(safeAreaInset.bottom, 8),
+            paddingBottom: Math.max(safeAreaInset.bottom, 10),
             paddingLeft: safeAreaInset.left || 0,
             paddingRight: safeAreaInset.right || 0,
           }}
         >
-          <div className="flex items-center justify-between px-4">
-            {/* Основная навигационная панель (овал) */}
-            <div className="relative flex-1">
+          <div className="flex items-center justify-between px-4 h-16">
+            {/* Навигационная панель (70% ширины как в примере) */}
+            <div className="relative" style={{ width: '70%' }}>
               <div className="absolute inset-0 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
-              <div className="relative flex items-center justify-around h-16 px-4">
+              <div className="relative flex items-center justify-around h-full px-2">
                 {/* Главная */}
                 <button
                   onClick={() => {
                     setActiveTab("overview")
                     vibrate()
                   }}
-                  className={`group p-2.5 rounded-full transition-all duration-200 ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
                     activeTab === "overview"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -5975,7 +5975,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("history")
                     vibrate()
                   }}
-                  className={`group p-2.5 rounded-full transition-all duration-200 ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
                     activeTab === "history"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -5994,7 +5994,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`group p-2.5 rounded-full transition-all duration-200 ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
                     activeTab === "savings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -6013,7 +6013,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("settings")
                     vibrate()
                   }}
-                  className={`group p-2.5 rounded-full transition-all duration-200 ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
                     activeTab === "settings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -6028,19 +6028,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
             </div>
 
-            {/* Отступ между панелями */}
-            <div className="w-3" />
-
-            {/* Отдельный пузырек для плюса */}
+            {/* Отдельный пузырек для плюса (как search-bar в примере) */}
             <button
               onClick={() => {
                 setShowAddModal(true)
                 setShowNumKeyboard(false)
                 vibrate()
               }}
-              className="relative w-14 h-14 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+              className="relative w-14 h-14 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20 flex items-center justify-center transition-all duration-200 cursor-pointer hover:transform hover:-translate-y-0.5 active:scale-90"
             >
-              <Plus className="w-6 h-6 text-white" />
+              <Plus className="w-6 h-6 text-white transition-all duration-200" />
               {/* Анимированный эффект свечения */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-400/30 to-blue-400/30 animate-pulse" />
             </button>
