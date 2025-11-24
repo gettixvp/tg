@@ -5945,18 +5945,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             paddingRight: safeAreaInset.right || 0,
           }}
         >
-          <div className="flex items-center justify-between px-4 h-14">
-            {/* Навигационная панель (70% ширины как в примере) */}
-            <div className="relative" style={{ width: '70%', height: '56px' }}>
+          <div className="flex items-center justify-between px-4 h-16">
+            {/* Навигационная панель (увеличена до 75% ширины) */}
+            <div className="relative" style={{ width: '75%', height: '64px' }}>
               <div className="absolute inset-0 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
               <div className="relative flex items-center justify-around h-full px-2">
                 {/* Главная */}
                 <button
                   onClick={() => {
+                    console.log('Главная нажата')
                     setActiveTab("overview")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "overview"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -5972,10 +5973,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 {/* История */}
                 <button
                   onClick={() => {
+                    console.log('История нажата')
                     setActiveTab("history")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "history"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -5991,10 +5993,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 {/* Копилка */}
                 <button
                   onClick={() => {
+                    console.log('Копилка нажата')
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "savings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -6010,10 +6013,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 {/* Настройки */}
                 <button
                   onClick={() => {
+                    console.log('Настройки нажаты')
                     setActiveTab("settings")
                     vibrate()
                   }}
-                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer ${
+                  className={`group p-2 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
                     activeTab === "settings"
                       ? "bg-white/25 shadow-lg"
                       : "hover:bg-white/15"
@@ -6031,11 +6035,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             {/* Отдельный пузырек для плюса (как search-bar в примере) */}
             <button
               onClick={() => {
+                console.log('Плюс нажат')
                 setShowAddModal(true)
                 setShowNumKeyboard(false)
                 vibrate()
               }}
-              className="relative w-14 h-14 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20 flex items-center justify-center transition-all duration-200 cursor-pointer hover:transform hover:-translate-y-0.5 active:scale-90"
+              className="relative w-16 h-16 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20 flex items-center justify-center transition-all duration-200 cursor-pointer pointer-events-auto hover:transform hover:-translate-y-0.5 active:scale-90"
             >
               <Plus className="w-6 h-6 text-white transition-all duration-200" />
               {/* Анимированный эффект свечения */}
