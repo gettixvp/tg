@@ -1,17 +1,17 @@
 // Функции форматирования и утилиты
 
 // Форматирование валюты
-export const formatCurrency = (value, curr, currentCurrency) => {
+export const formatCurrency = (value, currentCurrency = { symbol: "₽" }) => {
   const num = Number(value)
-  if (!isFinite(num)) return `${curr === "USD" ? "$" : currentCurrency.symbol}0`
-  const symbol = curr === "USD" ? "$" : currentCurrency.symbol
+  if (!isFinite(num)) return `${currentCurrency.symbol}0`
+  const symbol = currentCurrency.symbol
   try {
     const formatted = new Intl.NumberFormat("ru-RU", {
       style: "currency",
-      currency: curr,
-      minimumFractionDigits: curr === "USD" ? 2 : 0,
+      currency: "RUB",
+      minimumFractionDigits: 0,
     }).format(num)
-    const sample = Intl.NumberFormat("ru-RU", { style: "currency", currency: curr }).format(0)
+    const sample = Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB" }).format(0)
     const stdSym = sample.replace(/\d|\s|,|\.|0/g, "").trim()
     if (stdSym && symbol && stdSym !== symbol) {
       return formatted.replace(stdSym, symbol)
