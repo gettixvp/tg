@@ -1,36 +1,42 @@
-import React, { useState, useEffect, useMemo, useRef, memo } from 'react'
-import { 
-  Home, 
-  History, 
-  Settings, 
-  Plus, 
-  Eye, 
-  EyeOff, 
-  ChevronDown, 
-  Trash2, 
-  Wallet, 
-  TrendingUp, 
-  TrendingDown, 
-  PiggyBank, 
-  LogOut, 
-  LogIn, 
-  User, 
-  X, 
-  Maximize2, 
-  Minimize2, 
-  CreditCard, 
-  BarChart3, 
-  Heart, 
-  ChevronUp, 
-  MessageCircle, 
-  Send, 
-  RefreshCw, 
-  PieChart, 
-  BarChart2, 
-  Download, 
-  UserPlus, 
-  Users 
-} from 'lucide-react'
+"use client"
+
+import { useEffect, useState, useRef, memo, useMemo } from "react"
+import {
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  PiggyBank,
+  Plus,
+  History,
+  Settings,
+  LogOut,
+  LogIn,
+  Eye,
+  EyeOff,
+  User,
+  Trash2,
+  X,
+  Maximize2,
+  Minimize2,
+  CreditCard,
+  BarChart3,
+  Heart,
+  ChevronDown,
+  ChevronUp,
+  MessageCircle,
+  Send,
+  RefreshCw,
+  PieChart,
+  BarChart2,
+  TrendingUpIcon,
+  Download,
+  UserPlus,
+  Users,
+} from "lucide-react"
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
+import { Pie, Bar, Line } from "react-chartjs-2"
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement)
 
 // Импортируем наши новые модули
 import { API_BASE, LS_KEY, SESSION_KEY, categoriesMeta, categoriesList, currencies, walletIcons, walletColors } from '../constants'
@@ -51,36 +57,9 @@ import { useWallets } from '../hooks/useWallets'
 import { useTransactions } from '../hooks/useTransactions'
 import AddTransactionModal from './modals/AddTransactionModal'
 import WalletSettingsModal from './modals/WalletSettingsModal'
-import OverviewTab from './tabs/OverviewTab'
-import HistoryTab from './tabs/HistoryTab'
-import SettingsTab from './tabs/SettingsTab'
-
-// Регистрация Chart.js элементов (если используется)
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-} from 'chart.js'
-
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement
-)
 
 function FinanceApp() {
-  // Основные состояния
+  // Основные состояния из оригинального файла
   const [theme, setTheme] = useState("light")
   const [currency, setCurrency] = useState("RUB")
   const [balance, setBalance] = useState(0)
@@ -93,7 +72,7 @@ function FinanceApp() {
   const [activeTab, setActiveTab] = useState("overview")
   
   // Состояния для модальных окон
-  const [showAddTransactionModal, setShowAddTransactionModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [showWalletSettings, setShowWalletSettings] = useState(false)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [showAddDebtModal, setShowAddDebtModal] = useState(false)
@@ -484,133 +463,427 @@ function FinanceApp() {
       {/* Основной контент */}
       <div className="flex-1 overflow-hidden">
         {activeTab === "overview" && (
-          <OverviewTab
-            theme={theme}
-            balance={balance}
-            income={income}
-            expenses={expenses}
-            savings={savings}
-            balanceVisible={balanceVisible}
-            setBalanceVisible={setBalanceVisible}
-            formatCurrency={(value) => formatCurrency(value, currency, currentCurrency)}
-            currentWallet={currentWallet}
-            wallets={wallets}
-            currentWalletId={currentWalletId}
-            setCurrentWalletId={setCurrentWalletId}
-            filteredTransactions={filteredTransactions}
-            setShowAddTransactionModal={setShowAddTransactionModal}
-            setActiveTab={setActiveTab}
-            categoriesMeta={categoriesMeta}
-            formatDate={formatDate}
-            deleteTransaction={handleDeleteTransaction}
-            showLinkedUsers={showLinkedUsers}
-            toggleLike={toggleLike}
-            openTransactionDetails={openTransactionDetails}
-            budgets={budgets}
-            showBudgetModal={showBudgetModal}
-            setShowBudgetModal={setShowBudgetModal}
-            setSelectedBudgetCategory={setSelectedBudgetCategory}
-            isFullscreen={isFullscreen}
-          />
+          <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+            {/* Заголовок с балансом - оригинальный дизайн */}
+            <header className="relative overflow-hidden px-4 pb-4">
+              {/* Градиент на заднем плане */}
+              <div
+                className="absolute inset-0 opacity-30 blur-3xl"
+                style={{
+                  background:
+                    theme === "dark"
+                      ? "radial-gradient(circle at 50% 20%, #3b82f6 0%, transparent 70%)"
+                      : "radial-gradient(circle at 50% 20%, #6366f1 0%, transparent 70%)",
+                  top: "-20px",
+                  height: "200px",
+                }}
+              />
+
+              {/* Карусель кошельков */}
+              <div className="relative h-32 mb-2">
+                {wallets.map((wallet, index) => {
+                  const isActive = wallet.id === currentWalletId
+                  const translateY = index - wallets.findIndex(w => w.id === currentWalletId)
+                  
+                  return (
+                    <div
+                      key={wallet.id}
+                      className={`absolute inset-x-0 flex items-center justify-center transition-all duration-500 cursor-pointer`}
+                      style={{
+                        transform: `translateY(${translateY * 40}px) scale(${isActive ? 1 : 0.8})`,
+                        opacity: isActive ? 1 : 0.6,
+                        zIndex: isActive ? 10 : 5 - Math.abs(translateY)
+                      }}
+                      onClick={() => setCurrentWalletId(wallet.id)}
+                    >
+                      <div
+                        className={`p-4 rounded-2xl backdrop-blur-lg border transition-all ${
+                          isActive
+                            ? "bg-white/20 border-white/30 shadow-2xl"
+                            : "bg-white/10 border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                            style={{ backgroundColor: wallet.color + '30' }}
+                          >
+                            {wallet.icon}
+                          </div>
+                          <div>
+                            <h3 className="text-white font-bold text-lg">{wallet.name}</h3>
+                            <p className="text-white/80 text-sm">
+                              {formatCurrency(
+                                filteredTransactions.reduce((sum, tx) => {
+                                  if (tx.type === 'income') return sum + Number(tx.amount)
+                                  if (tx.type === 'expense') return sum - Number(tx.amount)
+                                  return sum
+                                }, 0)
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Подсказка о наличии других кошельков */}
+              {wallets.length > 1 && (
+                <div className="flex justify-center gap-1 mb-4">
+                  {wallets.map((wallet, index) => (
+                    <div
+                      key={wallet.id}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        wallet.id === currentWalletId
+                          ? "bg-white/80 w-6"
+                          : "bg-white/40"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Баланс и кнопки */}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h1 className="text-3xl font-bold text-white">
+                      {balanceVisible ? formatCurrency(balance) : "••••••"}
+                    </h1>
+                    <button
+                      onClick={() => setBalanceVisible(!balanceVisible)}
+                      className="p-2 rounded-full glass-button-matte transition-all"
+                    >
+                      {balanceVisible ? (
+                        <EyeOff className="w-5 h-5 text-white/80" />
+                      ) : (
+                        <Eye className="w-5 h-5 text-white/80" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex gap-4 text-white/80 text-sm">
+                    <div>
+                      <span className="text-white/60">Доходы:</span>{" "}
+                      <span className="text-green-400 font-medium">+{formatCurrency(income)}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60">Расходы:</span>{" "}
+                      <span className="text-red-400 font-medium">-{formatCurrency(expenses)}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60">Копилка:</span>{" "}
+                      <span className="text-blue-400 font-medium">{formatCurrency(savings)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="p-3 rounded-full glass-button-matte transition-all hover:scale-110"
+                >
+                  <Plus className="w-6 h-6 text-white" />
+                </button>
+              </div>
+            </header>
+
+            {/* Последние операции */}
+            <div className="px-4">
+              <div
+                className={`rounded-2xl p-4 border backdrop-blur-lg shadow-lg ${
+                  theme === "dark"
+                    ? "bg-gray-900/70 border-gray-700/70"
+                    : "bg-white/96 border-slate-200/80"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Последние операции {currentWalletId !== 'main' && `(${currentWallet.name})`}
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab("history")}
+                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
+                  >
+                    Все →
+                  </button>
+                </div>
+                {filteredTransactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                    </div>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                      {currentWalletId !== 'main' ? `Нет операций в ${currentWallet.name}` : 'Пока нет операций'}
+                    </p>
+                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                      {currentWalletId !== 'main' ? 'Добавьте первую операцию в этот кошелек' : 'Добавьте первую транзакцию'}
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {filteredTransactions.slice(0, 4).map((tx) => (
+                      <TxRow
+                        tx={{ ...tx, liked: false, comments: [] }}
+                        key={tx.id}
+                        categoriesMeta={categoriesMeta}
+                        formatCurrency={formatCurrency}
+                        formatDate={formatDate}
+                        theme={theme}
+                        onDelete={handleDeleteTransaction}
+                        showCreator={showLinkedUsers}
+                        onToggleLike={toggleLike}
+                        onOpenDetails={openTransactionDetails}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
         
         {activeTab === "history" && (
-          <HistoryTab
-            theme={theme}
-            currentWallet={currentWallet}
-            currentWalletId={currentWalletId}
-            wallets={wallets}
-            selectedTransactionWallet={selectedTransactionWallet}
-            setSelectedTransactionWallet={setSelectedTransactionWallet}
-            filteredTransactions={filteredTransactions}
-            categoriesMeta={categoriesMeta}
-            formatCurrency={(value) => formatCurrency(value, currency, currentCurrency)}
-            formatDate={formatDate}
-            deleteTransaction={handleDeleteTransaction}
-            showLinkedUsers={showLinkedUsers}
-            toggleLike={toggleLike}
-            openTransactionDetails={openTransactionDetails}
-            exportToPDF={exportToPDF}
-            setShowChart={setShowChart}
-            setChartType={setChartType}
-            isFullscreen={isFullscreen}
-          />
+          <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+            <div
+              className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg mx-4 ${
+                theme === "dark"
+                  ? "bg-gray-900/70 border-gray-700/70"
+                  : "bg-white/96 border-slate-200/80"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  История операций {currentWalletId !== 'main' && `(${currentWallet.name})`}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {/* Кнопка выбора кошелька */}
+                  <button
+                    onClick={() => setSelectedTransactionWallet(
+                      wallets[(wallets.findIndex(w => w.id === selectedTransactionWallet) + 1) % wallets.length].id
+                    )}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg glass-button-matte transition-all`}
+                  >
+                    <span className="text-lg">{wallets.find(w => w.id === selectedTransactionWallet)?.icon}</span>
+                    <span className={`text-sm ${
+                      theme === "dark" ? "text-white" : "text-gray-700"
+                    }`}>
+                      {wallets.find(w => w.id === selectedTransactionWallet)?.name}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 ${
+                      theme === "dark" ? "text-white" : "text-gray-700"
+                    }`} />
+                  </button>
+                  {/* Кнопка экспорта */}
+                  <button
+                    onClick={() => exportToPDF()}
+                    className={`p-2 rounded-lg transition-colors touch-none ${
+                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
+                    }`}
+                    title="Экспорт в PDF"
+                  >
+                    <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
+                  </button>
+                  {/* Кнопка диаграммы */}
+                  <button
+                    onClick={() => {
+                      setShowChart(true)
+                      setChartType("expense")
+                    }}
+                    className={`p-2 rounded-lg transition-colors touch-none ${
+                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
+                    }`}
+                    title="Показать диаграмму"
+                  >
+                    <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                  </button>
+                </div>
+              </div>
+              {filteredTransactions.length === 0 ? (
+                <div className="text-center py-8">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                      theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                    }`}
+                  >
+                    <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                  </div>
+                  <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                    {currentWalletId !== 'main' ? `Нет операций в ${currentWallet.name}` : 'Нет операций'}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  {filteredTransactions.map((tx) => (
+                    <TxRow
+                      tx={{ ...tx, liked: false, comments: [] }}
+                      key={tx.id}
+                      categoriesMeta={categoriesMeta}
+                      formatCurrency={formatCurrency}
+                      formatDate={formatDate}
+                      theme={theme}
+                      onDelete={handleDeleteTransaction}
+                      showCreator={showLinkedUsers}
+                      onToggleLike={toggleLike}
+                      onOpenDetails={openTransactionDetails}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
         
         {activeTab === "settings" && (
-          <SettingsTab
-            theme={theme}
-            setTheme={setTheme}
-            currency={currency}
-            setCurrency={setCurrency}
-            currencies={currencies}
-            user={user}
-            handleLogout={() => {/* Логика выхода */}}
-            setShowWalletSettings={setShowWalletSettings}
-            setShowBudgetModal={setShowBudgetModal}
-            setSelectedBudgetCategory={setSelectedBudgetCategory}
-            setShowAddDebtModal={setShowAddDebtModal}
-            setShowSystemSettings={setShowSystemSettings}
-            isFullscreen={isFullscreen}
-            toggleFullscreen={toggleFullscreen}
-            isFullscreenEnabled={fullscreenEnabled}
-            setFullscreenEnabled={setFullscreenEnabled}
-            balanceVisible={balanceVisible}
-            setBalanceVisible={setBalanceVisible}
-            balance={balance}
-            income={income}
-            expenses={expenses}
-            savings={savings}
-            formatCurrency={(value) => formatCurrency(value, currency, currentCurrency)}
-            debts={debts}
-            savingsTab={savingsTab}
-            setSavingsTab={setSavingsTab}
-            secondGoalName={secondGoalName}
-            secondGoalAmount={secondGoalAmount}
-            secondGoalSavings={secondGoalSavings}
-            setShowSecondGoalModal={setShowSecondGoalModal}
-            goalSavings={goalSavings}
-            setIsAuthenticated={setIsAuthenticated}
-            setUser={setUser}
-            setBalance={setBalance}
-            setIncome={setIncome}
-            setExpenses={setExpenses}
-            setSavings={setSavings}
-            setTransactions={setTransactions}
-          />
+          <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+            <div
+              className={`backdrop-blur-lg rounded-2xl p-4 border shadow-lg mx-4 ${
+                theme === "dark"
+                  ? "bg-gray-900/70 border-gray-700/70"
+                  : "bg-white/96 border-slate-200/80"
+              }`}
+            >
+              <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Настройки
+              </h3>
+              
+              {/* Настройки кошельков */}
+              <div className="mb-6">
+                <button
+                  onClick={() => setShowWalletSettings(true)}
+                  className={`w-full p-4 rounded-xl border transition-all flex items-center justify-between ${
+                    theme === "dark"
+                      ? "bg-gray-800/50 border-gray-700/50 hover:bg-gray-700/50"
+                      : "bg-gray-50/90 border-gray-200/80 hover:bg-gray-100/90"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Wallet className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                    <div className="text-left">
+                      <p className={`font-medium ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        Управление кошельками
+                      </p>
+                      <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        Добавить, редактировать или удалить кошельки
+                      </p>
+                    </div>
+                  </div>
+                  <Settings className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
+                </button>
+              </div>
+
+              {/* Статистика */}
+              <div className={`p-4 rounded-xl border ${
+                theme === "dark"
+                  ? "bg-gray-800/50 border-gray-700/50"
+                  : "bg-gray-50/90 border-gray-200/80"
+              }`}>
+                <h4 className={`font-medium mb-3 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  Статистика
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      Текущий баланс
+                    </span>
+                    <span className={`text-sm font-bold ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+                      {formatCurrency(balance)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      Общие доходы
+                    </span>
+                    <span className={`text-sm font-bold text-green-500`}>
+                      +{formatCurrency(income)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      Общие расходы
+                    </span>
+                    <span className={`text-sm font-bold text-red-500`}>
+                      -{formatCurrency(expenses)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      Накопления
+                    </span>
+                    <span className={`text-sm font-bold text-blue-500`}>
+                      {formatCurrency(savings)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
       
-      {/* Навигация */}
-      <div className={`flex justify-around items-center p-4 border-t backdrop-blur-lg ${
-        theme === "dark"
-          ? "bg-gray-900/80 border-gray-700/60"
-          : "bg-white/80 border-gray-200/60"
-      }`}>
-        <NavButton
-          active={activeTab === "overview"}
-          onClick={() => setActiveTab("overview")}
-          icon={<Home className="w-5 h-5" />}
-          theme={theme}
-        />
-        <NavButton
-          active={activeTab === "history"}
-          onClick={() => setActiveTab("history")}
-          icon={<History className="w-5 h-5" />}
-          theme={theme}
-        />
-        <NavButton
-          active={activeTab === "settings"}
-          onClick={() => setActiveTab("settings")}
-          icon={<Settings className="w-5 h-5" />}
-          theme={theme}
-        />
+      {/* Навигация - оригинальный дизайн */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
+        style={{
+          paddingBottom: Math.max(safeAreaInset.bottom, 8),
+          paddingLeft: safeAreaInset.left || 0,
+          paddingRight: safeAreaInset.right || 0,
+        }}
+      >
+        <div className="flex items-center justify-center p-2">
+          <div
+            className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
+              theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
+            }`}
+          >
+            <NavButton
+              active={activeTab === "overview"}
+              onClick={() => {
+                setActiveTab("overview")
+                vibrate()
+              }}
+              icon={<Wallet className="h-4 w-7" />}
+              theme={theme}
+            />
+            <NavButton
+              active={activeTab === "history"}
+              onClick={() => {
+                setActiveTab("history")
+                vibrate()
+              }}
+              icon={<History className="h-4 w-[4px28]" />}
+              theme={theme}
+            />
+            <button
+              onClick={() => {
+                setShowAddModal(true)
+                vibrate()
+              }}
+              className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <NavButton
+              active={activeTab === "settings"}
+              onClick={() => {
+                setActiveTab("settings")
+                vibrate()
+              }}
+              icon={<Settings className="h-4 w-[px8]" />}
+              theme={theme}
+            />
+          </div>
+        </div>
       </div>
       
       {/* Модальные окна */}
       <AddTransactionModal
-        show={showAddTransactionModal}
-        onClose={() => setShowAddTransactionModal(false)}
+        show={showAddModal}
+        onClose={() => setShowAddModal(false)}
         onAddTransaction={handleAddTransaction}
         theme={theme}
         wallets={wallets}

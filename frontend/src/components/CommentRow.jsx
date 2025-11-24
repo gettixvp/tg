@@ -42,8 +42,8 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
             }
           }}
           className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-2xl ${
-            theme === "dark" ? "bg-red-600/90" : "bg-red-500/90"
-          } backdrop-blur-md`}
+          theme === "dark" ? "bg-red-600/90" : "bg-red-500/90"
+        } backdrop-blur-md`}
         >
           <Trash2 className="w-5 h-5 text-white" />
         </div>

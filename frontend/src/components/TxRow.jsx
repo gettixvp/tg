@@ -1,18 +1,7 @@
 import React, { useState, useRef, memo } from 'react'
 import { Trash2, Heart, User } from 'lucide-react'
 
-const TxRow = memo(function TxRow({ 
-  tx, 
-  categoriesMeta, 
-  formatCurrency, 
-  formatDate, 
-  theme, 
-  onDelete, 
-  showCreator = false, 
-  onToggleLike, 
-  onOpenDetails, 
-  tgPhotoUrl 
-}) {
+const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onOpenDetails, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
@@ -113,10 +102,10 @@ const TxRow = memo(function TxRow({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all hover:shadow-xl hover:scale-[1.02] ${
+          className={`relative p-3 cursor-pointer rounded-2xl border backdrop-blur-2xl transition-all ${
             theme === "dark"
-              ? "glass-card-matte-dark"
-              : "glass-card-matte"
+              ? "bg-gray-900/40 border-gray-700/60 hover:bg-gray-900/55 shadow-lg"
+              : "bg-white/96 border-slate-200/80 hover:shadow-md shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}

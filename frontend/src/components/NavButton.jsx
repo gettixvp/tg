@@ -1,15 +1,15 @@
-import React from 'react'
-
 function NavButton({ active, onClick, icon, theme }) {
   return (
     <button
       onClick={onClick}
       className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
         active
-          ? "glass-button-matte text-blue-600 dark:text-blue-400 hover:scale-110"
+          ? theme === "dark"
+            ? "bg-gray-700/80 text-blue-400 backdrop-blur-md"
+            : "bg-white/50 text-blue-600 backdrop-blur-sm shadow-md"
           : theme === "dark"
-            ? "text-gray-400 hover:text-gray-300 glass-button-matte hover:bg-white/25"
-            : "text-gray-600 hover:text-gray-900 glass-button-matte hover:bg-white/40"
+            ? "text-gray-400 hover:text-gray-300"
+            : "text-gray-600 hover:text-gray-900"
       }`}
     >
       {icon}
