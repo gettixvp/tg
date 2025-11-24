@@ -734,6 +734,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [savings, setSavings] = useState(0)
   const [transactions, setTransactions] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
+  
+  // Состояние для множественных кошельков
+  const [wallets, setWallets] = useState([
+    { 
+      id: 'main', 
+      name: 'Основной кошелек', 
+      icon: '💳', 
+      color: 'from-blue-400 to-indigo-500',
+      isMain: true 
+    }
+  ])
+  const [currentWalletId, setCurrentWalletId] = useState('main')
+  const [showWalletSettings, setShowWalletSettings] = useState(false)
+  const [editingWallet, setEditingWallet] = useState(null)
+  const [walletName, setWalletName] = useState('')
+  const [walletIcon, setWalletIcon] = useState('💳')
+  const [walletColor, setWalletColor] = useState('from-blue-400 to-indigo-500')
+  const [selectedTransactionWallet, setSelectedTransactionWallet] = useState('main')
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState("login")
   const [showChart, setShowChart] = useState(false)
@@ -2530,6 +2548,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     )
   }
 
+  const currentWallet = wallets.find(w => w.id === currentWalletId) || wallets[0]
+
   return (
     <div
       className={`fixed inset-0 flex flex-col overflow-hidden gradient-bg`}
@@ -2556,60 +2576,102 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               height: "200px",
             }}
           />
-          <div
-            className={`relative overflow-hidden rounded-3xl p-4 z-10 ${
-              theme === "dark" ? "glass-matte-dark" : "glass-matte"
-            } transition-all hover:shadow-2xl`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5 flex-1">
-                <div
-                  className={`p-2 rounded-xl glass-button-matte`}
-                >
-                  <CreditCard
-                    className={`w-5 h-5 ${
-                      theme === "dark" ? "text-white" : "text-indigo-500"
-                    }`}
-                  />
-                </div>
-                <div>
-                  <p
-                    className={`text-xs ${
-                      theme === "dark" ? "text-white/80" : "text-slate-500"
-                    }`}
-                  >
-                    Общий баланс
-                  </p>
-                  <p
-                    className={`text-2xl font-semibold tracking-tight ${
-                      theme === "dark" ? "text-white" : "text-slate-900"
-                    }`}
-                  >
-                    {balanceVisible ? formatCurrency(balance) : "••••••"}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className={`p-2 rounded-full transition-all touch-none glass-button-matte hover:scale-110`}
-              >
-                {balanceVisible ? (
-                  <Eye
-                    className={`w-4 h-4 ${
-                      theme === "dark" ? "text-white" : "text-slate-700"
-                    }`}
-                  />
-                ) : (
-                  <EyeOff
-                    className={`w-4 h-4 ${
-                      theme === "dark" ? "text-white" : "text-slate-700"
-                    }`}
-                  />
-                )}
-              </button>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+          {/* Карусель кошельков */}
+          <div className="relative h-32 mb-2">
+            {wallets.map((wallet, index) => {
+              const isActive = wallet.id === currentWalletId
+              const translateY = index - wallets.findIndex(w => w.id === currentWalletId)
+              
+              return (
+                <div
+                  key={wallet.id}
+                  className={`absolute inset-x-4 transition-all duration-300 ease-out ${
+                    isActive ? 'z-20' : 'z-10'
+                  }`}
+                  style={{
+                    transform: `translateY(${translateY * 20}px) scale(${isActive ? 1 : 0.95})`,
+                    opacity: isActive ? 1 : 0.7,
+                  }}
+                >
+                  <div
+                    className={`relative overflow-hidden rounded-3xl p-4 ${
+                      theme === "dark" ? "glass-matte-dark" : "glass-matte"
+                    } transition-all hover:shadow-2xl cursor-pointer`}
+                    onClick={() => setCurrentWalletId(wallet.id)}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2.5 flex-1">
+                        <div className={`p-2 rounded-xl glass-button-matte`}>
+                          <span className="text-xl">{wallet.icon}</span>
+                        </div>
+                        <div>
+                          <p className={`text-xs ${
+                            theme === "dark" ? "text-white/80" : "text-slate-500"
+                          }`}>
+                            {wallet.name}
+                          </p>
+                          <p className={`text-2xl font-semibold tracking-tight ${
+                            theme === "dark" ? "text-white" : "text-slate-900"
+                          }`}>
+                            {isActive && balanceVisible ? formatCurrency(balance) : "••••••"}
+                          </p>
+                        </div>
+                      </div>
+                      {isActive && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowWalletSettings(true)
+                            }}
+                            className={`p-2 rounded-full transition-all touch-none glass-button-matte hover:scale-110`}
+                          >
+                            <Settings className={`w-4 h-4 ${
+                              theme === "dark" ? "text-white" : "text-slate-700"
+                            }`} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setBalanceVisible(!balanceVisible)
+                            }}
+                            className={`p-2 rounded-full transition-all touch-none glass-button-matte hover:scale-110`}
+                          >
+                            {balanceVisible ? (
+                              <Eye className={`w-4 h-4 ${
+                                theme === "dark" ? "text-white" : "text-slate-700"
+                              }`} />
+                            ) : (
+                              <EyeOff className={`w-4 h-4 ${
+                                theme === "dark" ? "text-white" : "text-slate-700"
+                              }`} />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Индикаторы карусели */}
+          <div className="flex justify-center gap-1 mb-4">
+            {wallets.map((wallet, index) => (
+              <div
+                key={wallet.id}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                  wallet.id === currentWalletId
+                    ? 'bg-blue-500 w-6'
+                    : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
               <div
                 className={`rounded-xl p-2.5 border backdrop-blur-xl transition-all ${
                   theme === "dark"
@@ -5433,6 +5495,234 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       )}
 
+      {/* Модальное окно управления кошельками */}
+      {showWalletSettings && (
+        <div
+          className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
+            theme === "dark"
+              ? "bg-black/60 backdrop-blur-sm"
+              : "bg-black/30 backdrop-blur-sm"
+          }`}
+          style={{ touchAction: "none" }}
+          onClick={() => setShowWalletSettings(false)}
+          onTouchStart={handleSheetTouchStart}
+          onTouchMove={handleSheetTouchMove}
+          onTouchEnd={createSheetTouchEndHandler(() => setShowWalletSettings(false))}
+        >
+          <div
+            className={`w-full max-w-md rounded-t-3xl shadow-2xl border transform transition-transform duration-250 ease-out sheet-animate ${
+              theme === "dark"
+                ? "glass-modal-dark"
+                : "glass-modal"
+            }`}
+            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column", transform: `translateY(${sheetDragOffset}px)` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div data-sheet-handle="true" className="w-10 h-1.5 glass-button-matte rounded-full mx-auto mt-2 mb-3 opacity-80" />
+            <div
+              className="p-4 overflow-y-auto flex-1"
+              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+            >
+              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Управление кошельками
+              </h3>
+
+              {/* Превью текущего кошелька */}
+              {editingWallet && (
+                <div className={`mb-6 p-4 rounded-2xl ${
+                  theme === "dark" ? "glass-card-matte-dark" : "glass-card-matte"
+                }`}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${editingWallet.color} flex items-center justify-center text-2xl`}>
+                      {editingWallet.icon}
+                    </div>
+                    <div>
+                      <h4 className={`font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                        {editingWallet.name}
+                      </h4>
+                      <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        {editingWallet.isMain ? "Основной кошелек" : "Дополнительный кошелек"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Форма редактирования/создания */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Название кошелька
+                  </label>
+                  <input
+                    type="text"
+                    value={walletName}
+                    onChange={(e) => setWalletName(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border ${
+                      theme === "dark"
+                        ? "bg-gray-800 border-gray-700 text-white"
+                        : "bg-white border-gray-300 text-gray-900"
+                    }`}
+                    placeholder="Введите название"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Иконка
+                  </label>
+                  <div className="grid grid-cols-6 gap-2">
+                    {['💳', '💰', '💵', '💴', '💶', '💷', '🪙', '💎', '🏦', '💱', '💲', '📊'].map(icon => (
+                      <button
+                        key={icon}
+                        onClick={() => setWalletIcon(icon)}
+                        className={`p-3 rounded-xl text-xl transition-all ${
+                          walletIcon === icon
+                            ? "bg-blue-500 text-white"
+                            : theme === "dark"
+                              ? "bg-gray-800 hover:bg-gray-700"
+                              : "bg-gray-100 hover:bg-gray-200"
+                        }`}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Цвет
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      'from-blue-400 to-indigo-500',
+                      'from-green-400 to-emerald-500',
+                      'from-purple-400 to-pink-500',
+                      'from-red-400 to-rose-500',
+                      'from-yellow-400 to-orange-500',
+                      'from-cyan-400 to-sky-500'
+                    ].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setWalletColor(color)}
+                        className={`h-12 rounded-xl bg-gradient-to-br ${color} transition-all ${
+                          walletColor === color ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Список кошельков */}
+              <div className="space-y-2 mb-6">
+                {wallets.map(wallet => (
+                  <div
+                    key={wallet.id}
+                    className={`flex items-center justify-between p-3 rounded-xl ${
+                      theme === "dark" ? "glass-card-matte-dark" : "glass-card-matte"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${wallet.color} flex items-center justify-center text-lg`}>
+                        {wallet.icon}
+                      </div>
+                      <div>
+                        <p className={`font-medium ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                          {wallet.name}
+                        </p>
+                        <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                          {wallet.isMain ? "Основной" : "Дополнительный"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!wallet.isMain && (
+                        <button
+                          onClick={() => {
+                            setEditingWallet(wallet)
+                            setWalletName(wallet.name)
+                            setWalletIcon(wallet.icon)
+                            setWalletColor(wallet.color)
+                          }}
+                          className={`p-2 rounded-lg ${
+                            theme === "dark" ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Кнопки действий */}
+              <div className="flex gap-2">
+                {editingWallet && (
+                  <button
+                    onClick={() => {
+                      // Обновление кошелька
+                      setWallets(prev => prev.map(w => 
+                        w.id === editingWallet.id 
+                          ? { ...w, name: walletName, icon: walletIcon, color: walletColor }
+                          : w
+                      ))
+                      setEditingWallet(null)
+                      setWalletName('')
+                      setWalletIcon('💳')
+                      setWalletColor('from-blue-400 to-indigo-500')
+                    }}
+                    className={`flex-1 py-2 glass-button-matte rounded-xl font-medium transition-all ${
+                      theme === "dark" ? "text-white" : "text-blue-600"
+                    }`}
+                  >
+                    Сохранить
+                  </button>
+                )}
+                {wallets.length < 4 && !editingWallet && (
+                  <button
+                    onClick={() => {
+                      const newWallet = {
+                        id: `wallet_${Date.now()}`,
+                        name: walletName || 'Новый кошелек',
+                        icon: walletIcon,
+                        color: walletColor,
+                        isMain: false
+                      }
+                      setWallets(prev => [...prev, newWallet])
+                      setWalletName('')
+                      setWalletIcon('💳')
+                      setWalletColor('from-blue-400 to-indigo-500')
+                    }}
+                    className={`flex-1 py-2 glass-button-matte rounded-xl font-medium transition-all ${
+                      theme === "dark" ? "text-white" : "text-blue-600"
+                    }`}
+                  >
+                    Добавить кошелек
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowWalletSettings(false)
+                    setEditingWallet(null)
+                    setWalletName('')
+                    setWalletIcon('💳')
+                    setWalletColor('from-blue-400 to-indigo-500')
+                  }}
+                  className={`flex-1 py-2 glass-button-matte rounded-xl font-medium transition-all ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
+                  }`}
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddModal && (
         <div
           className={`fixed inset-0 flex items-end justify-center z-50 transition-opacity duration-200 ${
@@ -5460,9 +5750,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               className="p-4 overflow-y-auto flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Новая операция
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  Новая операция
+                </h3>
+                <button
+                  onClick={() => setSelectedTransactionWallet(
+                    wallets[(wallets.findIndex(w => w.id === selectedTransactionWallet) + 1) % wallets.length].id
+                  )}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg glass-button-matte transition-all`}
+                >
+                  <span className="text-lg">{wallets.find(w => w.id === selectedTransactionWallet)?.icon}</span>
+                  <span className={`text-sm ${
+                    theme === "dark" ? "text-white" : "text-gray-700"
+                  }`}>
+                    {wallets.find(w => w.id === selectedTransactionWallet)?.name}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 ${
+                    theme === "dark" ? "text-white" : "text-gray-700"
+                  }`} />
+                </button>
+              </div>
 
               <div className="flex gap-2 mb-4">
                 {["expense", "income", "savings"].map((type) => (
