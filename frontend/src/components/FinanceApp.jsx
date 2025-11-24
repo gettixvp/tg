@@ -2586,72 +2586,52 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div
-                  className={`rounded-2xl p-3 border backdrop-blur-sm transition-all hover:scale-105 ${
-                    theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60"
-                      : "bg-white/80 border-gray-200/80"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={`p-1.5 rounded-lg ${
-                      theme === "dark" ? "bg-gray-700/50" : "bg-gray-100/80"
-                    }`}>
-                      <TrendingUp
-                        className={`w-4 h-4 ${
-                          theme === "dark" ? "text-gray-300" : "text-gray-600"
-                        }`}
-                      />
-                    </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp
+                    className={`w-4 h-4 ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  />
+                  <div>
                     <span
-                      className={`text-sm font-medium ${
-                        theme === "dark" ? "text-gray-300/90" : "text-gray-700"
+                      className={`text-xs font-medium ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
                       }`}
                     >
                       Доходы
                     </span>
+                    <p
+                      className={`text-sm font-bold ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      {balanceVisible ? formatNumberWithoutCurrency(income) : "••••••"}
+                    </p>
                   </div>
-                  <p
-                    className={`text-lg font-bold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {balanceVisible ? formatNumberWithoutCurrency(income) : "••••••"}
-                  </p>
                 </div>
-                <div
-                  className={`rounded-2xl p-3 border backdrop-blur-sm transition-all hover:scale-105 ${
-                    theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60"
-                      : "bg-white/80 border-gray-200/80"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={`p-1.5 rounded-lg ${
-                      theme === "dark" ? "bg-gray-700/50" : "bg-gray-100/80"
-                    }`}>
-                      <TrendingDown
-                        className={`w-4 h-4 ${
-                          theme === "dark" ? "text-gray-300" : "text-gray-600"
-                        }`}
-                      />
-                    </div>
+                <div className="flex items-center gap-2">
+                  <TrendingDown
+                    className={`w-4 h-4 ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  />
+                  <div>
                     <span
-                      className={`text-sm font-medium ${
-                        theme === "dark" ? "text-gray-300/90" : "text-gray-700"
+                      className={`text-xs font-medium ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
                       }`}
                     >
                       Расходы
                     </span>
+                    <p
+                      className={`text-sm font-bold ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      {balanceVisible ? formatNumberWithoutCurrency(expenses) : "••••••"}
+                    </p>
                   </div>
-                  <p
-                    className={`text-lg font-bold ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {balanceVisible ? formatNumberWithoutCurrency(expenses) : "••••••"}
-                  </p>
                 </div>
               </div>
             </div>
