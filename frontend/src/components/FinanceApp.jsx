@@ -973,6 +973,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     return () => clearTimeout(timer)
   }, [theme])
 
+  // Управление overflow при открытых модальных окнах
+  useEffect(() => {
+    const isAnyModalOpen = showAddModal || showAuthModal || showBudgetModal || 
+                          showAddDebtModal || showEditGoalModal || showSystemSettings
+    
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [showAddModal, showAuthModal, showBudgetModal, showAddDebtModal, showEditGoalModal, showSystemSettings])
+
   // Обработка реферальной ссылки при запуске
   useEffect(() => {
     const handleReferralLink = async () => {
@@ -2514,10 +2530,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {/* Карточка баланса в стиле Glassmorphism */}
           <div
-            className={`relative rounded-2xl p-4 border shadow-xl transition-all hover:shadow-2xl ${
+            className={`relative rounded-2xl p-4 shadow-xl transition-all hover:shadow-2xl ${
               theme === "dark"
-                ? "bg-white/5 border-white/10 shadow-black/20"
-                : "bg-white border-gray-200 shadow-gray-200"
+                ? "bg-white/5 shadow-black/20"
+                : "bg-white shadow-gray-200"
             }`}
           >
             {/* Внутренний градиент для глубины */}
@@ -2663,10 +2679,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`relative rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 border hover:shadow-2xl ${
+                  className={`relative rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 hover:shadow-2xl ${
                     theme === "dark"
-                      ? "bg-white/5 border-white/10 hover:bg-white/10"
-                      : "bg-white/20 border-white/30 hover:bg-white/30"
+                      ? "bg-white/5 hover:bg-white/10"
+                      : "bg-white hover:bg-gray-50"
                   }`}
                 >
                   {/* Внутренний градиент для глубины */}
@@ -2730,10 +2746,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`relative rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 border hover:shadow-2xl ${
+                    className={`relative rounded-2xl p-4 flex-1 cursor-pointer transition-all touch-none active:scale-95 hover:shadow-2xl ${
                       theme === "dark"
-                        ? "bg-white/5 border-white/10 hover:bg-white/10"
-                        : "bg-white/20 border-white/30 hover:bg-white/30"
+                        ? "bg-white/5 hover:bg-white/10"
+                        : "bg-white hover:bg-gray-50"
                     }`}
                   >
                     {/* Внутренний градиент для глубины */}
@@ -2795,10 +2811,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты в стиле Glassmorphism */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`relative rounded-3xl p-5 border shadow-2xl transition-all hover:shadow-3xl ${
+                  className={`relative rounded-3xl p-5 shadow-2xl transition-all hover:shadow-3xl ${
                 theme === "dark"
-                  ? "bg-white/5 border-white/10"
-                  : "bg-white/20 border-white/30"
+                  ? "bg-white/5"
+                  : "bg-white"
               }`}
                 >
                   {/* Внутренний градиент для глубины */}
@@ -2841,7 +2857,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                 : "bg-amber-50/90 border-amber-200/80"
                               : theme === "dark"
                               ? "bg-gray-900/40 border-gray-700/60"
-                              : "bg-white border-gray-200"
+                              : "bg-white shadow-gray-200"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -2918,10 +2934,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
+                className={`rounded-2xl p-4 shadow-lg ${
                   theme === "dark"
                     ? "bg-gray-900/70 border-gray-700/70"
-                    : "bg-white border-gray-200"
+                    : "bg-white shadow-gray-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -2976,10 +2992,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
+                className={`rounded-2xl p-4 shadow-lg ${
                   theme === "dark"
                     ? "bg-gray-900/70 border-gray-700/70"
-                    : "bg-white border-gray-200"
+                    : "bg-white shadow-gray-200"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -3202,8 +3218,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white border-gray-200"
+                className={`rounded-2xl p-4 shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white shadow-gray-200"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3363,10 +3379,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Приветствие с аватаркой - только для незалогиненных */}
               {!isAuthenticated && (
                 <div
-                  className={`rounded-2xl p-4 border shadow-lg ${
+                  className={`rounded-2xl p-4 shadow-lg ${
                     theme === "dark"
                       ? "bg-gray-900/70 border-gray-700/70"
-                      : "bg-white border-gray-200"
+                      : "bg-white shadow-gray-200"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -3398,8 +3414,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white border-gray-200"
+                className={`rounded-2xl p-4 shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white shadow-gray-200"
                 }`}
               >
                 {linkedUsers.length > 1 && (
@@ -3573,7 +3589,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
+                className={`rounded-2xl p-4 shadow-lg ${
                   theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
                 }`}
               >
@@ -3660,7 +3676,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты */}
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
+                className={`rounded-2xl p-4 shadow-lg ${
                   theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
                 }`}
               >
@@ -3692,7 +3708,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`rounded-2xl p-4 border shadow-lg ${
+                className={`rounded-2xl p-4 shadow-lg ${
                   theme === "dark" ? "bg-gray-800/30 border-gray-700/30" : "bg-white/30 border-white/30"
                 }`}
               >
@@ -5549,14 +5565,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 placeholder="Описание (необязательно)"
                 value={description}
                 onTouchStart={() => {
-                  // Устанавливаем флаг заранее, до фокуса, чтобы интерфейс сразу подстроился
-                  setIsKeyboardOpen(true)
+                  // Не скрываем нижний бар в модальном окне
+                  // setIsKeyboardOpen(true)
                 }}
                 onFocus={() => {
                   setShowNumKeyboard(false)
-                  setIsKeyboardOpen(true)
+                  // Не скрываем нижний бар в модальном окне
+                  // setIsKeyboardOpen(true)
                 }}
-                onBlur={() => setIsKeyboardOpen(false)}
+                onBlur={() => {
+                  // setIsKeyboardOpen(false)
+                }}
                 onChange={(e) => setDescription(e.target.value)}
                 className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
                   theme === "dark"
@@ -5568,14 +5587,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 onTouchStart={() => {
-                  // Аналогично описанию — выставляем флаг заранее
-                  setIsKeyboardOpen(true)
+                  // Не скрываем нижний бар в модальном окне
+                  // setIsKeyboardOpen(true)
                 }}
                 onFocus={() => {
                   setShowNumKeyboard(false)
-                  setIsKeyboardOpen(true)
+                  // Не скрываем нижний бар в модальном окне
+                  // setIsKeyboardOpen(true)
                 }}
-                onBlur={() => setIsKeyboardOpen(false)}
+                onBlur={() => {
+                  // setIsKeyboardOpen(false)
+                }}
                 className={`w-full p-3 border rounded-xl mb-4 transition-all text-sm ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:outline-none focus:ring-0"
