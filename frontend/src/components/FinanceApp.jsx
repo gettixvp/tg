@@ -5940,67 +5940,125 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div
           className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
-            paddingBottom: Math.max(safeAreaInset.bottom, 8),
+            paddingBottom: Math.max(safeAreaInset.bottom, 12),
             paddingLeft: safeAreaInset.left || 0,
             paddingRight: safeAreaInset.right || 0,
           }}
         >
-          <div className="flex items-center justify-center p-2">
-          <div
-            className={`w-full max-w-md backdrop-blur-3xl rounded-full p-2 border shadow-2xl flex items-center justify-around pointer-events-auto ${
-              theme === "dark" 
-                ? "bg-white/10 border-white/20 shadow-black/30" 
-                : "bg-white/30 border-white/40 shadow-white/20"
-            }`}
-          >
-            {/* Внутренний градиент для глубины */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-              <NavButton
-                active={activeTab === "overview"}
-                onClick={() => {
-                  setActiveTab("overview")
-                  vibrate()
-                }}
-                icon={<Wallet className="h-4 w-7" />}
-                theme={theme}
-              />
-              <NavButton
-                active={activeTab === "history"}
-                onClick={() => {
-                  setActiveTab("history")
-                  vibrate()
-                }}
-                icon={<History className="h-4 w-[4px28]" />}
-                theme={theme}
-              />
-              <button
-                onClick={() => {
-                  setShowAddModal(true)
-                  setShowNumKeyboard(false)
-                  vibrate()
-                }}
-                className="p-3 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-110 active:scale-95 touch-none backdrop-blur-xl border border-white/20"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-              <NavButton
-                active={activeTab === "savings"}
-                onClick={() => {
-                  setActiveTab("savings")
-                  vibrate()
-                }}
-                icon={<PiggyBank className="h-4 w-[4px28]" />}
-                theme={theme}
-              />
-              <NavButton
-                active={activeTab === "settings"}
-                onClick={() => {
-                  setActiveTab("settings")
-                  vibrate()
-                }}
-                icon={<Settings className="h-4 w-[px8]" />}
-                theme={theme}
-              />
+          <div className="flex items-center justify-center px-4">
+            {/* Основная навигационная панель */}
+            <div className="relative">
+              {/* Фоновая панель в стиле Glassmorphism */}
+              <div className="absolute inset-0 w-96 h-20 bg-white/15 backdrop-blur-xl shadow-2xl rounded-full border border-white/20" />
+              
+              {/* Навигационные иконки */}
+              <div className="relative flex items-center justify-between h-20 px-8">
+                {/* Главная */}
+                <button
+                  onClick={() => {
+                    setActiveTab("overview")
+                    vibrate()
+                  }}
+                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                    activeTab === "overview"
+                      ? "bg-white/25 shadow-lg"
+                      : "hover:bg-white/15"
+                  }`}
+                >
+                  <Wallet className={`w-6 h-6 transition-all duration-200 ${
+                    activeTab === "overview" 
+                      ? "text-white scale-110" 
+                      : "text-white/80 group-hover:text-white group-hover:scale-110"
+                  }`} />
+                  {activeTab === "overview" && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                  )}
+                </button>
+
+                {/* История */}
+                <button
+                  onClick={() => {
+                    setActiveTab("history")
+                    vibrate()
+                  }}
+                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                    activeTab === "history"
+                      ? "bg-white/25 shadow-lg"
+                      : "hover:bg-white/15"
+                  }`}
+                >
+                  <History className={`w-6 h-6 transition-all duration-200 ${
+                    activeTab === "history" 
+                      ? "text-white scale-110" 
+                      : "text-white/80 group-hover:text-white group-hover:scale-110"
+                  }`} />
+                  {activeTab === "history" && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                  )}
+                </button>
+
+                {/* Копилка */}
+                <button
+                  onClick={() => {
+                    setActiveTab("savings")
+                    vibrate()
+                  }}
+                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                    activeTab === "savings"
+                      ? "bg-white/25 shadow-lg"
+                      : "hover:bg-white/15"
+                  }`}
+                >
+                  <PiggyBank className={`w-6 h-6 transition-all duration-200 ${
+                    activeTab === "savings" 
+                      ? "text-white scale-110" 
+                      : "text-white/80 group-hover:text-white group-hover:scale-110"
+                  }`} />
+                  {activeTab === "savings" && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-pink-400 rounded-full animate-pulse" />
+                  )}
+                </button>
+
+                {/* Кнопка добавления транзакции */}
+                <button
+                  onClick={() => {
+                    setShowAddModal(true)
+                    setShowNumKeyboard(false)
+                    vibrate()
+                  }}
+                  className="relative p-4 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-110 active:scale-95 border border-white/30"
+                >
+                  <Plus className="w-6 h-6 text-white" />
+                  {/* Анимированный эффект свечения */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/50 to-purple-400/50 animate-pulse" />
+                </button>
+
+                {/* Настройки */}
+                <button
+                  onClick={() => {
+                    setActiveTab("settings")
+                    vibrate()
+                  }}
+                  className={`group relative p-3 rounded-full transition-all duration-200 ${
+                    activeTab === "settings"
+                      ? "bg-white/25 shadow-lg"
+                      : "hover:bg-white/15"
+                  }`}
+                >
+                  <Settings className={`w-6 h-6 transition-all duration-200 ${
+                    activeTab === "settings" 
+                      ? "text-white scale-110" 
+                      : "text-white/80 group-hover:text-white group-hover:scale-110"
+                  }`} />
+                  {activeTab === "settings" && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
+                  )}
+                </button>
+              </div>
+
+              {/* Декоративные элементы фона */}
+              <div className="absolute -top-10 -left-10 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-2xl animate-pulse" />
+              <div className="absolute -bottom-10 -right-10 w-20 h-20 bg-gradient-to-br from-pink-400/20 to-orange-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
             </div>
           </div>
         </div>
