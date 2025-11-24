@@ -181,7 +181,7 @@ function NavButton({ active, onClick, icon, theme }) {
   return (
     <button
       onClick={onClick}
-      className={`p-3 rounded-full transition-all transform active:scale-95 touch-none backdrop-blur-sm ${
+      className={`p-3 rounded-full transition-all transform active:scale-95 touch-none backdrop-blur-xl ${
         active
           ? theme === "dark"
             ? "bg-gradient-to-br from-white/20 to-white/10 text-white border border-white/20 shadow-lg"
