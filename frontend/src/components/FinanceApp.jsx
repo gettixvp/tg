@@ -2747,87 +2747,89 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               )}
 
-              <div className="relative">
-                <div className="liquid-glass">
-                  <div className="glass-text">
-                    <div className="p-4 w-full">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-white">
-                          Последние операции
-                        </h3>
-                        <button
-                          onClick={() => setActiveTab("history")}
-                          className="text-white/80 text-sm font-medium hover:text-white transition-colors touch-none"
-                        >
-                          Все →
-                        </button>
-                      </div>
-                      {transactions.length === 0 ? (
-                        <div className="text-center py-8">
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-white/10">
-                            <History className="w-6 h-6 text-white/60" />
-                          </div>
-                          <p className="text-sm text-white/80">
-                            Пока нет операций
-                          </p>
-                          <p className="text-xs mt-1 text-white/60">
-                            Добавьте первую транзакцию
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          {transactions.slice(0, 4).map((tx) => (
-                            <div key={tx.id} className="bg-white/10 rounded-xl mb-2 overflow-hidden">
-                              <TxRow
-                                tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
-                                categoriesMeta={categoriesMeta}
-                                formatCurrency={formatCurrency}
-                                formatDate={formatDate}
-                                theme={theme}
-                                onDelete={deleteTransaction}
-                                showCreator={showLinkedUsers}
-                                onToggleLike={toggleLike}
-                                onOpenDetails={openTransactionDetails}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+              <div className="liquid-glass-card">
+                <div className="glass-card-content">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Последние операции
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab("history")}
+                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
+                    >
+                      Все →
+                    </button>
                   </div>
-                </div>
+                {transactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                    </div>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                      Пока нет операций
+                    </p>
+                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
+                      Добавьте первую транзакцию
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {transactions.slice(0, 4).map((tx) => (
+                      <TxRow
+                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
+                        key={tx.id}
+                        categoriesMeta={categoriesMeta}
+                        formatCurrency={formatCurrency}
+                        formatDate={formatDate}
+                        theme={theme}
+                        onDelete={deleteTransaction}
+                        showCreator={showLinkedUsers}
+                        onToggleLike={toggleLike}
+                        onOpenDetails={openTransactionDetails}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    История операций
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    {/* Кнопка экспорта в PDF */}
-                    <button
-                      onClick={exportToPDF}
-                      className={`p-2 rounded-lg transition-colors touch-none ${
-                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
-                      }`}
-                      title="Экспорт в PDF"
-                    >
-                      <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
-                    </button>
-                    {/* Кнопка диаграммы */}
-                    <button
-                      onClick={() => {
-                        setShowChart(true)
-                        setChartType("expense")
-                      }}
+              <div className="liquid-glass-card">
+                <div className="glass-card-content">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Все операции
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {/* Кнопка экспорта в PDF */}
+                      <button
+                        onClick={exportToPDF}
+                        className={`p-2 rounded-lg transition-colors touch-none ${
+                          theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
+                        }`}
+                        title="Экспорт в PDF"
+                      >
+                        <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
+                      </button>
+                      {/* Кнопка диаграммы */}
+                      <button
+                        onClick={() => {
+                          setShowChart(true)
+                          setChartType("expense")
+                        }}
+                        className={`p-2 rounded-lg transition-colors touch-none ${
+                          theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
+                        }`}
+                        title="Показать диаграмму"
+                      >
+                        <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                      </button>
                       className={`p-2 rounded-lg transition-colors touch-none ${
                         theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
                       }`}
@@ -5749,9 +5751,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         
         .liquid-glass {
           width: 100%;
-          max-width: 100%;
-          min-height: 100px;
-          height: auto;
+          max-width: 400px;
+          height: 70px;
           border-radius: 56px;
           position: relative;
           isolation: isolate;
@@ -5794,15 +5795,67 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           -webkit-filter: url(#glass-distortion);
         }
 
+        )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        .liquid-glass-card {
+          width: 100%;
+          border-radius: 20px;
+          position: relative;
+          isolation: isolate;
+          box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
+          display: flex;
+          flex-direction: column;
+          border: none;
+          background: none;
+          padding: 0;
+          margin: 0;
+          pointer-events: auto;
+        }
+
+        .liquid-glass-card:focus {
+          outline: none;
+        }
+
+        .liquid-glass-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          border-radius: 20px;
+          box-shadow: inset 0 0 12px -4px #000000;
+          background-color: rgba(255, 255, 255, 0);
+        }
+
+        .liquid-glass-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          border-radius: 20px;
+          backdrop-filter: blur(0px);
+          -webkit-backdrop-filter: blur(0px);
+          filter: url(#glass-distortion);
+          -webkit-filter: url(#glass-distortion);
+        }
+
+        .glass-card-content {
+          position: relative;
+          z-index: 1;
+          padding: 16px;
+          color: #ffffff;
+          text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
+          opacity: 1;
+          transform: translate(0px, 0px);
+        }
+
         .glass-text {
           position: relative;
           color: #ffffff;
-          width: 100%;
-          height: 100%;
-          padding: 0;
-          margin: 0;
-          display: flex;
-          flex-direction: column;
+          font-size: 24px;
           font-weight: 400;
           text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
           opacity: 1;
