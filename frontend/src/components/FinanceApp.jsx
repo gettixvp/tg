@@ -1540,7 +1540,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setWallets(prevWallets => 
       prevWallets.map(wallet => {
         if (wallet.id === selectedWalletForTransaction) {
-          let walletBalance = wallet.balance
+          let walletBalance = wallet.balance || 0
           if (transactionType === "income") {
             walletBalance += n
           } else if (transactionType === "expense") {
@@ -2471,7 +2471,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     // Загрузка комментариев с сервера только если их еще нет в кэше
     if (user && user.email && !transactionComments[tx.id]) {
       try {
-        const resp = await fetch(`${API_URL}/api/transactions/${tx.id}/comments`)
+        const resp = await fetch(`${API_BASE}/api/transactions/${tx.id}/comments`)
         if (resp.ok) {
           const data = await resp.json()
           setTransactionComments((prev) => ({
@@ -2503,7 +2503,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     // Сохранение комментария на сервер
     if (user && user.email) {
       try {
-        await fetch(`${API_URL}/api/transactions/${txId}/comment`, {
+        await fetch(`${API_BASE}/api/transactions/${txId}/comment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2527,7 +2527,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     // Удаление комментария с сервера
     if (user && user.email) {
       try {
-        await fetch(`${API_URL}/api/transactions/${txId}/comment/${commentId}`, {
+        await fetch(`${API_BASE}/api/transactions/${txId}/comment/${commentId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2690,7 +2690,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         theme === "dark" ? "text-white" : "text-slate-900"
                       }`}
                     >
-                      {balanceVisible ? formatNumberWithoutCurrency(wallets[walletCarouselIndex].balance) : "••••••"}
+                      {balanceVisible ? formatNumberWithoutCurrency(wallets[walletCarouselIndex]?.balance || 0) : "••••••"}
                     </p>
                   </div>
                 </div>
@@ -2808,8 +2808,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   />
                 ))}
               </div>
-            </div>
-          </div>
             </div>
           </div>
         </header>
@@ -4031,8 +4029,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     {secondGoalName}
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
             <div className="mb-4">
               <label
                 className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
@@ -4122,7 +4120,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </SwipeToCloseSheet>
 
       <SwipeToCloseSheet isOpen={showSavingsSettingsModal} onClose={() => setShowSavingsSettingsModal(false)} theme={theme}>
-          <div className="px-4 pb-4">
+        <div className="px-4 pb-4">
             <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
             </h3>
@@ -4449,7 +4447,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             )}
           </div>
         </div>
-      )}
+      </SwipeToCloseSheet>
 
       {showSecondGoalModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
@@ -5023,6 +5021,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className={`w-full py-2.5 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                   theme === "dark"
                     ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 }`}
               >
                 Закрыть
@@ -5032,7 +5031,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* Модальное окно редактирования бюджета */}
       <SwipeToCloseSheet isOpen={showBudgetModal && selectedBudgetCategory} onClose={() => setShowBudgetModal(false)} theme={theme}>
-              <div className="flex items-center gap-2 mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-4">
                 <span className="text-2xl">{categoriesMeta[selectedBudgetCategory]?.icon}</span>
                 <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   {selectedBudgetCategory}
@@ -5131,12 +5131,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     Бюджет будет автоматически обнуляться в этот день каждого месяца
                   </p>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Кастомная клавиатура */}
             {showBudgetKeyboard && (
-            <NumericKeyboard
+              <NumericKeyboard
               onNumberPress={(num) => {
                 setBudgetLimitInput((prev) => {
                   const current = prev || "0"
@@ -5269,18 +5269,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               >
                 Сохранить
               </button>
+                </>
+              )}
             </div>
           </div>
-        </SwipeToCloseSheet>
+        </div>
+      </SwipeToCloseSheet>
 
       {/* Модальное окно добавления долга */}
       <SwipeToCloseSheet isOpen={showAddDebtModal} onClose={() => {
-            setShowAddDebtModal(false)
-            setDebtPerson('')
-            setDebtAmount('')
-            setDebtDescription('')
-          })} theme={theme}>
-          <div
+        setShowAddDebtModal(false)
+        setDebtPerson('')
+        setDebtAmount('')
+        setDebtDescription('')
+      })} theme={theme}>
+        <div
             className={`w-full max-w-md rounded-t-3xl shadow-2xl border backdrop-blur-2xl transform transition-transform duration-250 ease-out sheet-animate ${
               theme === "dark"
                 ? "bg-gray-900/80 border-gray-700/70"
@@ -5437,7 +5440,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           className="p-4 overflow-y-auto flex-1"
           style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+          <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 Новая операция
               </h3>
 
@@ -5514,7 +5517,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               {wallet.name}
                             </p>
                             <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                              {formatNumberWithoutCurrency(wallet.balance)} ₽
+                              {formatNumberWithoutCurrency(wallet.balance || 0)} ₽
                             </p>
                           </div>
                           {selectedWalletForTransaction === wallet.id && (
@@ -5734,12 +5737,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 theme={theme}
               />
             )}
-        </div>
-      </SwipeToCloseSheet>
+          </div>
+        </SwipeToCloseSheet>
 
       <SwipeToCloseSheet isOpen={showWalletSettingsModal} onClose={() => setShowWalletSettingsModal(false)} theme={theme}>
-          <div className="p-4 border-b border-gray-200/20">
-              <div className="flex items-center justify-between mb-4">
+        <div className="p-4 border-b border-gray-200/20">
+          <div className="flex items-center justify-between mb-4">
                 <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                   Настройки кошельков
                 </h3>
@@ -5820,7 +5823,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             {wallet.name}
                           </p>
                           <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            {formatNumberWithoutCurrency(wallet.balance)} ₽
+                            {formatNumberWithoutCurrency(wallet.balance || 0)} ₽
                           </p>
                         </div>
                       </div>
@@ -6020,7 +6023,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               </div>
             )}
-            </div>
           </div>
         </SwipeToCloseSheet>
 
@@ -6036,452 +6038,120 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     Смена пароля
                   </h3>
-              ? "bg-black/30"
-              : "bg-white/20"
-          }`}
-        >
-          <div
-            className={`w-full max-w-sm rounded-3xl p-4 shadow-xl max-h-[90vh] overflow-y-auto border backdrop-blur-2xl ${
-              theme === "dark"
-                ? "bg-gray-900/70 border-gray-700/70"
-                : "bg-white/90 border-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.18)]"
-            }`}
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              {authMode === "login" ? "Вход через Email" : "Регистрация"}
-            </h3>
 
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setAuthMode("login")}
-                className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
-                  authMode === "login"
-                    ? "bg-blue-500 text-white"
-                    : theme === "dark"
-                      ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Вход
-              </button>
-              <button
-                onClick={() => setAuthMode("register")}
-                className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
-                  authMode === "register"
-                    ? "bg-blue-500 text-white"
-                    : theme === "dark"
-                      ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Регистрация
-              </button>
-            </div>
+                  {/* Старый пароль */}
+                  <div className="relative mb-3">
+                    <input
+                      type={showOldPassword ? "text" : "password"}
+                      placeholder="Старый пароль"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                          : "bg-white/15 border-white/30 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-lg"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOldPassword(!showOldPassword)}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
+                        theme === "dark" 
+                          ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {showOldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
 
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:outline-none focus:ring-0"
-                  : "bg-white border-slate-200 text-gray-900 focus:outline-none focus:ring-0 shadow-sm"
-              }`}
-            />
-            
-            <div className="relative mb-3">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Пароль"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:outline-none focus:ring-0"
-                    : "bg-white/15 border-white/30 text-gray-900 focus:outline-none focus:ring-0 focus:border-transparent backdrop-blur-lg"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
-                  theme === "dark" 
-                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
+                  {/* Новый пароль */}
+                  <div className="relative mb-3">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Новый пароль"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                          : "bg-white/15 border-white/30 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-lg"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
+                        theme === "dark" 
+                          ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
 
-            {authMode === "login" && (
-              <button
-                type="button"
-                onClick={handleForgotPassword}
-                className={`text-xs mb-3 hover:underline transition-colors touch-none active:scale-95 text-left ${
-                  theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"
-                }`}
-              >
-                Забыли пароль?
-              </button>
-            )}
+                  {/* Подтверждение нового пароля */}
+                  <div className="relative mb-4">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Подтвердите новый пароль"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                          : "bg-white/15 border-white/30 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-lg"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
+                        theme === "dark" 
+                          ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
 
-            <label
-              className={`flex items-center gap-2 mb-3 cursor-pointer ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-            >
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded"
-              />
-              <span className="text-sm">Запомнить меня</span>
-            </label>
-
-            <p className={`text-xs mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Имя: {displayName}</p>
-            <select
-              value={authCurrency}
-              onChange={(e) => setAuthCurrency(e.target.value)}
-              className={`w-full p-3 border rounded-xl mb-4 transition-all text-sm ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:outline-none focus:ring-0"
-                  : "bg-white/15 border-white/30 text-gray-900 focus:outline-none focus:ring-0 focus:border-transparent backdrop-blur-lg"
-              }`}
-            >
-              {currencies.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name} ({c.symbol})
-                </option>
-              ))}
-            </select>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowAuthModal(false)
-                  setEmail("")
-                  setPassword("")
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleAuth}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                {authMode === "login" ? "Войти" : "Зарегистрироваться"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно смены пароля */}
-      {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-xl flex items-center justify-center z-50 p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
-              theme === "dark" ? "bg-gray-800/20 border-gray-700/30" : "bg-white/20 border-white/30"
-            }`}
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Смена пароля
-            </h3>
-
-            {/* Старый пароль */}
-            <div className="relative mb-3">
-              <input
-                type={showOldPassword ? "text" : "password"}
-                placeholder="Старый пароль"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-white/15 border-white/30 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-lg"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowOldPassword(!showOldPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
-                  theme === "dark" 
-                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {showOldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-
-            {/* Новый пароль */}
-            <div className="relative mb-3">
-              <input
-                type={showNewPassword ? "text" : "password"}
-                placeholder="Новый пароль (минимум 6 символов)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-white/15 border-white/30 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-lg"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
-                  theme === "dark" 
-                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-
-            {/* Подтверждение пароля */}
-            <div className="relative mb-4">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Подтвердите новый пароль"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full p-3 pr-12 border rounded-xl transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-white/15 border-white/30 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-lg"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors touch-none active:scale-95 ${
-                  theme === "dark" 
-                    ? "text-gray-400 hover:text-gray-200 hover:bg-gray-600" 
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowChangePasswordModal(false)
-                  setOldPassword("")
-                  setNewPassword("")
-                  setConfirmPassword("")
-                  setShowOldPassword(false)
-                  setShowNewPassword(false)
-                  setShowConfirmPassword(false)
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleChangePassword}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                Сменить пароль
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!isKeyboardOpen && (
-        <div
-          className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
-          style={{
-            paddingBottom: Math.max(safeAreaInset.bottom, 10),
-            paddingLeft: safeAreaInset.left || 0,
-            paddingRight: safeAreaInset.right || 0,
-          }}
-        >
-          <div className="flex items-center justify-between px-4 h-16">
-            {/* Навигационная панель (уменьшена до 82% ширины) */}
-            <div className="relative" style={{ width: '82%', height: '64px' }}>
-              <div className="absolute inset-0 bg-white/20 backdrop-blur-xl shadow-2xl rounded-full border border-white/30" />
-              <div className="relative flex items-center justify-around h-full px-3">
-                {/* Главная */}
-                <button
-                  onClick={() => {
-                    console.log('Главная нажата')
-                    setActiveTab("overview")
-                    vibrate()
-                  }}
-                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
-                    activeTab === "overview"
-                      ? "bg-white/25 shadow-lg"
-                      : "hover:bg-white/15"
-                  }`}
-                >
-                  <Wallet className={`w-5 h-5 transition-all duration-200 ${
-                    activeTab === "overview" 
-                      ? "text-white scale-110" 
-                      : "text-white/80 group-hover:text-white group-hover:scale-110"
-                  }`} />
-                </button>
-
-                {/* История */}
-                <button
-                  onClick={() => {
-                    console.log('История нажата')
-                    setActiveTab("history")
-                    vibrate()
-                  }}
-                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
-                    activeTab === "history"
-                      ? "bg-white/25 shadow-lg"
-                      : "hover:bg-white/15"
-                  }`}
-                >
-                  <History className={`w-5 h-5 transition-all duration-200 ${
-                    activeTab === "history" 
-                      ? "text-white scale-110" 
-                      : "text-white/80 group-hover:text-white group-hover:scale-110"
-                  }`} />
-                </button>
-
-                {/* Копилка */}
-                <button
-                  onClick={() => {
-                    console.log('Копилка нажата')
-                    setActiveTab("savings")
-                    vibrate()
-                  }}
-                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
-                    activeTab === "savings"
-                      ? "bg-white/25 shadow-lg"
-                      : "hover:bg-white/15"
-                  }`}
-                >
-                  <PiggyBank className={`w-5 h-5 transition-all duration-200 ${
-                    activeTab === "savings" 
-                      ? "text-white scale-110" 
-                      : "text-white/80 group-hover:text-white group-hover:scale-110"
-                  }`} />
-                </button>
-
-                {/* Настройки */}
-                <button
-                  onClick={() => {
-                    console.log('Настройки нажаты')
-                    setActiveTab("settings")
-                    vibrate()
-                  }}
-                  className={`group p-3 rounded-full transition-all duration-200 cursor-pointer pointer-events-auto ${
-                    activeTab === "settings"
-                      ? "bg-white/25 shadow-lg"
-                      : "hover:bg-white/15"
-                  }`}
-                >
-                  <Settings className={`w-5 h-5 transition-all duration-200 ${
-                    activeTab === "settings" 
-                      ? "text-white scale-110" 
-                      : "text-white/80 group-hover:text-white group-hover:scale-110"
-                  }`} />
-                </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setShowChangePasswordModal(false)
+                        setOldPassword('')
+                        setNewPassword('')
+                        setConfirmPassword('')
+                        vibrate()
+                      }}
+                      className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      onClick={handlePasswordChange}
+                      className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-blue-700 hover:bg-blue-600 text-white"
+                          : "bg-blue-500 hover:bg-blue-600 text-white"
+                      }`}
+                    >
+                      Сменить пароль
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Отдельный пузырек для плюса (как search-bar в примере) */}
-            <button
-              onClick={() => {
-                console.log('Плюс нажат')
-                setShowAddModal(true)
-                setShowNumKeyboard(false)
-                vibrate()
-              }}
-              className="relative w-16 h-16 bg-white/20 backdrop-blur-xl shadow-2xl rounded-full border border-white/30 flex items-center justify-center transition-all duration-200 cursor-pointer pointer-events-auto hover:transform hover:-translate-y-0.5 active:scale-90"
-            >
-              <Plus className="w-6 h-6 text-white transition-all duration-200" />
-            </button>
-          </div>
+          )}
         </div>
-      )}
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes sheetSlideUp {
-          from { transform: translateY(24px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .sheet-animate {
-          animation: sheetSlideUp 0.22s ease-out;
-        }
-        
-        * {
-          -webkit-tap-highlight-color: transparent;
-        }
-        
-        main {
-          scroll-behavior: smooth;
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior-y: contain;
-        }
-        
-        main::-webkit-scrollbar {
-          width: 0px;
-          background: transparent;
-        }
-        
-        /* Скрыть полосы прокрутки везде */
-        *::-webkit-scrollbar {
-          width: 0px;
-          height: 0px;
-          background: transparent;
-        }
-        
-        * {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        
-        input[type="text"],
-        input[type="number"],
-        input[type="email"],
-        input[type="password"],
-        select,
-        textarea {
-          font-size: 16px !important;
-          touch-action: manipulation;
-        }
-        
-        input, select, textarea {
-          transition: none !important;
-        }
-      `}</style>
-    </div>
-  )
+      </div>
+    )}
+  </div>
+)
 }
