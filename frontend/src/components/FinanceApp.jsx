@@ -5643,61 +5643,101 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           <div className="flex items-center justify-center p-2">
-            <div
-              className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-                theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
-              }`}
-            >
-              <NavButton
-                active={activeTab === "overview"}
-                onClick={() => {
-                  setActiveTab("overview")
-                  vibrate()
-                }}
-                icon={<Wallet className="h-4 w-7" />}
-                theme={theme}
-              />
-              <NavButton
-                active={activeTab === "history"}
-                onClick={() => {
-                  setActiveTab("history")
-                  vibrate()
-                }}
-                icon={<History className="h-4 w-[4px28]" />}
-                theme={theme}
-              />
-              <button
-                onClick={() => {
-                  setShowAddModal(true)
-                  setShowNumKeyboard(false)
-                  vibrate()
-                }}
-                className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <NavButton
-                active={activeTab === "savings"}
-                onClick={() => {
-                  setActiveTab("savings")
-                  vibrate()
-                }}
-                icon={<PiggyBank className="h-4 w-[4px28]" />}
-                theme={theme}
-              />
-              <NavButton
-                active={activeTab === "settings"}
-                onClick={() => {
-                  setActiveTab("settings")
-                  vibrate()
-                }}
-                icon={<Settings className="h-4 w-[px8]" />}
-                theme={theme}
-              />
+            <div className="liquid-glass">
+              <div className="glass-text flex items-center justify-around w-full px-4">
+                <button
+                  onClick={() => {
+                    setActiveTab("overview")
+                    vibrate()
+                  }}
+                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
+                    activeTab === "overview"
+                      ? theme === "dark"
+                        ? "bg-gray-700/50 text-blue-400"
+                        : "bg-blue-100/50 text-blue-600"
+                      : theme === "dark"
+                        ? "text-gray-400 hover:text-gray-300"
+                        : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <Wallet className="h-4 w-7" />
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("history")
+                    vibrate()
+                  }}
+                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
+                    activeTab === "history"
+                      ? theme === "dark"
+                        ? "bg-gray-700/50 text-blue-400"
+                        : "bg-blue-100/50 text-blue-600"
+                      : theme === "dark"
+                        ? "text-gray-400 hover:text-gray-300"
+                        : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <History className="h-4 w-[4px28]" />
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddModal(true)
+                    setShowNumKeyboard(false)
+                    vibrate()
+                  }}
+                  className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("savings")
+                    vibrate()
+                  }}
+                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
+                    activeTab === "savings"
+                      ? theme === "dark"
+                        ? "bg-gray-700/50 text-blue-400"
+                        : "bg-blue-100/50 text-blue-600"
+                      : theme === "dark"
+                        ? "text-gray-400 hover:text-gray-300"
+                        : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <PiggyBank className="h-4 w-[4px28]" />
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("settings")
+                    vibrate()
+                  }}
+                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
+                    activeTab === "settings"
+                      ? theme === "dark"
+                        ? "bg-gray-700/50 text-blue-400"
+                        : "bg-blue-100/50 text-blue-600"
+                      : theme === "dark"
+                        ? "text-gray-400 hover:text-gray-300"
+                        : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <Settings className="h-4 w-[px8]" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      <svg xmlns="http://www.w3.org/2000/svg" style={{ display: 'none' }}>
+        <defs>
+          <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.008" numOctaves="2" seed="92" result="noise" />
+            <feGaussianBlur in="noise" stdDeviation="2" result="blurred" />
+            <feDisplacementMap in="SourceGraphic" in2="blurred" scale="77" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
 
       <style>{`
         @keyframes fadeIn {
@@ -5708,12 +5748,67 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           animation: fadeIn 0.3s ease-in;
         }
         
-        * {
-          -webkit-tap-highlight-color: transparent;
+        .liquid-glass {
+          width: 100%;
+          max-width: 400px;
+          height: 70px;
+          border-radius: 56px;
+          position: relative;
+          isolation: isolate;
+          box-shadow: 0px 6px 24px rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          background: none;
+          padding: 0;
+          margin: 0;
+          text-decoration: none;
+          cursor: pointer;
+          pointer-events: auto;
+        }
+
+        .liquid-glass:focus {
+          outline: none;
+        }
+
+        .liquid-glass::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          border-radius: 56px;
+          box-shadow: inset 0 0 15px -5px #000000;
+          background-color: rgba(255, 255, 255, 0);
+        }
+
+        .liquid-glass::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          border-radius: 56px;
+          backdrop-filter: blur(0px);
+          -webkit-backdrop-filter: blur(0px);
+          filter: url(#glass-distortion);
+          -webkit-filter: url(#glass-distortion);
+        }
+
+        .glass-text {
+          position: relative;
+          color: #ffffff;
+          font-size: 24px;
+          font-weight: 400;
+          text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+          opacity: 1;
+          transform: translate(0px, 0px);
+          font-family: 'Georgia', 'Microsoft YaHei', '微软雅黑', serif;
         }
         
         main {
-          scroll-behavior: smooth;
+          height: 100vh;
+          overflow-y: auto;
+          overflow-x: hidden;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior-y: contain;
         }
