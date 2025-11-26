@@ -5852,7 +5852,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             paddingBottom: Math.max(safeAreaInset.bottom, 8) / 2,
           }}
         >
-          <div className="liquid-glass-dynamic" id="floating-plus-bg">
+          <div className="liquid-glass-dynamic-plus" id="floating-plus-bg">
             <button
               onClick={() => {
                 setShowAddModal(true)
@@ -5932,6 +5932,54 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           inset: 0;
           z-index: -1;
           border-radius: 56px;
+          backdrop-filter: blur(0px);
+          -webkit-backdrop-filter: blur(0px);
+          filter: url(#liquid-glass-filter);
+          -webkit-filter: url(#liquid-glass-filter);
+        }
+
+        .liquid-glass-dynamic-plus {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          position: relative;
+          isolation: isolate;
+          box-shadow: 0px 6px 24px rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
+          background-size: 200% 200%;
+          background-position: 75% 15%;
+          padding: 0;
+          margin: 0;
+          text-decoration: none;
+          cursor: pointer;
+          pointer-events: auto;
+          transition: background-position 0.3s ease-out;
+        }
+
+        .liquid-glass-dynamic-plus:focus {
+          outline: none;
+        }
+
+        .liquid-glass-dynamic-plus::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          border-radius: 50%;
+          box-shadow: inset 0 0 15px -5px rgba(0, 0, 0, 0.3);
+          background-color: rgba(255, 255, 255, 0);
+        }
+
+        .liquid-glass-dynamic-plus::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          border-radius: 50%;
           backdrop-filter: blur(0px);
           -webkit-backdrop-filter: blur(0px);
           filter: url(#liquid-glass-filter);
