@@ -649,8 +649,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [savings, setSavings] = useState(0)
   const [transactions, setTransactions] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showGoalSettingsModal, setShowGoalSettingsModal] = useState(false) // Модальное окно снизу для настроек цели
-  const [showAddGoalModal, setShowAddGoalModal] = useState(false) // Модальное окно снизу для добавления цели
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState("login")
   const [showChart, setShowChart] = useState(false)
@@ -2971,7 +2969,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
-                        setShowAddGoalModal(true)
+                        setShowSecondGoalModal(true)
                         vibrate()
                       }}
                       className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
@@ -3042,7 +3040,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      setShowGoalSettingsModal(true)
+                      setShowGoalModal(true)
                       vibrate()
                     }}
                     className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-all text-sm touch-none"
@@ -5398,237 +5396,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 theme={theme}
               />
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно снизу для настроек цели */}
-      {showGoalSettingsModal && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
-          style={{ touchAction: "none" }}
-        >
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
-          >
-            <div
-              className="p-4 overflow-y-auto flex-1"
-              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
-            >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Изменить цель накопления
-              </h3>
-
-              {secondGoalName && secondGoalAmount > 0 && (
-                <div className="mb-3">
-                  <label
-                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                  >
-                    Выберите копилку
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedSavingsGoal('main')}
-                      className={`flex-1 py-2 rounded-xl font-medium transition-all text-sm touch-none ${
-                        selectedSavingsGoal === 'main'
-                          ? 'bg-blue-500 text-white'
-                          : theme === 'dark'
-                            ? 'bg-gray-700 text-gray-300'
-                            : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      Основная
-                    </button>
-                    <button
-                      onClick={() => setSelectedSavingsGoal('second')}
-                      className={`flex-1 py-2 rounded-xl font-medium transition-all text-sm touch-none ${
-                        selectedSavingsGoal === 'second'
-                          ? 'bg-blue-500 text-white'
-                          : theme === 'dark'
-                            ? 'bg-gray-700 text-gray-300'
-                            : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      Вторая
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="mb-3">
-                <label
-                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  Название цели
-                </label>
-                <input
-                  type="text"
-                  value={selectedSavingsGoal === 'main' ? goalName : secondGoalName}
-                  onChange={(e) => {
-                    if (selectedSavingsGoal === 'main') {
-                      setGoalName(e.target.value)
-                    } else {
-                      setSecondGoalName(e.target.value)
-                    }
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl border ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white"
-                      : "bg-white border-gray-300 text-gray-900"
-                  }`}
-                  placeholder="Название цели"
-                />
-              </div>
-
-              <div className="mb-3">
-                <label
-                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  Целевая сумма (USD)
-                </label>
-                <input
-                  type="text"
-                  value={selectedSavingsGoal === 'main' ? goalInput : secondGoalInput}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9.]/g, '')
-                    if (selectedSavingsGoal === 'main') {
-                      setGoalInput(value)
-                    } else {
-                      setSecondGoalInput(value)
-                    }
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl border ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white"
-                      : "bg-white border-gray-300 text-gray-900"
-                  }`}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowGoalSettingsModal(false)
-                    vibrate()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={() => {
-                    updateGoal()
-                    setShowGoalSettingsModal(false)
-                    vibrateSuccess()
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-all text-sm touch-none active:scale-95"
-                >
-                  Сохранить
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно снизу для добавления второй цели */}
-      {showAddGoalModal && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
-          style={{ touchAction: "none" }}
-        >
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
-          >
-            <div
-              className="p-4 overflow-y-auto flex-1"
-              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
-            >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Добавить вторую цель
-              </h3>
-
-              <div className="mb-3">
-                <label
-                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  Название цели
-                </label>
-                <input
-                  type="text"
-                  value={secondGoalName}
-                  onChange={(e) => setSecondGoalName(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-xl border ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white"
-                      : "bg-white border-gray-300 text-gray-900"
-                  }`}
-                  placeholder="Название цели"
-                />
-              </div>
-
-              <div className="mb-3">
-                <label
-                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  Целевая сумма (USD)
-                </label>
-                <input
-                  type="text"
-                  value={secondGoalInput}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9.]/g, '')
-                    setSecondGoalInput(value)
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl border ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-white"
-                      : "bg-white border-gray-300 text-gray-900"
-                  }`}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowAddGoalModal(false)
-                    vibrate()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={() => {
-                    const n = Number.parseInt(secondGoalInput, 10)
-                    if (!Number.isNaN(n) && n > 0 && secondGoalName.trim()) {
-                      setSecondGoalAmount(n)
-                      vibrateSuccess()
-                    }
-                    setShowAddGoalModal(false)
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-blue-700 hover:bg-blue-600 text-white"
-                      : "bg-blue-500 hover:bg-blue-600 text-white"
-                  }`}
-                >
-                  Добавить
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
