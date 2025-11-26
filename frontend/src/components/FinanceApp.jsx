@@ -686,7 +686,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
-  const [bynExchangeRate, setBynExchangeRate] = useState(2.9450) // Курс BYN/USD из Belarusbank
+  const [bynExchangeRate, setBynExchangeRate] = useState(2.9450) // Курс BYN/USD из API
+  const [userIP, setUserIP] = useState("") // IP адрес пользователя
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
@@ -742,6 +743,40 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const displayName = (tgUser && tgUser.first_name) || "Пользователь"
   const tgPhotoUrl = tgUser && tgUser.photo_url
 
+  // Получение IP адреса пользователя
+  useEffect(() => {
+    const fetchUserIP = async () => {
+      try {
+        // Используем несколько сервисов для получения IP
+        const ipServices = [
+          'https://api.ipify.org?format=json',
+          'https://ipapi.co/json/',
+          'https://api.ipgeolocation.io/ipgeo'
+        ]
+        
+        for (const service of ipServices) {
+          try {
+            const response = await fetch(service)
+            if (response.ok) {
+              const data = await response.json()
+              const ip = data.ip || data.ip_address || data.query
+              if (ip) {
+                setUserIP(ip)
+                console.log('User IP detected:', ip)
+                break
+              }
+            }
+          } catch (error) {
+            console.log(`IP service ${service} failed, trying next...`)
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch user IP", e)
+      }
+    }
+    fetchUserIP()
+  }, [])
+
   useEffect(() => {
     const fetchRate = async () => {
       try {
@@ -755,24 +790,66 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     fetchRate()
   }, [])
 
-  // Получение курса BYN/USD из Belarusbank
+  // Получение курса BYN/USD с использованием IP адреса
   useEffect(() => {
     const fetchBynRate = async () => {
       try {
-        const res = await fetch("https://belarusbank.by/api/kursExchange?city=Брест")
-        const data = await res.json()
-        if (data && data.length > 0 && data[0].USD_out) {
-          setBynExchangeRate(parseFloat(data[0].USD_out))
+        // Используем надежный источник курса с поддержкой CORS
+        let rate = 2.9450 // значение по умолчанию
+        
+        // Источник 1: exchangerate-api.com с IP заголовком
+        try {
+          const headers = {}
+          if (userIP) {
+            headers['X-Forwarded-For'] = userIP
+            headers['X-Real-IP'] = userIP
+          }
+          
+          const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD', { headers })
+          if (response.ok) {
+            const data = await response.json()
+            // USD к BYN = 1 / BYN к USD
+            rate = 1 / data.rates.BYN
+            console.log('Using exchangerate-api.com rate with IP:', rate, 'IP:', userIP)
+          }
+        } catch (error1) {
+          console.log('exchangerate-api.com failed, trying alternative...')
+          
+          // Источник 2: frankfurter.app с IP заголовком
+          try {
+            const headers = {}
+            if (userIP) {
+              headers['X-Forwarded-For'] = userIP
+              headers['X-Real-IP'] = userIP
+            }
+            
+            const response2 = await fetch('https://api.frankfurter.app/latest?from=USD&to=BYN', { headers })
+            if (response2.ok) {
+              const data2 = await response2.json()
+              rate = data2.rates.BYN
+              console.log('Using frankfurter.app rate with IP:', rate, 'IP:', userIP)
+            }
+          } catch (error2) {
+            console.log('All APIs failed, using fallback rate')
+          }
         }
+        
+        setBynExchangeRate(rate)
       } catch (e) {
-        console.warn("Failed to fetch BYN exchange rate", e)
+        console.warn("Failed to fetch BYN exchange rate, using fallback", e)
+        setBynExchangeRate(2.9450)
       }
     }
-    fetchBynRate()
+    
+    // Ждем получения IP перед запросом курса
+    if (userIP || userIP === "") {
+      fetchBynRate()
+    }
+    
     // Обновляем курс каждый час
     const interval = setInterval(fetchBynRate, 3600000)
     return () => clearInterval(interval)
-  }, [])
+  }, [userIP])
 
   // Динамический эффект для нижнего бара
   useEffect(() => {
