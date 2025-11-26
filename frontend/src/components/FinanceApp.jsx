@@ -694,9 +694,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
   const [detailsCommentText, setDetailsCommentText] = useState('')
   
-  // Свайп управление нижним баром
-  const [isBottomBarHidden, setIsBottomBarHidden] = useState(false)
-  
   const [secondGoalName, setSecondGoalName] = useState('')
   const [secondGoalAmount, setSecondGoalAmount] = useState(0)
   const [secondGoalSavings, setSecondGoalSavings] = useState(0)
@@ -755,12 +752,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     fetchRate()
   }, [])
 
-  // Динамический эффект для нижнего бара и плавающей кнопки
+  // Динамический эффект для нижнего бара
   useEffect(() => {
     const bottomNavBg = document.getElementById('bottom-nav-bg')
-    const floatingPlusBg = document.getElementById('floating-plus-bg')
     
-    if (!bottomNavBg && !floatingPlusBg) return
+    if (!bottomNavBg) return
 
     const handleTouchMove = (e) => {
       const touch = e.touches[0]
@@ -768,12 +764,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const x = (touch.clientX / innerWidth - 0.5) * 20
       const y = (touch.clientY / innerHeight - 0.5) * 20
 
-      if (bottomNavBg) {
-        bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
-      }
-      if (floatingPlusBg) {
-        floatingPlusBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
-      }
+      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
     }
 
     const handleMouseMove = (e) => {
@@ -781,96 +772,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const x = (e.clientX / innerWidth - 0.5) * 20
       const y = (e.clientY / innerHeight - 0.5) * 20
 
-      if (bottomNavBg) {
-        bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
-      }
-      if (floatingPlusBg) {
-        floatingPlusBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
-      }
+      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
     }
 
     // Добавляем обработчики для мобильных и десктоп устройств
-    if (bottomNavBg) {
-      bottomNavBg.addEventListener('touchmove', handleTouchMove)
-      bottomNavBg.addEventListener('mousemove', handleMouseMove)
-    }
-    if (floatingPlusBg) {
-      floatingPlusBg.addEventListener('touchmove', handleTouchMove)
-      floatingPlusBg.addEventListener('mousemove', handleMouseMove)
-    }
+    bottomNavBg.addEventListener('touchmove', handleTouchMove)
+    bottomNavBg.addEventListener('mousemove', handleMouseMove)
 
     return () => {
-      if (bottomNavBg) {
-        bottomNavBg.removeEventListener('touchmove', handleTouchMove)
-        bottomNavBg.removeEventListener('mousemove', handleMouseMove)
-      }
-      if (floatingPlusBg) {
-        floatingPlusBg.removeEventListener('touchmove', handleTouchMove)
-        floatingPlusBg.removeEventListener('mousemove', handleMouseMove)
-      }
-    }
-  }, [])
-
-  // Свайп управление для нижнего бара
-  useEffect(() => {
-    let touchStartY = 0
-    let lastTouchY = 0
-
-    const handleTouchStart = (e) => {
-      // Проверяем, что свайп не начинается на кнопках нижнего бара
-      const target = e.target
-      const bottomNav = document.getElementById('bottom-nav-bg')
-      const floatingPlus = document.getElementById('floating-plus-bg')
-      
-      if ((bottomNav && bottomNav.contains(target)) || 
-          (floatingPlus && floatingPlus.contains(target))) {
-        return // Игнорируем свайпы на кнопках нижнего бара и плюсике
-      }
-      
-      touchStartY = e.touches[0].clientY
-      lastTouchY = touchStartY
-    }
-
-    const handleTouchMove = (e) => {
-      const target = e.target
-      const bottomNav = document.getElementById('bottom-nav-bg')
-      const floatingPlus = document.getElementById('floating-plus-bg')
-      
-      if ((bottomNav && bottomNav.contains(target)) || 
-          (floatingPlus && floatingPlus.contains(target))) {
-        return // Игнорируем свайпы на кнопках нижнего бара и плюсике
-      }
-      
-      const currentTouchY = e.touches[0].clientY
-      const deltaY = lastTouchY - currentTouchY
-      
-      // Обрабатываем движение в реальном времени
-      if (Math.abs(deltaY) > 5) {
-        if (deltaY > 0) {
-          // Движение вверх - скрываем нижний бар
-          setIsBottomBarHidden(true)
-        } else {
-          // Движение вниз - показываем нижний бар
-          setIsBottomBarHidden(false)
-        }
-        lastTouchY = currentTouchY
-      }
-    }
-
-    const handleTouchEnd = () => {
-      // Сбрасываем значения
-      touchStartY = 0
-      lastTouchY = 0
-    }
-
-    document.addEventListener('touchstart', handleTouchStart)
-    document.addEventListener('touchmove', handleTouchMove)
-    document.addEventListener('touchend', handleTouchEnd)
-
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart)
-      document.removeEventListener('touchmove', handleTouchMove)
-      document.removeEventListener('touchend', handleTouchEnd)
+      bottomNavBg.removeEventListener('touchmove', handleTouchMove)
+      bottomNavBg.removeEventListener('mousemove', handleMouseMove)
     }
   }, [])
 
@@ -2568,7 +2479,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }}
     >
       {activeTab === "overview" && (
-        <header className="relative overflow-hidden px-4 pb-4 z-20" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
           {/* Градиент на заднем плане */}
           <div 
             className="absolute inset-0 opacity-30 blur-3xl"
@@ -2757,8 +2668,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-2xl p-4 border ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                  className={`rounded-2xl p-4 border backdrop-blur-md ${
+                    theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2870,8 +2781,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                className={`rounded-2xl p-4 border backdrop-blur-md ${
+                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -3150,8 +3061,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3344,8 +3255,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
                 }`}
               >
                 {linkedUsers.length > 1 && (
@@ -3519,8 +3430,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3606,8 +3517,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты */}
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3638,8 +3549,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
                 }`}
               >
                 <button
@@ -5755,7 +5666,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       )}
 
-      {!isKeyboardOpen && !isBottomBarHidden && (
+      {!isKeyboardOpen && (
         <div
           className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
@@ -5851,28 +5762,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       )}
 
-      {/* Плавающая кнопка плюсик когда нижний бар скрыт */}
-      {!isKeyboardOpen && isBottomBarHidden && (
-        <div
-          className="fixed bottom-6 right-6 z-40 pointer-events-none"
-          style={{
-            paddingBottom: Math.max(safeAreaInset.bottom, 8) / 2,
-          }}
-        >
-          <div className="liquid-glass-dynamic-plus" id="floating-plus-bg">
-            <button
-              onClick={() => {
-                setShowAddModal(true)
-                vibrate()
-              }}
-              className="p-4 rounded-full transition-all transform active:scale-95 touch-none pointer-events-auto text-white shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600"
-            >
-              <Plus className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
-      )}
-
       <svg xmlns="http://www.w3.org/2000/svg" style={{ display: 'none' }}>
         <defs>
           <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%">
@@ -5939,8 +5828,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           inset: 0;
           z-index: -1;
           border-radius: 56px;
-          backdrop-filter: blur(1px);
-          -webkit-backdrop-filter: blur(1px);
+          backdrop-filter: blur(15px);
+          -webkit-backdrop-filter: blur(15px);
           filter: url(#liquid-glass-filter);
           -webkit-filter: url(#liquid-glass-filter);
         }
@@ -5987,8 +5876,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           inset: 0;
           z-index: -1;
           border-radius: 50%;
-          backdrop-filter: blur(1px);
-          -webkit-backdrop-filter: blur(1px);
+          backdrop-filter: blur(15px);
+          -webkit-backdrop-filter: blur(15px);
           filter: url(#liquid-glass-filter);
           -webkit-filter: url(#liquid-glass-filter);
         }
