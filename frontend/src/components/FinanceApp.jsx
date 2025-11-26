@@ -2558,8 +2558,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     <div
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
+          ? "bg-gradient-to-br from-blue-900 via-orange-800 to-orange-900"
+          : "bg-gradient-to-br from-blue-100 via-orange-50 to-orange-100"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
