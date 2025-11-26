@@ -414,7 +414,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   }`}
                 >
                   {tx.type === "income" ? "+" : "-"}
-                  {formatCurrency(tx.amount)}
+                  {formatCurrencyShort(tx.amount)}
                 </p>
               </div>
 
@@ -1142,6 +1142,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       currency: "BYN",
       minimumFractionDigits: 2,
     }).format(amount)
+  }
+
+  const formatCurrencyShort = (amount, currency = "BYN") => {
+    const formatted = new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount)
+    // Убираем ,00 если сумма целая
+    return formatted.replace(/,00$/, '')
   }
 
   const formatCurrencyWithConversion = (amount, fromCurrency = "USD") => {
@@ -2545,14 +2556,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <TrendingUp className="w-3 h-3 text-emerald-300" />
                   <span className="text-xs text-white/90">Доходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrencyShort(income) : "••••••"}</p>
               </div>
               <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingDown className="w-3 h-3 text-rose-300" />
                   <span className="text-xs text-white/90">Расходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrencyShort(expenses) : "••••••"}</p>
               </div>
             </div>
           </div>
@@ -3209,7 +3220,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                   ? theme === "dark" ? "text-red-400" : "text-red-600"
                                   : theme === "dark" ? "text-green-400" : "text-green-600"
                               }`}>
-                                {formatCurrency(debt.amount)}
+                                {formatCurrencyShort(debt.amount)}
                               </p>
                             </div>
                           </div>
@@ -4570,7 +4581,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }`}
                 >
                   {selectedTransaction.type === "income" ? "+" : "-"}
-                  {formatCurrency(selectedTransaction.amount)}
+                  {formatCurrencyShort(selectedTransaction.amount)}
                 </p>
                 <p className={`text-lg font-semibold mb-1 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   {selectedTransaction.description || "Без описания"}
