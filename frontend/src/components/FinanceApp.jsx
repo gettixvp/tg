@@ -2469,8 +2469,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     <div
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
-          ? "bg-gradient-to-br from-blue-900 via-orange-800 to-orange-900"
-          : "bg-gradient-to-br from-blue-100 via-orange-50 to-orange-100"
+          ? "bg-gradient-to-br from-blue-900/90 via-orange-800/90 to-orange-900/90"
+          : "bg-gradient-to-br from-blue-100/90 via-orange-50/90 to-orange-100/90"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -2947,10 +2947,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {savingsTab === 'savings' && (
                 <>
               <div
-                className={`rounded-2xl p-4 text-white shadow-2xl ${
+                className={`rounded-2xl p-4 text-white shadow-2xl backdrop-blur-md ${
                   theme === "dark"
                     ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-                    : "bg-gradient-to-br from-blue-500 to-purple-600"
+                    : "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
