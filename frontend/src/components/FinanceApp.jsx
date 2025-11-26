@@ -686,8 +686,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
-  const [bynExchangeRate, setBynExchangeRate] = useState(2.9450) // Курс BYN/USD из API
-  const [userIP, setUserIP] = useState("") // IP адрес пользователя
+  const [bynExchangeRate, setBynExchangeRate] = useState(2.9450) // Курс BYN/USD
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
@@ -743,40 +742,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const displayName = (tgUser && tgUser.first_name) || "Пользователь"
   const tgPhotoUrl = tgUser && tgUser.photo_url
 
-  // Получение IP адреса пользователя
-  useEffect(() => {
-    const fetchUserIP = async () => {
-      try {
-        // Используем несколько сервисов для получения IP
-        const ipServices = [
-          'https://api.ipify.org?format=json',
-          'https://ipapi.co/json/',
-          'https://api.ipgeolocation.io/ipgeo'
-        ]
-        
-        for (const service of ipServices) {
-          try {
-            const response = await fetch(service)
-            if (response.ok) {
-              const data = await response.json()
-              const ip = data.ip || data.ip_address || data.query
-              if (ip) {
-                setUserIP(ip)
-                console.log('User IP detected:', ip)
-                break
-              }
-            }
-          } catch (error) {
-            console.log(`IP service ${service} failed, trying next...`)
-          }
-        }
-      } catch (e) {
-        console.warn("Failed to fetch user IP", e)
-      }
-    }
-    fetchUserIP()
-  }, [])
-
   useEffect(() => {
     const fetchRate = async () => {
       try {
@@ -789,54 +754,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
     fetchRate()
   }, [])
-
-  // Получение курса BYN/USD от нашего сервера
-  useEffect(() => {
-    const fetchBynRate = async () => {
-      try {
-        // Используем наш сервер для получения курсов
-        let rate = 2.9450 // значение по умолчанию
-        
-        // Источник 1: Наш сервер с курсами
-        try {
-          const response = await fetch(`${API_BASE}/api/exchange-rates`)
-          if (response.ok) {
-            const data = await response.json()
-            rate = data.bynToUsd || rate
-            console.log('Using server rate:', rate, 'IP:', userIP)
-          }
-        } catch (error1) {
-          console.log('Server API failed, trying direct API...')
-          
-          // Запасной вариант: frankfurter.app напрямую
-          try {
-            const response = await fetch('https://api.frankfurter.app/latest?amount=1&from=USD&to=BYN')
-            if (response.ok) {
-              const data = await response.json()
-              rate = data.rates.BYN
-              console.log('Using frankfurter.app fallback rate:', rate, 'IP:', userIP)
-            }
-          } catch (error2) {
-            console.log('All APIs failed, using fallback rate')
-          }
-        }
-        
-        setBynExchangeRate(rate)
-      } catch (e) {
-        console.warn("Failed to fetch BYN exchange rate, using fallback", e)
-        setBynExchangeRate(2.9450)
-      }
-    }
-    
-    // Ждем получения IP перед запросом курса
-    if (userIP || userIP === "") {
-      fetchBynRate()
-    }
-    
-    // Обновляем курс каждый час
-    const interval = setInterval(fetchBynRate, 3600000)
-    return () => clearInterval(interval)
-  }, [userIP])
 
   // Динамический эффект для нижнего бара
   useEffect(() => {
@@ -1219,14 +1136,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }).format(amount)
     // Убираем ,00 если сумма целая
     return formatted.replace(/,00$/, '')
-  }
-
-  const formatCurrencyWithConversion = (amount, fromCurrency = "USD") => {
-    if (fromCurrency === "USD") {
-      const bynAmount = amount * bynExchangeRate
-      return `${formatCurrency(amount, "USD")} ≈ ${formatCurrency(bynAmount, "BYN")}`
-    }
-    return formatCurrency(amount, "BYN")
   }
 
   const formatDate = (dateString) => {
@@ -3045,20 +2954,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {savingsTab === 'savings' && (
                 <>
-              {/* Информационный блок с курсом валют */}
-              <div className={`mx-4 mb-4 p-3 rounded-xl backdrop-blur-md ${
-                theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
-              } border`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Курс BYN/USD (Belarusbank):
-                  </span>
-                  <span className={`text-sm font-bold ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
-                    {bynExchangeRate.toFixed(4)}
-                  </span>
-                </div>
-              </div>
-
               <div
                 className={`rounded-2xl p-4 text-white shadow-2xl backdrop-blur-md ${
                   theme === "dark"
@@ -3113,8 +3008,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div
                     className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
                   >
-                    <span>{formatCurrencyWithConversion(savings, "USD")}</span>
-                    <span>{formatCurrencyWithConversion(goalSavings, "USD")}</span>
+                    <span>{formatCurrency(savings, "USD")}</span>
+                    <span>{formatCurrency(goalSavings, "USD")}</span>
                   </div>
 
                   {/* Вторая цель */}
@@ -3137,8 +3032,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <div
                         className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
                       >
-                        <span>{formatCurrencyWithConversion(secondGoalSavings, "USD")}</span>
-                        <span>{formatCurrencyWithConversion(secondGoalAmount, "USD")}</span>
+                        <span>{formatCurrency(secondGoalSavings, "USD")}</span>
+                        <span>{formatCurrency(secondGoalAmount, "USD")}</span>
                       </div>
                     </div>
                   )}
