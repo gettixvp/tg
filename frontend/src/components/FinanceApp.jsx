@@ -815,7 +815,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   useEffect(() => {
     let touchStartY = 0
     let touchEndY = 0
-    const minSwipeDistance = 10
+    const minSwipeDistance = 5
 
     const handleTouchStart = (e) => {
       // Проверяем, что свайп не начинается на кнопках нижнего бара
@@ -5858,7 +5858,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 setShowAddModal(true)
                 vibrate()
               }}
-              className="p-4 rounded-full transition-all transform active:scale-95 touch-none pointer-events-auto text-white shadow-2xl"
+              className="p-4 rounded-full transition-all transform active:scale-95 touch-none pointer-events-auto text-white shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600"
             >
               <Plus className="h-6 w-6" />
             </button>
@@ -5874,7 +5874,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <feDisplacementMap in="SourceGraphic" in2="blurred" scale="77" xChannelSelector="R" yChannelSelector="G" />
           </filter>
           <filter id="liquid-glass-filter" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
-            <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="20" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
+            <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="30" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
             <feGaussianBlur stdDeviation="3 3" x="0%" y="0%" width="100%" height="100%" in="displacementMap" edgeMode="none" result="blur" />
           </filter>
         </defs>
@@ -5932,8 +5932,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           inset: 0;
           z-index: -1;
           border-radius: 56px;
-          backdrop-filter: blur(0px);
-          -webkit-backdrop-filter: blur(0px);
+          backdrop-filter: blur(1px);
+          -webkit-backdrop-filter: blur(1px);
           filter: url(#liquid-glass-filter);
           -webkit-filter: url(#liquid-glass-filter);
         }
@@ -5980,8 +5980,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           inset: 0;
           z-index: -1;
           border-radius: 50%;
-          backdrop-filter: blur(0px);
-          -webkit-backdrop-filter: blur(0px);
+          backdrop-filter: blur(1px);
+          -webkit-backdrop-filter: blur(1px);
           filter: url(#liquid-glass-filter);
           -webkit-filter: url(#liquid-glass-filter);
         }
