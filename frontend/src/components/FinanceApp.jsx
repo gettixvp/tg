@@ -816,7 +816,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     let touchStartY = 0
     let lastTouchY = 0
     let isSwiping = false
-    let scrollStartY = 0
 
     const handleTouchStart = (e) => {
       // Проверяем, что свайп не начинается на кнопках нижнего бара
@@ -824,15 +823,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const bottomNav = document.getElementById('bottom-nav-bg')
       if (bottomNav && bottomNav.contains(target)) {
         return // Игнорируем свайпы на нижнем баре
-      }
-      
-      // Проверяем, находится ли элемент в скроллируемом контейнере
-      const scrollableElement = target.closest('[data-scrollable="true"]') || 
-                               target.closest('.overflow-y-auto') ||
-                               target.closest('main')
-      
-      if (scrollableElement) {
-        scrollStartY = scrollableElement.scrollTop
       }
       
       touchStartY = e.touches[0].clientY
@@ -850,24 +840,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const currentTouchY = e.touches[0].clientY
       const deltaY = lastTouchY - currentTouchY
       
-      // Проверяем, находится ли элемент в скроллируемом контейнере
-      const scrollableElement = target.closest('[data-scrollable="true"]') || 
-                               target.closest('.overflow-y-auto') ||
-                               target.closest('main')
-      
-      let isScrolling = false
-      if (scrollableElement) {
-        const currentScrollY = scrollableElement.scrollTop
-        const scrollDelta = Math.abs(currentScrollY - scrollStartY)
-        
-        // Если скролл значительный, игнорируем свайп для бара
-        if (scrollDelta > 5) {
-          isScrolling = true
-        }
-      }
-      
-      // Обрабатываем свайп только если не идет активная прокрутка
-      if (!isScrolling && Math.abs(deltaY) > 3) {
+      // Всегда обрабатываем свайп, независимо от скролла
+      if (Math.abs(deltaY) > 2) {
         if (deltaY > 0) {
           // Движение вверх - скрываем нижний бар
           setIsBottomBarHidden(true)
@@ -884,7 +858,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       isSwiping = false
       touchStartY = 0
       lastTouchY = 0
-      scrollStartY = 0
     }
 
     document.addEventListener('touchstart', handleTouchStart)
