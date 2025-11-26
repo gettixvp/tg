@@ -820,8 +820,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       // Проверяем, что свайп не начинается на кнопках нижнего бара
       const target = e.target
       const bottomNav = document.getElementById('bottom-nav-bg')
-      if (bottomNav && bottomNav.contains(target)) {
-        return // Игнорируем свайпы на нижнем баре
+      const floatingPlus = document.getElementById('floating-plus-bg')
+      
+      if ((bottomNav && bottomNav.contains(target)) || 
+          (floatingPlus && floatingPlus.contains(target))) {
+        return // Игнорируем свайпы на кнопках нижнего бара и плюсике
       }
       
       touchStartY = e.touches[0].clientY
@@ -831,15 +834,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const handleTouchMove = (e) => {
       const target = e.target
       const bottomNav = document.getElementById('bottom-nav-bg')
-      if (bottomNav && bottomNav.contains(target)) {
-        return // Игнорируем свайпы на нижнем баре
+      const floatingPlus = document.getElementById('floating-plus-bg')
+      
+      if ((bottomNav && bottomNav.contains(target)) || 
+          (floatingPlus && floatingPlus.contains(target))) {
+        return // Игнорируем свайпы на кнопках нижнего бара и плюсике
       }
       
       const currentTouchY = e.touches[0].clientY
       const deltaY = lastTouchY - currentTouchY
       
       // Обрабатываем движение в реальном времени
-      if (Math.abs(deltaY) > 1) {
+      if (Math.abs(deltaY) > 5) {
         if (deltaY > 0) {
           // Движение вверх - скрываем нижний бар
           setIsBottomBarHidden(true)
@@ -2562,7 +2568,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }}
     >
       {activeTab === "overview" && (
-        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+        <header className="relative overflow-hidden px-4 pb-4 z-20" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
           {/* Градиент на заднем плане */}
           <div 
             className="absolute inset-0 opacity-30 blur-3xl"
