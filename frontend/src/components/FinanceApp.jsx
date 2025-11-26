@@ -810,7 +810,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           
           // Запасной вариант: frankfurter.app напрямую
           try {
-            const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=BYN')
+            const response = await fetch('https://api.frankfurter.app/latest?amount=1&from=USD&to=BYN')
             if (response.ok) {
               const data = await response.json()
               rate = data.rates.BYN
