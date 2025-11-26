@@ -694,6 +694,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
   const [detailsCommentText, setDetailsCommentText] = useState('')
   
+  // Свайп управление нижним баром
+  const [isBottomBarHidden, setIsBottomBarHidden] = useState(false)
+  
   const [secondGoalName, setSecondGoalName] = useState('')
   const [secondGoalAmount, setSecondGoalAmount] = useState(0)
   const [secondGoalSavings, setSecondGoalSavings] = useState(0)
@@ -752,10 +755,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     fetchRate()
   }, [])
 
-  // Динамический эффект для нижнего бара
+  // Динамический эффект для нижнего бара и плавающей кнопки
   useEffect(() => {
     const bottomNavBg = document.getElementById('bottom-nav-bg')
-    if (!bottomNavBg) return
+    const floatingPlusBg = document.getElementById('floating-plus-bg')
+    
+    if (!bottomNavBg && !floatingPlusBg) return
 
     const handleTouchMove = (e) => {
       const touch = e.touches[0]
@@ -763,7 +768,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const x = (touch.clientX / innerWidth - 0.5) * 20
       const y = (touch.clientY / innerHeight - 0.5) * 20
 
-      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+      if (bottomNavBg) {
+        bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+      }
+      if (floatingPlusBg) {
+        floatingPlusBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+      }
     }
 
     const handleMouseMove = (e) => {
@@ -771,16 +781,72 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const x = (e.clientX / innerWidth - 0.5) * 20
       const y = (e.clientY / innerHeight - 0.5) * 20
 
-      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+      if (bottomNavBg) {
+        bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+      }
+      if (floatingPlusBg) {
+        floatingPlusBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+      }
     }
 
     // Добавляем обработчики для мобильных и десктоп устройств
-    bottomNavBg.addEventListener('touchmove', handleTouchMove)
-    bottomNavBg.addEventListener('mousemove', handleMouseMove)
+    if (bottomNavBg) {
+      bottomNavBg.addEventListener('touchmove', handleTouchMove)
+      bottomNavBg.addEventListener('mousemove', handleMouseMove)
+    }
+    if (floatingPlusBg) {
+      floatingPlusBg.addEventListener('touchmove', handleTouchMove)
+      floatingPlusBg.addEventListener('mousemove', handleMouseMove)
+    }
 
     return () => {
-      bottomNavBg.removeEventListener('touchmove', handleTouchMove)
-      bottomNavBg.removeEventListener('mousemove', handleMouseMove)
+      if (bottomNavBg) {
+        bottomNavBg.removeEventListener('touchmove', handleTouchMove)
+        bottomNavBg.removeEventListener('mousemove', handleMouseMove)
+      }
+      if (floatingPlusBg) {
+        floatingPlusBg.removeEventListener('touchmove', handleTouchMove)
+        floatingPlusBg.removeEventListener('mousemove', handleMouseMove)
+      }
+    }
+  }, [])
+
+  // Свайп управление для нижнего бара
+  useEffect(() => {
+    let touchStartY = 0
+    let touchEndY = 0
+    const minSwipeDistance = 50
+
+    const handleTouchStart = (e) => {
+      touchStartY = e.touches[0].clientY
+    }
+
+    const handleTouchMove = (e) => {
+      touchEndY = e.touches[0].clientY
+    }
+
+    const handleTouchEnd = () => {
+      const swipeDistance = touchStartY - touchEndY
+      
+      if (Math.abs(swipeDistance) > minSwipeDistance) {
+        if (swipeDistance > 0) {
+          // Свайп вверх - скрываем нижний бар
+          setIsBottomBarHidden(true)
+        } else {
+          // Свайп вниз - показываем нижний бар
+          setIsBottomBarHidden(false)
+        }
+      }
+    }
+
+    document.addEventListener('touchstart', handleTouchStart)
+    document.addEventListener('touchmove', handleTouchMove)
+    document.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
     }
   }, [])
 
@@ -5665,7 +5731,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       )}
 
-      {!isKeyboardOpen && (
+      {!isKeyboardOpen && !isBottomBarHidden && (
         <div
           className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
@@ -5757,6 +5823,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Плавающая кнопка плюсик когда нижний бар скрыт */}
+      {!isKeyboardOpen && isBottomBarHidden && (
+        <div
+          className="fixed bottom-6 right-6 z-40 pointer-events-none"
+          style={{
+            paddingBottom: Math.max(safeAreaInset.bottom, 8) / 2,
+          }}
+        >
+          <div className="liquid-glass-dynamic" id="floating-plus-bg">
+            <button
+              onClick={() => {
+                setShowAddModal(true)
+                vibrate()
+              }}
+              className="p-4 rounded-full transition-all transform active:scale-95 touch-none pointer-events-auto bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-2xl"
+            >
+              <Plus className="h-6 w-6" />
+            </button>
           </div>
         </div>
       )}
