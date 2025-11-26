@@ -815,7 +815,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   useEffect(() => {
     let touchStartY = 0
     let touchEndY = 0
-    const minSwipeDistance = 5
+    const minSwipeDistance = 0
 
     const handleTouchStart = (e) => {
       // Проверяем, что свайп не начинается на кнопках нижнего бара
@@ -5939,8 +5939,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }
 
         .liquid-glass-dynamic-plus {
-          width: 80px;
-          height: 80px;
+          width: 56px;
+          height: 56px;
           border-radius: 50%;
           position: relative;
           isolation: isolate;
