@@ -815,13 +815,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   useEffect(() => {
     let touchStartY = 0
     let touchEndY = 0
-    const minSwipeDistance = 50
+    const minSwipeDistance = 10
 
     const handleTouchStart = (e) => {
+      // Проверяем, что свайп не начинается на кнопках нижнего бара
+      const target = e.target
+      const bottomNav = document.getElementById('bottom-nav-bg')
+      if (bottomNav && bottomNav.contains(target)) {
+        return // Игнорируем свайпы на нижнем баре
+      }
+      
       touchStartY = e.touches[0].clientY
     }
 
     const handleTouchMove = (e) => {
+      const target = e.target
+      const bottomNav = document.getElementById('bottom-nav-bg')
+      if (bottomNav && bottomNav.contains(target)) {
+        return // Игнорируем свайпы на нижнем баре
+      }
+      
       touchEndY = e.touches[0].clientY
     }
 
@@ -837,6 +850,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           setIsBottomBarHidden(false)
         }
       }
+      
+      // Сбрасываем значения
+      touchStartY = 0
+      touchEndY = 0
     }
 
     document.addEventListener('touchstart', handleTouchStart)
@@ -5841,7 +5858,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 setShowAddModal(true)
                 vibrate()
               }}
-              className="p-4 rounded-full transition-all transform active:scale-95 touch-none pointer-events-auto bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-2xl"
+              className="p-4 rounded-full transition-all transform active:scale-95 touch-none pointer-events-auto text-white shadow-2xl"
             >
               <Plus className="h-6 w-6" />
             </button>
