@@ -814,8 +814,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Свайп управление для нижнего бара
   useEffect(() => {
     let touchStartY = 0
-    let lastTouchY = 0
-    let isSwiping = false
+    let touchEndY = 0
 
     const handleTouchStart = (e) => {
       // Проверяем, что свайп не начинается на кнопках нижнего бара
@@ -826,8 +825,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
       
       touchStartY = e.touches[0].clientY
-      lastTouchY = touchStartY
-      isSwiping = false
     }
 
     const handleTouchMove = (e) => {
@@ -837,27 +834,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         return // Игнорируем свайпы на нижнем баре
       }
       
-      const currentTouchY = e.touches[0].clientY
-      const deltaY = lastTouchY - currentTouchY
-      
-      // Всегда обрабатываем свайп, независимо от скролла
-      if (Math.abs(deltaY) > 2) {
-        if (deltaY > 0) {
-          // Движение вверх - скрываем нижний бар
-          setIsBottomBarHidden(true)
-        } else {
-          // Движение вниз - показываем нижний бар
-          setIsBottomBarHidden(false)
-        }
-        isSwiping = true
-        lastTouchY = currentTouchY
-      }
+      touchEndY = e.touches[0].clientY
     }
 
     const handleTouchEnd = () => {
-      isSwiping = false
+      const swipeDistance = touchStartY - touchEndY
+      
+      // Обрабатываем любой свайп, даже самый маленький
+      if (swipeDistance !== 0) {
+        if (swipeDistance > 0) {
+          // Свайп вверх - скрываем нижний бар
+          setIsBottomBarHidden(true)
+        } else {
+          // Свайп вниз - показываем нижний бар
+          setIsBottomBarHidden(false)
+        }
+      }
+      
+      // Сбрасываем значения
       touchStartY = 0
-      lastTouchY = 0
+      touchEndY = 0
     }
 
     document.addEventListener('touchstart', handleTouchStart)
