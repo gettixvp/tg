@@ -5796,7 +5796,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           align-items: center;
           justify-content: center;
           border: none;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.005));
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.005), rgba(255, 255, 255, 0.001));
           background-size: 200% 200%;
           background-position: 75% 15%;
           padding: 0;
@@ -5818,7 +5818,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           z-index: 0;
           border-radius: 56px;
           box-shadow: inset 0 0 15px -5px rgba(0, 0, 0, 0.3);
-          background-color: rgba(255, 255, 255, 0.01);
+          background-color: rgba(255, 255, 255, 0.003);
         }
 
         .liquid-glass-dynamic::after {
