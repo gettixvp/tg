@@ -684,6 +684,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
+  const [bynExchangeRate, setBynExchangeRate] = useState(2.9450) // Курс BYN/USD из Belarusbank
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
@@ -750,6 +751,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
     }
     fetchRate()
+  }, [])
+
+  // Получение курса BYN/USD из Belarusbank
+  useEffect(() => {
+    const fetchBynRate = async () => {
+      try {
+        const res = await fetch("https://belarusbank.by/api/kursExchange?city=Брест")
+        const data = await res.json()
+        if (data && data.length > 0 && data[0].USD_out) {
+          setBynExchangeRate(parseFloat(data[0].USD_out))
+        }
+      } catch (e) {
+        console.warn("Failed to fetch BYN exchange rate", e)
+      }
+    }
+    fetchBynRate()
+    // Обновляем курс каждый час
+    const interval = setInterval(fetchBynRate, 3600000)
+    return () => clearInterval(interval)
   }, [])
 
   // Динамический эффект для нижнего бара
@@ -1109,25 +1129,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const currentCurrency = currencies.find((c) => c.code === currency) || currencies[1]
-  const formatCurrency = (value, curr = currency) => {
-    const num = Number(value)
-    if (!isFinite(num)) return `${curr === "USD" ? "$" : currentCurrency.symbol}0`
-    const symbol = curr === "USD" ? "$" : currentCurrency.symbol
-    try {
-      const formatted = new Intl.NumberFormat("ru-RU", {
+  const formatCurrency = (amount, currency = "BYN") => {
+    if (currency === "USD") {
+      return new Intl.NumberFormat("ru-RU", {
         style: "currency",
-        currency: curr,
-        minimumFractionDigits: curr === "USD" ? 2 : 0,
-      }).format(num)
-      const sample = Intl.NumberFormat("ru-RU", { style: "currency", currency: curr }).format(0)
-      const stdSym = sample.replace(/\d|\s|,|\.|0/g, "").trim()
-      if (stdSym && symbol && stdSym !== symbol) {
-        return formatted.replace(stdSym, symbol)
-      }
-      return formatted
-    } catch {
-      return `${symbol}${Math.round(num)}`
+        currency: "USD",
+        minimumFractionDigits: 2,
+      }).format(amount)
     }
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: "BYN",
+      minimumFractionDigits: 2,
+    }).format(amount)
+  }
+
+  const formatCurrencyWithConversion = (amount, fromCurrency = "USD") => {
+    if (fromCurrency === "USD") {
+      const bynAmount = amount * bynExchangeRate
+      return `${formatCurrency(amount, "USD")} ≈ ${formatCurrency(bynAmount, "BYN")}`
+    }
+    return formatCurrency(amount, "BYN")
   }
 
   const formatDate = (dateString) => {
@@ -2946,6 +2968,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {savingsTab === 'savings' && (
                 <>
+              {/* Информационный блок с курсом валют */}
+              <div className={`mx-4 mb-4 p-3 rounded-xl backdrop-blur-md ${
+                theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
+              } border`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Курс BYN/USD (Belarusbank):
+                  </span>
+                  <span className={`text-sm font-bold ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
+                    {bynExchangeRate.toFixed(4)}
+                  </span>
+                </div>
+              </div>
+
               <div
                 className={`rounded-2xl p-4 text-white shadow-2xl backdrop-blur-md ${
                   theme === "dark"
@@ -3000,8 +3036,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div
                     className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
                   >
-                    <span>{formatCurrency(savings, "USD")}</span>
-                    <span>{formatCurrency(goalSavings, "USD")}</span>
+                    <span>{formatCurrencyWithConversion(savings, "USD")}</span>
+                    <span>{formatCurrencyWithConversion(goalSavings, "USD")}</span>
                   </div>
 
                   {/* Вторая цель */}
@@ -3024,8 +3060,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <div
                         className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
                       >
-                        <span>{formatCurrency(secondGoalSavings, "USD")}</span>
-                        <span>{formatCurrency(secondGoalAmount, "USD")}</span>
+                        <span>{formatCurrencyWithConversion(secondGoalSavings, "USD")}</span>
+                        <span>{formatCurrencyWithConversion(secondGoalAmount, "USD")}</span>
                       </div>
                     </div>
                   )}
