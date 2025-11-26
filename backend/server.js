@@ -19,6 +19,45 @@ app.get("/ping", (req, res) => {
   res.send("pong");
 });
 
+// --- Получение курсов валют ---
+app.get("/api/exchange-rates", async (req, res) => {
+  try {
+    // Источник 1: frankfurter.app
+    let bynToUsd = 2.9450; // значение по умолчанию
+    
+    try {
+      const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=BYN');
+      if (response.ok) {
+        const data = await response.json();
+        bynToUsd = data.rates.BYN;
+        console.log('Server: Using frankfurter.app rate:', bynToUsd);
+      }
+    } catch (error) {
+      console.log('Server: frankfurter.app failed, trying alternative...');
+      
+      // Источник 2: exchangerate.host
+      try {
+        const response2 = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=BYN');
+        if (response2.ok) {
+          const data2 = await response2.json();
+          bynToUsd = data2.rates.BYN;
+          console.log('Server: Using exchangerate.host rate:', bynToUsd);
+        }
+      } catch (error2) {
+        console.log('Server: All APIs failed, using fallback rate');
+      }
+    }
+    
+    res.json({ 
+      bynToUsd: bynToUsd,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Server: Error fetching exchange rates:', error);
+    res.status(500).json({ error: "Failed to fetch exchange rates" });
+  }
+});
+
 // --- Регистрация / Вход ---
 app.post("/api/auth", async (req, res) => {
   const { email, password, first_name, telegram_id, telegram_name, mode } = req.body
