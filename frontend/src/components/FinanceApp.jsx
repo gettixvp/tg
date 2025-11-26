@@ -752,6 +752,38 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     fetchRate()
   }, [])
 
+  // Динамический эффект для нижнего бара
+  useEffect(() => {
+    const bottomNavBg = document.getElementById('bottom-nav-bg')
+    if (!bottomNavBg) return
+
+    const handleTouchMove = (e) => {
+      const touch = e.touches[0]
+      const { innerWidth, innerHeight } = window
+      const x = (touch.clientX / innerWidth - 0.5) * 20
+      const y = (touch.clientY / innerHeight - 0.5) * 20
+
+      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+    }
+
+    const handleMouseMove = (e) => {
+      const { innerWidth, innerHeight } = window
+      const x = (e.clientX / innerWidth - 0.5) * 20
+      const y = (e.clientY / innerHeight - 0.5) * 20
+
+      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
+    }
+
+    // Добавляем обработчики для мобильных и десктоп устройств
+    bottomNavBg.addEventListener('touchmove', handleTouchMove)
+    bottomNavBg.addEventListener('mousemove', handleMouseMove)
+
+    return () => {
+      bottomNavBg.removeEventListener('touchmove', handleTouchMove)
+      bottomNavBg.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [])
+
   useEffect(() => {
     if (tg) {
       tg.ready && tg.ready()
@@ -5643,7 +5675,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           <div className="flex items-center justify-center p-2">
-            <div className="liquid-glass">
+            <div className="liquid-glass-dynamic" id="bottom-nav-bg">
               <div className="glass-text flex items-center justify-around w-full px-4">
                 <button
                   onClick={() => {
@@ -5736,6 +5768,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <feGaussianBlur in="noise" stdDeviation="2" result="blurred" />
             <feDisplacementMap in="SourceGraphic" in2="blurred" scale="77" xChannelSelector="R" yChannelSelector="G" />
           </filter>
+          <filter id="liquid-glass-filter" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+            <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="20" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
+            <feGaussianBlur stdDeviation="3 3" x="0%" y="0%" width="100%" height="100%" in="displacementMap" edgeMode="none" result="blur" />
+          </filter>
         </defs>
       </svg>
 
@@ -5748,7 +5784,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           animation: fadeIn 0.3s ease-in;
         }
         
-        .liquid-glass {
+        .liquid-glass-dynamic {
           width: 100%;
           max-width: 400px;
           height: 70px;
@@ -5760,95 +5796,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           align-items: center;
           justify-content: center;
           border: none;
-          background: none;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+          background-size: 200% 200%;
+          background-position: 75% 15%;
           padding: 0;
           margin: 0;
           text-decoration: none;
           cursor: pointer;
           pointer-events: auto;
+          transition: background-position 0.3s ease-out;
         }
 
-        .liquid-glass:focus {
+        .liquid-glass-dynamic:focus {
           outline: none;
         }
 
-        .liquid-glass::before {
+        .liquid-glass-dynamic::before {
           content: '';
           position: absolute;
           inset: 0;
           z-index: 0;
           border-radius: 56px;
-          box-shadow: inset 0 0 15px -5px #000000;
-          background-color: rgba(255, 255, 255, 0);
+          box-shadow: inset 0 0 15px -5px rgba(0, 0, 0, 0.3);
+          background-color: rgba(255, 255, 255, 0.05);
         }
 
-        .liquid-glass::after {
+        .liquid-glass-dynamic::after {
           content: '';
           position: absolute;
           inset: 0;
           z-index: -1;
           border-radius: 56px;
-          backdrop-filter: blur(0px);
-          -webkit-backdrop-filter: blur(0px);
-          filter: url(#glass-distortion);
-          -webkit-filter: url(#glass-distortion);
-        }
-
-        )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        .liquid-glass-card {
-          width: 100%;
-          border-radius: 20px;
-          position: relative;
-          isolation: isolate;
-          box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
-          display: flex;
-          flex-direction: column;
-          border: none;
-          background: none;
-          padding: 0;
-          margin: 0;
-          pointer-events: auto;
-        }
-
-        .liquid-glass-card:focus {
-          outline: none;
-        }
-
-        .liquid-glass-card::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          border-radius: 20px;
-          box-shadow: inset 0 0 12px -4px #000000;
-          background-color: rgba(255, 255, 255, 0);
-        }
-
-        .liquid-glass-card::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          border-radius: 20px;
-          backdrop-filter: blur(0px);
-          -webkit-backdrop-filter: blur(0px);
-          filter: url(#glass-distortion);
-          -webkit-filter: url(#glass-distortion);
-        }
-
-        .glass-card-content {
-          position: relative;
-          z-index: 1;
-          padding: 16px;
-          color: #ffffff;
-          text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
-          opacity: 1;
-          transform: translate(0px, 0px);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          filter: url(#liquid-glass-filter);
+          -webkit-filter: url(#liquid-glass-filter);
         }
 
         .glass-text {
