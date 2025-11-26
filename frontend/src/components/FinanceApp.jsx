@@ -790,47 +790,46 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     fetchRate()
   }, [])
 
-  // Получение курса BYN/USD с использованием IP адреса
+  // Получение курса BYN/USD с использованием CORS-совместимых API
   useEffect(() => {
     const fetchBynRate = async () => {
       try {
-        // Используем надежный источник курса с поддержкой CORS
+        // Используем только CORS-совместимые API
         let rate = 2.9450 // значение по умолчанию
         
-        // Источник 1: exchangerate-api.com с IP заголовком
+        // Источник 1: frankfurter.app (полностью поддерживает CORS)
         try {
-          const headers = {}
-          if (userIP) {
-            headers['X-Forwarded-For'] = userIP
-            headers['X-Real-IP'] = userIP
-          }
-          
-          const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD', { headers })
+          const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=BYN')
           if (response.ok) {
             const data = await response.json()
-            // USD к BYN = 1 / BYN к USD
-            rate = 1 / data.rates.BYN
-            console.log('Using exchangerate-api.com rate with IP:', rate, 'IP:', userIP)
+            rate = data.rates.BYN
+            console.log('Using frankfurter.app rate:', rate, 'IP:', userIP)
           }
         } catch (error1) {
-          console.log('exchangerate-api.com failed, trying alternative...')
+          console.log('frankfurter.app failed, trying alternative...')
           
-          // Источник 2: frankfurter.app с IP заголовком
+          // Источник 2: exchangerate.host (поддерживает CORS)
           try {
-            const headers = {}
-            if (userIP) {
-              headers['X-Forwarded-For'] = userIP
-              headers['X-Real-IP'] = userIP
-            }
-            
-            const response2 = await fetch('https://api.frankfurter.app/latest?from=USD&to=BYN', { headers })
-            if (response2.ok) {
-              const data2 = await response2.json()
-              rate = data2.rates.BYN
-              console.log('Using frankfurter.app rate with IP:', rate, 'IP:', userIP)
+            const response = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=BYN')
+            if (response.ok) {
+              const data = await response.json()
+              rate = data.rates.BYN
+              console.log('Using exchangerate.host rate:', rate, 'IP:', userIP)
             }
           } catch (error2) {
-            console.log('All APIs failed, using fallback rate')
+            console.log('exchangerate.host failed, trying next...')
+            
+            // Источник 3: currencyapi.com (поддерживает CORS)
+            try {
+              const response = await fetch('https://api.currencyapi.com/v3/latest?apikey=freelocal&currencies=BYN&base_currency=USD')
+              if (response.ok) {
+                const data = await response.json()
+                rate = data.data.BYN.value
+                console.log('Using currencyapi.com rate:', rate, 'IP:', userIP)
+              }
+            } catch (error3) {
+              console.log('All APIs failed, using fallback rate')
+            }
           }
         }
         
