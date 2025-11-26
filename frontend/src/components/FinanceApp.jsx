@@ -5827,8 +5827,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           inset: 0;
           z-index: -1;
           border-radius: 56px;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(0px);
+          -webkit-backdrop-filter: blur(0px);
           filter: url(#liquid-glass-filter);
           -webkit-filter: url(#liquid-glass-filter);
         }
