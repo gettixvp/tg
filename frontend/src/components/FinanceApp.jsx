@@ -2747,19 +2747,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               )}
 
-              <div className="liquid-glass-card">
-                <div className="glass-card-content">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      Последние операции
-                    </h3>
-                    <button
-                      onClick={() => setActiveTab("history")}
-                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                    >
-                      Все →
-                    </button>
-                  </div>
+              <div
+                className={`rounded-2xl p-4 border ${
+                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Последние операции
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab("history")}
+                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
+                  >
+                    Все →
+                  </button>
+                </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
@@ -2800,12 +2803,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <div className="liquid-glass-card">
-                <div className="glass-card-content">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      Все операции
-                    </h3>
+              <div
+                className={`rounded-2xl p-4 border ${
+                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Все операции
+                  </h3>
                     <div className="flex items-center gap-2">
                       {/* Кнопка экспорта в PDF */}
                       <button
@@ -2830,15 +2836,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       >
                         <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                       </button>
-                      className={`p-2 rounded-lg transition-colors touch-none ${
-                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                      }`}
-                      title="Показать диаграмму"
-                    >
-                      <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                    </button>
+                    </div>
                   </div>
-                </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
