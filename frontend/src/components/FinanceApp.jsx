@@ -545,7 +545,7 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
 }
 
 // Компонент контейнера истории операций в стиле pricing
-const HistoryContainer = ({ children, theme }) => {
+const HistoryContainer = ({ children, theme, headerActions }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const containerRef = useRef(null)
   
@@ -572,6 +572,9 @@ const HistoryContainer = ({ children, theme }) => {
         <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
           История операций
         </h3>
+        <div className="header-actions">
+          {headerActions}
+        </div>
       </div>
       
       <div className="container-content">
@@ -2951,32 +2954,36 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <HistoryContainer theme={theme}>
-                <div className="flex items-center gap-2 mb-4">
-                  {/* Кнопка экспорта в PDF */}
-                  <button
-                    onClick={exportToPDF}
-                    className={`p-2 rounded-lg transition-colors touch-none ${
-                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
-                    }`}
-                    title="Экспорт в PDF"
-                  >
-                    <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
-                  </button>
-                  {/* Кнопка диаграммы */}
-                  <button
-                    onClick={() => {
-                      setShowChart(true)
-                      setChartType("expense")
-                    }}
-                    className={`p-2 rounded-lg transition-colors touch-none ${
-                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                    }`}
-                    title="Показать диаграмму"
-                  >
-                    <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                  </button>
-                </div>
+              <HistoryContainer 
+                theme={theme}
+                headerActions={
+                  <div className="flex items-center gap-2">
+                    {/* Кнопка экспорта в PDF */}
+                    <button
+                      onClick={exportToPDF}
+                      className={`p-2 rounded-lg transition-colors touch-none ${
+                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
+                      }`}
+                      title="Экспорт в PDF"
+                    >
+                      <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
+                    </button>
+                    {/* Кнопка диаграммы */}
+                    <button
+                      onClick={() => {
+                        setShowChart(true)
+                        setChartType("expense")
+                      }}
+                      className={`p-2 rounded-lg transition-colors touch-none ${
+                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
+                      }`}
+                      title="Показать диаграмму"
+                    >
+                      <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                    </button>
+                  </div>
+                }
+              >
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div

@@ -57,6 +57,36 @@
   opacity: 1;
 }
 
+/* Автоматическое свечение для мобильных устройств */
+@supports (hover: none) {
+  .recent-operations-container::before, .budgets-container::before, .savings-container::before, .history-container::before {
+    opacity: 0.6;
+    background: radial-gradient(
+      circle at 30% 30%,
+      var(--glow-color),
+      transparent 70%
+    );
+    animation: mobileGlow 4s ease-in-out infinite;
+  }
+}
+
+@keyframes mobileGlow {
+  0%, 100% {
+    background: radial-gradient(
+      circle at 30% 30%,
+      var(--glow-color),
+      transparent 70%
+    );
+  }
+  50% {
+    background: radial-gradient(
+      circle at 70% 70%,
+      var(--glow-color),
+      transparent 70%
+    );
+  }
+}
+
 /* Дополнительный слой свечения */
 .recent-operations-container::after, .budgets-container::after, .savings-container::after, .history-container::after {
   content: '';
@@ -78,6 +108,36 @@
 
 .recent-operations-container:hover::after, .budgets-container:hover::after, .savings-container:hover::after, .history-container:hover::after {
   opacity: 0.3;
+}
+
+/* Автоматическое свечение для второго слоя на мобильных */
+@supports (hover: none) {
+  .recent-operations-container::after, .budgets-container::after, .savings-container::after, .history-container::after {
+    opacity: 0.2;
+    background: radial-gradient(
+      circle at 70% 70%,
+      var(--glow-intense),
+      transparent 50%
+    );
+    animation: mobileGlowIntense 4s ease-in-out infinite;
+  }
+}
+
+@keyframes mobileGlowIntense {
+  0%, 100% {
+    background: radial-gradient(
+      circle at 70% 70%,
+      var(--glow-intense),
+      transparent 50%
+    );
+  }
+  50% {
+    background: radial-gradient(
+      circle at 30% 30%,
+      var(--glow-intense),
+      transparent 50%
+    );
+  }
 }
 
 /* Hover эффекты для контейнера */
@@ -111,6 +171,12 @@
   font-size: 1.125rem;
   margin: 0;
   color: var(--title-color);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .show-all-button {
@@ -157,6 +223,50 @@
 
 .recent-operations-container:hover .glow-overlay, .budgets-container:hover .glow-overlay, .savings-container:hover .glow-overlay, .history-container:hover .glow-overlay {
   opacity: 1;
+}
+
+/* Автоматическое свечение для glow-overlay на мобильных */
+@supports (hover: none) {
+  .recent-operations-container .glow-overlay, .budgets-container .glow-overlay, .savings-container .glow-overlay, .history-container .glow-overlay {
+    opacity: 0.8;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(59, 130, 246, 0.03),
+      transparent 60%
+    );
+    animation: mobileGlowOverlay 5s ease-in-out infinite;
+  }
+}
+
+@keyframes mobileGlowOverlay {
+  0%, 100% {
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(59, 130, 246, 0.03),
+      transparent 60%
+    );
+  }
+  25% {
+    background: radial-gradient(
+      circle at 20% 30%,
+      rgba(59, 130, 246, 0.05),
+      transparent 60%
+    );
+  }
+  50% {
+    background: radial-gradient(
+      circle at 80% 70%,
+      rgba(59, 130, 246, 0.04),
+      transparent 60%
+    );
+  }
+  75% {
+    background: radial-gradient(
+      circle at 30% 80%,
+      rgba(59, 130, 246, 0.06),
+      transparent 60%
+    );
+  }
 }
 
 /* Анимация появления */
