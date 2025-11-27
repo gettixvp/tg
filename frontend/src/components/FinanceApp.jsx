@@ -414,7 +414,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   }`}
                 >
                   {tx.type === "income" ? "+" : "-"}
-                  {formatCurrencyShort(tx.amount)}
+                  {formatCurrency(tx.amount)}
                 </p>
               </div>
 
@@ -684,7 +684,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isReady, setIsReady] = useState(false)
   const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
-  const [bynExchangeRate, setBynExchangeRate] = useState(2.9450) // Курс BYN/USD из Belarusbank
 
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
@@ -751,58 +750,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
     }
     fetchRate()
-  }, [])
-
-  // Получение курса BYN/USD из Belarusbank
-  useEffect(() => {
-    const fetchBynRate = async () => {
-      try {
-        const res = await fetch("https://belarusbank.by/api/kursExchange?city=Брест")
-        const data = await res.json()
-        if (data && data.length > 0 && data[0].USD_out) {
-          setBynExchangeRate(parseFloat(data[0].USD_out))
-        }
-      } catch (e) {
-        console.warn("Failed to fetch BYN exchange rate", e)
-      }
-    }
-    fetchBynRate()
-    // Обновляем курс каждый час
-    const interval = setInterval(fetchBynRate, 3600000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Динамический эффект для нижнего бара
-  useEffect(() => {
-    const bottomNavBg = document.getElementById('bottom-nav-bg')
-    
-    if (!bottomNavBg) return
-
-    const handleTouchMove = (e) => {
-      const touch = e.touches[0]
-      const { innerWidth, innerHeight } = window
-      const x = (touch.clientX / innerWidth - 0.5) * 20
-      const y = (touch.clientY / innerHeight - 0.5) * 20
-
-      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
-    }
-
-    const handleMouseMove = (e) => {
-      const { innerWidth, innerHeight } = window
-      const x = (e.clientX / innerWidth - 0.5) * 20
-      const y = (e.clientY / innerHeight - 0.5) * 20
-
-      bottomNavBg.style.backgroundPosition = `${75 + x}% ${15 + y}%`
-    }
-
-    // Добавляем обработчики для мобильных и десктоп устройств
-    bottomNavBg.addEventListener('touchmove', handleTouchMove)
-    bottomNavBg.addEventListener('mousemove', handleMouseMove)
-
-    return () => {
-      bottomNavBg.removeEventListener('touchmove', handleTouchMove)
-      bottomNavBg.removeEventListener('mousemove', handleMouseMove)
-    }
   }, [])
 
   useEffect(() => {
@@ -1129,38 +1076,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const currentCurrency = currencies.find((c) => c.code === currency) || currencies[1]
-  const formatCurrency = (amount, currency = "BYN") => {
-    if (currency === "USD") {
-      return new Intl.NumberFormat("ru-RU", {
+  const formatCurrency = (value, curr = currency) => {
+    const num = Number(value)
+    if (!isFinite(num)) return `${curr === "USD" ? "$" : currentCurrency.symbol}0`
+    const symbol = curr === "USD" ? "$" : currentCurrency.symbol
+    try {
+      const formatted = new Intl.NumberFormat("ru-RU", {
         style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-      }).format(amount)
+        currency: curr,
+        minimumFractionDigits: curr === "USD" ? 2 : 0,
+      }).format(num)
+      const sample = Intl.NumberFormat("ru-RU", { style: "currency", currency: curr }).format(0)
+      const stdSym = sample.replace(/\d|\s|,|\.|0/g, "").trim()
+      if (stdSym && symbol && stdSym !== symbol) {
+        return formatted.replace(stdSym, symbol)
+      }
+      return formatted
+    } catch {
+      return `${symbol}${Math.round(num)}`
     }
-    return new Intl.NumberFormat("ru-RU", {
-      style: "currency",
-      currency: "BYN",
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
-
-  const formatCurrencyShort = (amount, currency = "BYN") => {
-    const formatted = new Intl.NumberFormat("ru-RU", {
-      style: "currency",
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount)
-    // Убираем ,00 если сумма целая
-    return formatted.replace(/,00$/, '')
-  }
-
-  const formatCurrencyWithConversion = (amount, fromCurrency = "USD") => {
-    if (fromCurrency === "USD") {
-      const bynAmount = amount * bynExchangeRate
-      return `${formatCurrency(amount, "USD")} ≈ ${formatCurrency(bynAmount, "BYN")}`
-    }
-    return formatCurrency(amount, "BYN")
   }
 
   const formatDate = (dateString) => {
@@ -2502,8 +2436,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     <div
       className={`fixed inset-0 flex flex-col overflow-hidden ${
         theme === "dark"
-          ? "bg-gradient-to-br from-blue-900/90 via-orange-800/90 to-orange-900/90"
-          : "bg-gradient-to-br from-blue-100/90 via-orange-50/90 to-orange-100/90"
+          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
+          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
       }`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
@@ -2556,14 +2490,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <TrendingUp className="w-3 h-3 text-emerald-300" />
                   <span className="text-xs text-white/90">Доходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrencyShort(income) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
               </div>
               <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className="flex items-center gap-1 mb-0.5">
                   <TrendingDown className="w-3 h-3 text-rose-300" />
                   <span className="text-xs text-white/90">Расходы</span>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrencyShort(expenses) : "••••••"}</p>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
               </div>
             </div>
           </div>
@@ -2701,8 +2635,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
                 <div
-                  className={`rounded-2xl p-4 border backdrop-blur-md ${
-                    theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
+                  className={`rounded-2xl p-4 border ${
+                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -2813,22 +2747,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               )}
 
-              <div
-                className={`rounded-2xl p-4 border backdrop-blur-md ${
-                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Последние операции
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab("history")}
-                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                  >
-                    Все →
-                  </button>
-                </div>
+              <div className="liquid-glass-card">
+                <div className="glass-card-content">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Последние операции
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab("history")}
+                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
+                    >
+                      Все →
+                    </button>
+                  </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
@@ -2869,15 +2800,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Все операции
-                  </h3>
+              <div className="liquid-glass-card">
+                <div className="glass-card-content">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Все операции
+                    </h3>
                     <div className="flex items-center gap-2">
                       {/* Кнопка экспорта в PDF */}
                       <button
@@ -2902,8 +2830,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       >
                         <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                       </button>
-                    </div>
+                      className={`p-2 rounded-lg transition-colors touch-none ${
+                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
+                      }`}
+                      title="Показать диаграмму"
+                    >
+                      <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                    </button>
                   </div>
+                </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
@@ -2979,25 +2914,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {savingsTab === 'savings' && (
                 <>
-              {/* Информационный блок с курсом валют */}
-              <div className={`mx-4 mb-4 p-3 rounded-xl backdrop-blur-md ${
-                theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
-              } border`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Курс BYN/USD (Belarusbank):
-                  </span>
-                  <span className={`text-sm font-bold ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
-                    {bynExchangeRate.toFixed(4)}
-                  </span>
-                </div>
-              </div>
-
               <div
-                className={`rounded-2xl p-4 text-white shadow-2xl backdrop-blur-md ${
+                className={`rounded-2xl p-4 text-white shadow-2xl ${
                   theme === "dark"
                     ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-                    : "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
+                    : "bg-gradient-to-br from-blue-500 to-purple-600"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -3047,8 +2968,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div
                     className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
                   >
-                    <span>{formatCurrencyWithConversion(savings, "USD")}</span>
-                    <span>{formatCurrencyWithConversion(goalSavings, "USD")}</span>
+                    <span>{formatCurrency(savings, "USD")}</span>
+                    <span>{formatCurrency(goalSavings, "USD")}</span>
                   </div>
 
                   {/* Вторая цель */}
@@ -3071,8 +2992,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       <div
                         className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
                       >
-                        <span>{formatCurrencyWithConversion(secondGoalSavings, "USD")}</span>
-                        <span>{formatCurrencyWithConversion(secondGoalAmount, "USD")}</span>
+                        <span>{formatCurrency(secondGoalSavings, "USD")}</span>
+                        <span>{formatCurrency(secondGoalAmount, "USD")}</span>
                       </div>
                     </div>
                   )}
@@ -3108,8 +3029,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3220,7 +3141,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                   ? theme === "dark" ? "text-red-400" : "text-red-600"
                                   : theme === "dark" ? "text-green-400" : "text-green-600"
                               }`}>
-                                {formatCurrencyShort(debt.amount)}
+                                {formatCurrency(debt.amount)}
                               </p>
                             </div>
                           </div>
@@ -3302,8 +3223,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               )}
 
               <div
-                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 {linkedUsers.length > 1 && (
@@ -3477,8 +3398,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div
-                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3564,8 +3485,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты */}
               <div
-                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -3596,8 +3517,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Системные настройки (раскрываемое меню) */}
               <div
-                className={`backdrop-blur-md rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/80 border-gray-700/50" : "bg-white/80 border-gray-200/50"
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
                 }`}
               >
                 <button
@@ -4581,7 +4502,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }`}
                 >
                   {selectedTransaction.type === "income" ? "+" : "-"}
-                  {formatCurrencyShort(selectedTransaction.amount)}
+                  {formatCurrency(selectedTransaction.amount)}
                 </p>
                 <p className={`text-lg font-semibold mb-1 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                   {selectedTransaction.description || "Без описания"}
@@ -4834,9 +4755,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowBudgetKeyboard(true)
                     vibrate()
                   }}
-                className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
+                  className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
                     theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-650"
                       : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
                   }`}
                   style={{ minHeight: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -5723,7 +5644,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           <div className="flex items-center justify-center p-2">
-            <div className="liquid-glass-dynamic" id="bottom-nav-bg">
+            <div className="liquid-glass">
               <div className="glass-text flex items-center justify-around w-full px-4">
                 <button
                   onClick={() => {
@@ -5801,7 +5722,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  <Settings className="h-4 w-[8px]" />
+                  <Settings className="h-4 w-[px8]" />
                 </button>
               </div>
             </div>
@@ -5816,10 +5737,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <feGaussianBlur in="noise" stdDeviation="2" result="blurred" />
             <feDisplacementMap in="SourceGraphic" in2="blurred" scale="77" xChannelSelector="R" yChannelSelector="G" />
           </filter>
-          <filter id="liquid-glass-filter" colorInterpolationFilters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
-            <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="30" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
-            <feGaussianBlur stdDeviation="3 3" x="0%" y="0%" width="100%" height="100%" in="displacementMap" edgeMode="none" result="blur" />
-          </filter>
         </defs>
       </svg>
 
@@ -5832,7 +5749,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           animation: fadeIn 0.3s ease-in;
         }
         
-        .liquid-glass-dynamic {
+        .liquid-glass {
           width: 100%;
           max-width: 400px;
           height: 70px;
@@ -5844,89 +5761,95 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           align-items: center;
           justify-content: center;
           border: none;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
-          background-size: 200% 200%;
-          background-position: 75% 15%;
+          background: none;
           padding: 0;
           margin: 0;
           text-decoration: none;
           cursor: pointer;
           pointer-events: auto;
-          transition: background-position 0.3s ease-out;
         }
 
-        .liquid-glass-dynamic:focus {
+        .liquid-glass:focus {
           outline: none;
         }
 
-        .liquid-glass-dynamic::before {
+        .liquid-glass::before {
           content: '';
           position: absolute;
           inset: 0;
           z-index: 0;
           border-radius: 56px;
-          box-shadow: inset 0 0 15px -5px rgba(0, 0, 0, 0.3);
+          box-shadow: inset 0 0 15px -5px #000000;
           background-color: rgba(255, 255, 255, 0);
         }
 
-        .liquid-glass-dynamic::after {
+        .liquid-glass::after {
           content: '';
           position: absolute;
           inset: 0;
           z-index: -1;
           border-radius: 56px;
-          backdrop-filter: blur(15px);
-          -webkit-backdrop-filter: blur(15px);
-          filter: url(#liquid-glass-filter);
-          -webkit-filter: url(#liquid-glass-filter);
+          backdrop-filter: blur(0px);
+          -webkit-backdrop-filter: blur(0px);
+          filter: url(#glass-distortion);
+          -webkit-filter: url(#glass-distortion);
         }
 
-        .liquid-glass-dynamic-plus {
-          width: 56px;
-          height: 56px;
-          border-radius: 50%;
+        )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        .liquid-glass-card {
+          width: 100%;
+          border-radius: 20px;
           position: relative;
           isolation: isolate;
-          box-shadow: 0px 6px 24px rgba(0, 0, 0, 0.2);
+          box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
           display: flex;
-          align-items: center;
-          justify-content: center;
+          flex-direction: column;
           border: none;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
-          background-size: 200% 200%;
-          background-position: 75% 15%;
+          background: none;
           padding: 0;
           margin: 0;
-          text-decoration: none;
-          cursor: pointer;
           pointer-events: auto;
-          transition: background-position 0.3s ease-out;
         }
 
-        .liquid-glass-dynamic-plus:focus {
+        .liquid-glass-card:focus {
           outline: none;
         }
 
-        .liquid-glass-dynamic-plus::before {
+        .liquid-glass-card::before {
           content: '';
           position: absolute;
           inset: 0;
           z-index: 0;
-          border-radius: 50%;
-          box-shadow: inset 0 0 15px -5px rgba(0, 0, 0, 0.3);
+          border-radius: 20px;
+          box-shadow: inset 0 0 12px -4px #000000;
           background-color: rgba(255, 255, 255, 0);
         }
 
-        .liquid-glass-dynamic-plus::after {
+        .liquid-glass-card::after {
           content: '';
           position: absolute;
           inset: 0;
           z-index: -1;
-          border-radius: 50%;
-          backdrop-filter: blur(15px);
-          -webkit-backdrop-filter: blur(15px);
-          filter: url(#liquid-glass-filter);
-          -webkit-filter: url(#liquid-glass-filter);
+          border-radius: 20px;
+          backdrop-filter: blur(0px);
+          -webkit-backdrop-filter: blur(0px);
+          filter: url(#glass-distortion);
+          -webkit-filter: url(#glass-distortion);
+        }
+
+        .glass-card-content {
+          position: relative;
+          z-index: 1;
+          padding: 16px;
+          color: #ffffff;
+          text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
+          opacity: 1;
+          transform: translate(0px, 0px);
         }
 
         .glass-text {
