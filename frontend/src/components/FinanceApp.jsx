@@ -499,232 +499,261 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   if (!isReady || isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div
+        className={`w-full h-screen flex items-center justify-center ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
+            : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
+        }`}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>Загрузка...</p>
+          <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
+          <p className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>
+            {!isReady ? "Инициализация..." : "Загрузка данных..."}
+          </p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}
-         style={{ paddingTop: `${safeAreaInset.top}px`, paddingBottom: `${safeAreaInset.bottom}px` }}>
-      
-      {/* Header */}
-      <div className={`sticky top-0 z-50 ${theme === 'dark' ? 'bg-gray-800/95' : 'bg-white/95'} backdrop-blur-lg border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
-           style={{ paddingTop: `${contentSafeAreaInset.top}px` }}>
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-blue-600' : 'bg-blue-500'}`}>
-              <Wallet className="w-5 h-5 text-white" />
+    <div
+      className={`fixed inset-0 flex flex-col overflow-hidden ${
+        theme === "dark"
+          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
+          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
+      }`}
+      style={{
+        paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
+        paddingLeft: safeAreaInset.left || 0,
+        paddingRight: safeAreaInset.right || 0,
+      }}
+    >
+      {activeTab === "overview" && (
+        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+          {/* Градиент на заднем плане */}
+          <div 
+            className="absolute inset-0 opacity-30 blur-3xl"
+            style={{
+              background: theme === "dark" 
+                ? "radial-gradient(circle at 50% 20%, #3b82f6 0%, transparent 70%)"
+                : "radial-gradient(circle at 50% 20%, #6366f1 0%, transparent 70%)",
+              top: "-20px",
+              height: "200px"
+            }}
+          />
+          <div
+            className="relative overflow-hidden rounded-2xl p-4 z-10"
+            style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5 flex-1">
+                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/80">Общий баланс</p>
+                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBalanceVisible(!balanceVisible)}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
+              >
+                {balanceVisible ? (
+                  <Eye className="w-4 h-4 text-white" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-white" />
+                )}
+              </button>
             </div>
-            <div>
-              <h1 className="text-lg font-bold">Финансы</h1>
-              {localUser && <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{localUser.email}</p>}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {localIsAuthenticated && (
-              <button
-                onClick={() => setShowLinkedUsers(!showLinkedUsers)}
-                className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-              >
-                <Users className="w-5 h-5" />
-              </button>
-            )}
-            
-            <button
-              onClick={toggleFullscreen}
-              className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-            >
-              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-            </button>
-            
-            {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-              >
-                <LogIn className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="pb-20" ref={mainContentRef}>
-        {!localIsAuthenticated ? (
-          /* Auth Screen */
-          <div className="p-4">
-            <div className={`max-w-sm mx-auto p-6 rounded-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <h2 className="text-xl font-bold mb-6 text-center">Добро пожаловать!</h2>
-              <p className={`text-center mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                Войдите или зарегистрируйтесь для управления финансами
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full p-3 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                    placeholder="your@email.com"
-                  />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingUp className="w-3 h-3 text-emerald-300" />
+                  <span className="text-xs text-white/90">Доходы</span>
                 </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Пароль
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full p-3 rounded-lg border pr-10 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                      placeholder="••••••••"
-                    />
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+              </div>
+              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="flex items-center gap-1 mb-0.5">
+                  <TrendingDown className="w-3 h-3 text-rose-300" />
+                  <span className="text-xs text-white/90">Расходы</span>
                 </div>
+                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <main
+        ref={mainContentRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+        style={{
+          paddingLeft: contentSafeAreaInset.left || 0,
+          paddingRight: contentSafeAreaInset.right || 0,
+          paddingBottom: Math.max(contentSafeAreaInset.bottom + 80, 96),
+          WebkitOverflowScrolling: "touch",
+          overscrollBehavior: "contain",
+          touchAction: "pan-y",
+          height: "100%",
+        }}
+      >
+        <div
+          className="px-4 pt-2 pb-4"
+          style={{
+            minHeight: "100%",
+            touchAction: "pan-y",
+          }}
+        >
+          {!localIsAuthenticated ? (
+            /* Auth Screen */
+            <div className="p-4">
+              <div className={`max-w-sm mx-auto p-6 rounded-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+                <h2 className="text-xl font-bold mb-6 text-center">Добро пожаловать!</h2>
+                <p className={`text-center mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Войдите или зарегистрируйтесь для управления финансами
+                </p>
                 
-                {authMode === 'register' && (
+                <div className="space-y-4">
                   <div>
                     <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Валюта по умолчанию
+                      Email
                     </label>
-                    <select
-                      value={authCurrency}
-                      onChange={(e) => setAuthCurrency(e.target.value)}
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className={`w-full p-3 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                    >
-                      {currencies.map(curr => (
-                        <option key={curr.code} value={curr.code}>{curr.name}</option>
-                      ))}
-                    </select>
+                      placeholder="your@email.com"
+                    />
                   </div>
-                )}
-                
-                <button
-                  onClick={authMode === 'login' ? handleLogin : handleRegister}
-                  className="w-full p-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
-                >
-                  {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
-                </button>
-                
-                <button
-                  onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                  className={`w-full p-3 rounded-lg font-semibold transition-colors ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-                >
-                  {authMode === 'login' ? 'Нет аккаунта? Зарегистрируйтесь' : 'Есть аккаунт? Войдите'}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Main App Content */
-          <>
-            {/* Balance Cards */}
-            <div className="p-4 space-y-4">
-              <div className={`p-4 rounded-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium opacity-80">Баланс</h3>
+                  
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Пароль
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`w-full p-3 rounded-lg border pr-10 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                        placeholder="••••••••"
+                      />
+                      <button
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {authMode === 'register' && (
+                    <div>
+                      <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Валюта по умолчанию
+                      </label>
+                      <select
+                        value={authCurrency}
+                        onChange={(e) => setAuthCurrency(e.target.value)}
+                        className={`w-full p-3 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                      >
+                        {currencies.map(curr => (
+                          <option key={curr.code} value={curr.code}>{curr.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  
                   <button
-                    onClick={() => setBalanceVisible(!balanceVisible)}
-                    className={`p-1 rounded ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    onClick={authMode === 'login' ? handleLogin : handleRegister}
+                    className="w-full p-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
                   >
-                    {balanceVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+                  </button>
+                  
+                  <button
+                    onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                    className={`w-full p-3 rounded-lg font-semibold transition-colors ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                  >
+                    {authMode === 'login' ? 'Нет аккаунта? Зарегистрируйтесь' : 'Есть аккаунт? Войдите'}
                   </button>
                 </div>
-                <p className="text-2xl font-bold">
-                  {balanceVisible ? formatCurrency(balance, currency) : '••••••'}
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp className="w-4 h-4 text-green-500" />
-                    <span className="text-xs opacity-80">Доходы</span>
-                  </div>
-                  <p className="text-lg font-bold text-green-500">{formatCurrency(income, currency)}</p>
-                </div>
-                
-                <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <TrendingDown className="w-4 h-4 text-red-500" />
-                    <span className="text-xs opacity-80">Расходы</span>
-                  </div>
-                  <p className="text-lg font-bold text-red-500">{formatCurrency(expenses, currency)}</p>
-                </div>
-                
-                <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <PiggyBank className="w-4 h-4 text-blue-500" />
-                    <span className="text-xs opacity-80">Накопления</span>
-                  </div>
-                  <p className="text-lg font-bold text-blue-500">${savings.toFixed(2)}</p>
-                </div>
               </div>
             </div>
+          ) : (
+            /* Main App Content */
+            <>
+              {activeTab === "overview" && (
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    {/* Основная копилка */}
+                    <div
+                      onClick={() => {
+                        setActiveTab("savings")
+                        vibrateSuccess()
+                      }}
+                      className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
+                        theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
+                            <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                          </div>
+                          <div>
+                            <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{goalName || "Копилка"}</p>
+                          </div>
+                        </div>
+                        {/* Маленькая круговая диаграмма */}
+                        <div className="relative w-14 h-14 flex-shrink-0">
+                          <svg className="w-14 h-14 transform -rotate-90">
+                            <circle
+                              cx="28"
+                              cy="28"
+                              r="24"
+                              stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
+                              strokeWidth="5"
+                              fill="none"
+                            />
+                            <circle
+                              cx="28"
+                              cy="28"
+                              r="24"
+                              stroke={theme === "dark" ? "#3b82f6" : "#6366f1"}
+                              strokeWidth="5"
+                              fill="none"
+                              strokeDasharray={`${2 * Math.PI * 24}`}
+                              strokeDashoffset={`${2 * Math.PI * 24 * (1 - (savings * exchangeRate / goalSavings))}`}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                              {Math.round((savings * exchangeRate / goalSavings) * 100) || 0}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Navigation Tabs */}
-            <div className="px-4 mb-4">
-              <div className={`flex gap-2 p-1 rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'}`}>
-                <NavButton
-                  active={activeTab === "overview"}
-                  onClick={() => setActiveTab("overview")}
-                  icon={<Wallet className="w-5 h-5" />}
-                  theme={theme}
-                />
-                <NavButton
-                  active={activeTab === "transactions"}
-                  onClick={() => setActiveTab("transactions")}
-                  icon={<History className="w-5 h-5" />}
-                  theme={theme}
-                />
-                <NavButton
-                  active={activeTab === "chart"}
-                  onClick={() => setActiveTab("chart")}
-                  icon={<BarChart3 className="w-5 h-5" />}
-                  theme={theme}
-                />
-                <NavButton
-                  active={activeTab === "savings"}
-                  onClick={() => setActiveTab("savings")}
-                  icon={<PiggyBank className="w-5 h-5" />}
-                  theme={theme}
-                />
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === "overview" && (
-              <div className="px-4">
-                <h3 className="text-lg font-semibold mb-4">Обзор</h3>
-                <div className="space-y-4">
-                  <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                    <h4 className="font-medium mb-3">Последние транзакции</h4>
+                  {/* Последние транзакции */}
+                  <div className={`rounded-xl p-4 border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Последние транзакции</h3>
+                      <button
+                        onClick={() => setActiveTab("transactions")}
+                        className={`text-sm ${theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
+                      >
+                        Все
+                      </button>
+                    </div>
                     <div className="space-y-2">
                       {transactions.slice(0, 5).map(tx => (
                         <TransactionRow
@@ -742,12 +771,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === "transactions" && (
-              <div className="px-4">
-                <h3 className="text-lg font-semibold mb-4">Все транзакции</h3>
+              {activeTab === "transactions" && (
                 <div className="space-y-2">
                   {transactions.map(tx => (
                     <TransactionRow
@@ -763,96 +789,125 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     />
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === "chart" && (
-              <div className="px-4">
-                <h3 className="text-lg font-semibold mb-4">Аналитика</h3>
-                
-                <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => setChartType('expense')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      chartType === 'expense' 
-                        ? 'bg-red-500 text-white' 
-                        : theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Расходы
-                  </button>
-                  <button
-                    onClick={() => setChartType('income')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      chartType === 'income' 
-                        ? 'bg-green-500 text-white' 
-                        : theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    Доходы
-                  </button>
-                </div>
-                
-                <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                  <div className="h-64">
-                    <Pie data={chartData} options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'bottom',
-                          labels: {
-                            color: theme === 'dark' ? '#f3f4f6' : '#111827',
-                            padding: 20,
+              {activeTab === "chart" && (
+                <div className="space-y-4">
+                  <div className={`rounded-xl p-4 border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                    <h3 className="font-semibold mb-4">Аналитика</h3>
+                    
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => setChartType('expense')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          chartType === 'expense' 
+                            ? 'bg-red-500 text-white' 
+                            : theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        Расходы
+                      </button>
+                      <button
+                        onClick={() => setChartType('income')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          chartType === 'income' 
+                            ? 'bg-green-500 text-white' 
+                            : theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        Доходы
+                      </button>
+                    </div>
+                    
+                    <div className="h-64">
+                      <Pie data={chartData} options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: {
+                            position: 'bottom',
+                            labels: {
+                              color: theme === 'dark' ? '#f3f4f6' : '#111827',
+                              padding: 20,
+                            }
                           }
                         }
-                      }
-                    }} />
+                      }} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === "savings" && (
-              <div className="px-4">
-                <h3 className="text-lg font-semibold mb-4">Накопления</h3>
-                
+              {activeTab === "savings" && (
                 <div className="space-y-4">
-                  <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                    <h4 className="font-medium mb-2">Цель накоплений</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Текущая цель:</span>
-                        <span className="font-medium">{goalName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Целевая сумма:</span>
-                        <span className="font-medium">{formatCurrency(goalSavings, 'BYN')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Накоплено:</span>
-                        <span className="font-medium text-blue-500">${savings.toFixed(2)}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-500 h-2 rounded-full transition-all"
-                          style={{ width: `${Math.min((savings * exchangeRate / goalSavings) * 100, 100)}%` }}
-                        />
+                  <div className={`rounded-xl p-4 border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                    <h3 className="font-semibold mb-4">Накопления</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">{goalName}</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span>Целевая сумма:</span>
+                            <span className="font-medium">{formatCurrency(goalSavings, 'BYN')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Накоплено:</span>
+                            <span className="font-medium text-blue-500">${savings.toFixed(2)}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-500 h-2 rounded-full transition-all"
+                              style={{ width: `${Math.min((savings * exchangeRate / goalSavings) * 100, 100)}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
+        </div>
+      </main>
+
+      {/* Navigation */}
+      <div className={`fixed bottom-0 left-0 right-0 ${theme === 'dark' ? 'bg-gray-800/95' : 'bg-white/95'} backdrop-blur-lg border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+           style={{ paddingBottom: `${safeAreaInset.bottom}px` }}>
+        <div className="flex justify-around p-2">
+          <NavButton
+            active={activeTab === "overview"}
+            onClick={() => setActiveTab("overview")}
+            icon={<Wallet className="w-5 h-5" />}
+            theme={theme}
+          />
+          <NavButton
+            active={activeTab === "transactions"}
+            onClick={() => setActiveTab("transactions")}
+            icon={<History className="w-5 h-5" />}
+            theme={theme}
+          />
+          <NavButton
+            active={activeTab === "chart"}
+            onClick={() => setActiveTab("chart")}
+            icon={<BarChart3 className="w-5 h-5" />}
+            theme={theme}
+          />
+          <NavButton
+            active={activeTab === "savings"}
+            onClick={() => setActiveTab("savings")}
+            icon={<PiggyBank className="w-5 h-5" />}
+            theme={theme}
+          />
+        </div>
       </div>
 
       {/* Floating Action Button */}
       {localIsAuthenticated && (
         <button
           onClick={() => setShowAddModal(true)}
-          className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
+          className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
         >
           <Plus className="w-6 h-6" />
         </button>
