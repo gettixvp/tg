@@ -2747,19 +2747,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               )}
 
-              <div className="liquid-glass-card">
-                <div className="glass-card-content">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      Последние операции
-                    </h3>
-                    <button
-                      onClick={() => setActiveTab("history")}
-                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                    >
-                      Все →
-                    </button>
-                  </div>
+              <div
+                className={`rounded-2xl p-4 border ${
+                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Последние операции
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab("history")}
+                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
+                  >
+                    Все →
+                  </button>
+                </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
@@ -2800,36 +2803,32 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <div className="liquid-glass-card">
-                <div className="glass-card-content">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      Все операции
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {/* Кнопка экспорта в PDF */}
-                      <button
-                        onClick={exportToPDF}
-                        className={`p-2 rounded-lg transition-colors touch-none ${
-                          theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
-                        }`}
-                        title="Экспорт в PDF"
-                      >
-                        <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
-                      </button>
-                      {/* Кнопка диаграммы */}
-                      <button
-                        onClick={() => {
-                          setShowChart(true)
-                          setChartType("expense")
-                        }}
-                        className={`p-2 rounded-lg transition-colors touch-none ${
-                          theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                        }`}
-                        title="Показать диаграмму"
-                      >
-                        <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                      </button>
+              <div
+                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
+                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    История операций
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {/* Кнопка экспорта в PDF */}
+                    <button
+                      onClick={exportToPDF}
+                      className={`p-2 rounded-lg transition-colors touch-none ${
+                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
+                      }`}
+                      title="Экспорт в PDF"
+                    >
+                      <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
+                    </button>
+                    {/* Кнопка диаграммы */}
+                    <button
+                      onClick={() => {
+                        setShowChart(true)
+                        setChartType("expense")
+                      }}
                       className={`p-2 rounded-lg transition-colors touch-none ${
                         theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
                       }`}
@@ -5644,101 +5643,61 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
         >
           <div className="flex items-center justify-center p-2">
-            <div className="liquid-glass">
-              <div className="glass-text flex items-center justify-around w-full px-4">
-                <button
-                  onClick={() => {
-                    setActiveTab("overview")
-                    vibrate()
-                  }}
-                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
-                    activeTab === "overview"
-                      ? theme === "dark"
-                        ? "bg-gray-700/50 text-blue-400"
-                        : "bg-blue-100/50 text-blue-600"
-                      : theme === "dark"
-                        ? "text-gray-400 hover:text-gray-300"
-                        : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  <Wallet className="h-4 w-7" />
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveTab("history")
-                    vibrate()
-                  }}
-                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
-                    activeTab === "history"
-                      ? theme === "dark"
-                        ? "bg-gray-700/50 text-blue-400"
-                        : "bg-blue-100/50 text-blue-600"
-                      : theme === "dark"
-                        ? "text-gray-400 hover:text-gray-300"
-                        : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  <History className="h-4 w-[4px28]" />
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAddModal(true)
-                    setShowNumKeyboard(false)
-                    vibrate()
-                  }}
-                  className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveTab("savings")
-                    vibrate()
-                  }}
-                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
-                    activeTab === "savings"
-                      ? theme === "dark"
-                        ? "bg-gray-700/50 text-blue-400"
-                        : "bg-blue-100/50 text-blue-600"
-                      : theme === "dark"
-                        ? "text-gray-400 hover:text-gray-300"
-                        : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  <PiggyBank className="h-4 w-[4px28]" />
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveTab("settings")
-                    vibrate()
-                  }}
-                  className={`p-2.5 rounded-full transition-all transform active:scale-95 touch-none ${
-                    activeTab === "settings"
-                      ? theme === "dark"
-                        ? "bg-gray-700/50 text-blue-400"
-                        : "bg-blue-100/50 text-blue-600"
-                      : theme === "dark"
-                        ? "text-gray-400 hover:text-gray-300"
-                        : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  <Settings className="h-4 w-[px8]" />
-                </button>
-              </div>
+            <div
+              className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
+                theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
+              }`}
+            >
+              <NavButton
+                active={activeTab === "overview"}
+                onClick={() => {
+                  setActiveTab("overview")
+                  vibrate()
+                }}
+                icon={<Wallet className="h-4 w-7" />}
+                theme={theme}
+              />
+              <NavButton
+                active={activeTab === "history"}
+                onClick={() => {
+                  setActiveTab("history")
+                  vibrate()
+                }}
+                icon={<History className="h-4 w-[4px28]" />}
+                theme={theme}
+              />
+              <button
+                onClick={() => {
+                  setShowAddModal(true)
+                  setShowNumKeyboard(false)
+                  vibrate()
+                }}
+                className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <NavButton
+                active={activeTab === "savings"}
+                onClick={() => {
+                  setActiveTab("savings")
+                  vibrate()
+                }}
+                icon={<PiggyBank className="h-4 w-[4px28]" />}
+                theme={theme}
+              />
+              <NavButton
+                active={activeTab === "settings"}
+                onClick={() => {
+                  setActiveTab("settings")
+                  vibrate()
+                }}
+                icon={<Settings className="h-4 w-[px8]" />}
+                theme={theme}
+              />
             </div>
           </div>
         </div>
       )}
-
-      <svg xmlns="http://www.w3.org/2000/svg" style={{ display: 'none' }}>
-        <defs>
-          <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.008" numOctaves="2" seed="92" result="noise" />
-            <feGaussianBlur in="noise" stdDeviation="2" result="blurred" />
-            <feDisplacementMap in="SourceGraphic" in2="blurred" scale="77" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </defs>
-      </svg>
 
       <style>{`
         @keyframes fadeIn {
@@ -5749,124 +5708,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           animation: fadeIn 0.3s ease-in;
         }
         
-        .liquid-glass {
-          width: 100%;
-          max-width: 400px;
-          height: 70px;
-          border-radius: 56px;
-          position: relative;
-          isolation: isolate;
-          box-shadow: 0px 6px 24px rgba(0, 0, 0, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          background: none;
-          padding: 0;
-          margin: 0;
-          text-decoration: none;
-          cursor: pointer;
-          pointer-events: auto;
-        }
-
-        .liquid-glass:focus {
-          outline: none;
-        }
-
-        .liquid-glass::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          border-radius: 56px;
-          box-shadow: inset 0 0 15px -5px #000000;
-          background-color: rgba(255, 255, 255, 0);
-        }
-
-        .liquid-glass::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          border-radius: 56px;
-          backdrop-filter: blur(0px);
-          -webkit-backdrop-filter: blur(0px);
-          filter: url(#glass-distortion);
-          -webkit-filter: url(#glass-distortion);
-        }
-
-        )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        .liquid-glass-card {
-          width: 100%;
-          border-radius: 20px;
-          position: relative;
-          isolation: isolate;
-          box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
-          display: flex;
-          flex-direction: column;
-          border: none;
-          background: none;
-          padding: 0;
-          margin: 0;
-          pointer-events: auto;
-        }
-
-        .liquid-glass-card:focus {
-          outline: none;
-        }
-
-        .liquid-glass-card::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          border-radius: 20px;
-          box-shadow: inset 0 0 12px -4px #000000;
-          background-color: rgba(255, 255, 255, 0);
-        }
-
-        .liquid-glass-card::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          border-radius: 20px;
-          backdrop-filter: blur(0px);
-          -webkit-backdrop-filter: blur(0px);
-          filter: url(#glass-distortion);
-          -webkit-filter: url(#glass-distortion);
-        }
-
-        .glass-card-content {
-          position: relative;
-          z-index: 1;
-          padding: 16px;
-          color: #ffffff;
-          text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
-          opacity: 1;
-          transform: translate(0px, 0px);
-        }
-
-        .glass-text {
-          position: relative;
-          color: #ffffff;
-          font-size: 24px;
-          font-weight: 400;
-          text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-          opacity: 1;
-          transform: translate(0px, 0px);
-          font-family: 'Georgia', 'Microsoft YaHei', '微软雅黑', serif;
+        * {
+          -webkit-tap-highlight-color: transparent;
         }
         
         main {
-          height: 100vh;
-          overflow-y: auto;
-          overflow-x: hidden;
+          scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior-y: contain;
         }
