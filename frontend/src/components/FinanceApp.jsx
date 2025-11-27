@@ -92,8 +92,40 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setIsKeyboardOpen,
   } = useSettings()
 
-  // UI State
+  // UI State - declare critical state first
   const [isLoading, setIsLoading] = useState(true)
+
+  // Authentication
+  const { user, isAuthenticated, login, register, logout } = useAuth(tgUserId, displayName, setIsLoading)
+
+  // Finance data
+  const {
+    balance,
+    income,
+    expenses,
+    savings,
+    transactions,
+    linkedUsers,
+    likedTransactions,
+    transactionComments,
+    setBalance,
+    setIncome,
+    setExpenses,
+    setSavings,
+    setTransactions,
+    loadLinkedUsers,
+    removeLinkedUser,
+    saveToServer,
+    addTransaction,
+    deleteTransaction,
+    toggleLike,
+    loadTransactionComments,
+    addComment,
+    deleteComment,
+    applyUserData,
+  } = useFinanceData(user, isAuthenticated, setIsLoading)
+
+  // Rest of UI State
   const [activeTab, setActiveTab] = useState("overview")
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -155,36 +187,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [debtPerson, setDebtPerson] = useState('')
   const [debtAmount, setDebtAmount] = useState('')
   const [debtDescription, setDebtDescription] = useState('')
-
-  // Authentication
-  const { user, isAuthenticated, login, register, logout } = useAuth(tgUserId, displayName, setIsLoading)
-
-  // Finance data
-  const {
-    balance,
-    income,
-    expenses,
-    savings,
-    transactions,
-    linkedUsers,
-    likedTransactions,
-    transactionComments,
-    setBalance,
-    setIncome,
-    setExpenses,
-    setSavings,
-    setTransactions,
-    loadLinkedUsers,
-    removeLinkedUser,
-    saveToServer,
-    addTransaction,
-    deleteTransaction,
-    toggleLike,
-    loadTransactionComments,
-    addComment,
-    deleteComment,
-    applyUserData,
-  } = useFinanceData(user, isAuthenticated, setIsLoading)
 
   // Effects
   useEffect(() => {
