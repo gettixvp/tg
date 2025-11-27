@@ -544,6 +544,53 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   )
 }
 
+// Компонент контейнера аккаунта в стиле pricing
+const AccountContainer = ({ children, theme, subtitle }) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    setMousePosition({ x, y })
+    
+    // Устанавливаем CSS переменные для свечения
+    containerRef.current.style.setProperty('--mouse-x', `${x}%`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`account-container ${theme}`}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="container-header">
+        <div className="header-left">
+          <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            Аккаунт
+          </h3>
+          {subtitle && (
+            <p className={`container-subtitle ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+      
+      <div className="container-content">
+        {children}
+      </div>
+      
+      {/* Эффект свечения */}
+      <div className="glow-overlay" />
+    </div>
+  )
+}
+
 // Компонент контейнера истории операций в стиле pricing
 const HistoryContainer = ({ children, theme, headerActions }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -3367,20 +3414,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               )}
 
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                {linkedUsers.length > 1 && (
-                  <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                    Семейный аккаунт
-                  </p>
-                )}
-
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Аккаунт
-                </h3>
+              <AccountContainer 
+  theme={theme}
+  subtitle={linkedUsers.length > 1 ? "Семейный аккаунт" : undefined}
+>
 
                 {isAuthenticated ? (
                   <div className="space-y-3">
@@ -3769,7 +3806,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 )}
-              </div>
+              </AccountContainer>
             </div>
           )}
         </div>
