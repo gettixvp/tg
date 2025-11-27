@@ -98,6 +98,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Authentication
   const { user, isAuthenticated, login, register, logout } = useAuth(tgUserId, displayName, setIsLoading)
 
+  // Local auth state (since useAuth doesn't expose setters)
+  const [localUser, setLocalUser] = useState(null)
+  const [localIsAuthenticated, setLocalIsAuthenticated] = useState(false)
+
   // Finance data
   const {
     balance,
@@ -291,7 +295,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     const newTx = {
       id: Date.now(),
-      user_id: user?.id || null,
+      user_id: localUser?.id || null,
       type: transactionType,
       amount: n,
       converted_amount_usd: convertedUSD || null,
@@ -396,7 +400,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     try {
       const result = await login(email, password, displayName)
       if (result) {
-        applyUserData(result.user, result.transactions, result.isEmailAuth)
+        setLocalUser(result.user)
+        setLocalIsAuthenticated(result.isEmailAuth)
+        setBalance(Number(result.user.balance || 0))
+        setIncome(Number(result.user.income || 0))
+        setExpenses(Number(result.user.expenses || 0))
+        setSavings(Number(result.user.savings_usd || 0))
+        setTransactions(result.transactions || [])
+        
+        if (result.isEmailAuth && result.user.email) {
+          loadLinkedUsers(result.user.email)
+        }
+        
         setShowAuthModal(false)
         setEmail("")
         setPassword("")
@@ -412,7 +427,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     try {
       const result = await register(email, password, displayName, authCurrency)
       if (result) {
-        applyUserData(result.user, result.transactions, result.isEmailAuth)
+        setLocalUser(result.user)
+        setLocalIsAuthenticated(result.isEmailAuth)
+        setBalance(Number(result.user.balance || 0))
+        setIncome(Number(result.user.income || 0))
+        setExpenses(Number(result.user.expenses || 0))
+        setSavings(Number(result.user.savings_usd || 0))
+        setTransactions(result.transactions || [])
+        
+        if (result.isEmailAuth && result.user.email) {
+          loadLinkedUsers(result.user.email)
+        }
+        
         setShowAuthModal(false)
         setEmail("")
         setPassword("")
@@ -426,6 +452,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const handleLogout = () => {
     logout()
+    setLocalUser(null)
+    setLocalIsAuthenticated(false)
     setBalance(0)
     setIncome(0)
     setExpenses(0)
@@ -488,12 +516,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </div>
             <div>
               <h1 className="text-lg font-bold">Финансы</h1>
-              {user && <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{user.email}</p>}
+              {localUser && <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{localUser.email}</p>}
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            {isAuthenticated && (
+            {localIsAuthenticated && (
               <button
                 onClick={() => setShowLinkedUsers(!showLinkedUsers)}
                 className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
@@ -530,7 +558,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {/* Main Content */}
       <div className="pb-20" ref={mainContentRef}>
-        {!isAuthenticated ? (
+        {!localIsAuthenticated ? (
           /* Auth Screen */
           <div className="p-4">
             <div className={`max-w-sm mx-auto p-6 rounded-2xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
@@ -815,7 +843,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       </div>
 
       {/* Floating Action Button */}
-      {isAuthenticated && (
+      {localIsAuthenticated && (
         <button
           onClick={() => setShowAddModal(true)}
           className="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
