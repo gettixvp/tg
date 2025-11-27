@@ -2463,11 +2463,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   if (!isReady || isLoading) {
     return (
       <div
-        className={`w-full h-screen flex items-center justify-center ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-            : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
-        }`}
+        className={`w-full h-screen flex items-center justify-center gradient-animated`}
       >
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
@@ -2481,11 +2477,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   return (
     <div
-      className={`fixed inset-0 flex flex-col overflow-hidden ${
-        theme === "dark"
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900"
-          : "bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50"
-      }`}
+      className={`fixed inset-0 flex flex-col overflow-hidden glass-gradient`}
       style={{
         paddingTop: isFullscreen ? (safeAreaInset.top || 0) : 0,
         paddingLeft: safeAreaInset.left || 0,
@@ -2580,9 +2572,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
-                  }`}
+                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 glass-gradient`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
@@ -2632,9 +2622,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 ${
-                      theme === "dark" ? "bg-gray-800 border-gray-700 hover:bg-gray-750" : "bg-white border-gray-200 hover:bg-gray-50"
-                    }`}
+                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 glass-gradient`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
@@ -2681,11 +2669,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
-                <div
-                  className={`rounded-2xl p-4 border ${
-                    theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                  }`}
-                >
+                <div className="rounded-2xl p-4 border glass-gradient">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                       Бюджеты
@@ -5680,9 +5664,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <div
-              className={`w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${
-                theme === "dark" ? "bg-gray-800/25 border-gray-700/30" : "bg-white/25 border-white/40"
-              }`}
+              className="w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 glass-gradient"
             >
               <NavButton
                 active={activeTab === "overview"}
