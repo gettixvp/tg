@@ -132,7 +132,12 @@ export function useAuth(tgUserId, displayName, setIsLoading) {
             setUser(result.user)
             setIsAuthenticated(result.isEmailAuth)
           }
+          setIsLoading(false)
+        }).catch(() => {
+          setIsLoading(false)
         })
+      } else {
+        setIsLoading(false)
       }
     } else if (tgUserId) {
       autoAuthTelegram(tgUserId).then(result => {
@@ -140,7 +145,12 @@ export function useAuth(tgUserId, displayName, setIsLoading) {
           setUser(result.user)
           setIsAuthenticated(result.isEmailAuth)
         }
+        setIsLoading(false)
+      }).catch(() => {
+        setIsLoading(false)
       })
+    } else {
+      setIsLoading(false)
     }
   }, [tgUserId])
 

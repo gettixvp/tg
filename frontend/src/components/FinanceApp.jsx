@@ -231,6 +231,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }, [tg, fullscreenEnabled])
 
+  useEffect(() => {
+    if (isReady) {
+      setIsLoading(false)
+    }
+  }, [isReady])
+
   // Keep alive effect
   useEffect(() => {
     const keepAlive = async () => {
