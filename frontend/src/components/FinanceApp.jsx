@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, memo, useMemo } from "react"
+import "./RecentOperations.css"
 import {
   Wallet,
   TrendingUp,
@@ -626,6 +627,170 @@ const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLi
           </p>
           {isCurrentUser && <p className={`text-xs ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>Вы</p>}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Компонент карточки последних операций в стиле pricing
+const RecentOperationsCard = ({ operation, theme, formatCurrency, formatDate, categoriesMeta, onOpenDetails }) => {
+  const [isHovered, setIsHovered] = useState(false)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const cardRef = useRef(null)
+  
+  const categoryInfo = categoriesMeta[operation.category] || categoriesMeta["Другое"]
+  
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return
+    const rect = cardRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    setMousePosition({ x, y })
+    
+    // Устанавливаем CSS переменные для свечения
+    cardRef.current.style.setProperty('--mouse-x', `${x}%`)
+    cardRef.current.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  const handleMouseEnter = () => {
+    setIsHovered(true)
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovered(false)
+  }
+
+  return (
+    <div 
+      ref={cardRef}
+      className={`operation-card ${theme} ${operation.type}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
+      onClick={() => onOpenDetails && onOpenDetails(operation)}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div 
+            className={`category-icon bg-gradient-to-br ${categoryInfo.color}`}
+          >
+            <span>{categoryInfo.icon}</span>
+          </div>
+          <div>
+            <h3 className="operation-title">
+              {operation.description || operation.category}
+            </h3>
+            <p className="operation-subtitle">
+              {operation.category}
+            </p>
+          </div>
+        </div>
+        
+        <div className="text-right">
+          <p className={`amount ${operation.type}`}>
+            {operation.type === 'income' ? '+' : '-'}
+            {formatCurrency(operation.amount)}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            {formatDate(operation.date)}
+          </p>
+        </div>
+      </div>
+      
+      <div className="operation-meta">
+        <div className="operation-author">
+          {operation.created_by_name && (
+            <>
+              {operation.telegram_photo_url ? (
+                <img
+                  src={operation.telegram_photo_url}
+                  alt="Avatar"
+                  className="author-avatar"
+                />
+              ) : (
+                <div className="author-avatar-placeholder">
+                  <User className="w-3 h-3 text-white" />
+                </div>
+              )}
+              <span>{operation.created_by_name}</span>
+            </>
+          )}
+        </div>
+        
+        {operation.liked && (
+          <Heart className="like-icon" />
+        )}
+      </div>
+      
+      {operation.comments && operation.comments.length > 0 && (
+        <div className="operation-comments">
+          <MessageCircle className="comments-icon" />
+          <span className="comments-count">
+            {operation.comments.length} {operation.comments.length === 1 ? 'комментарий' : 
+             operation.comments.length < 5 ? 'комментария' : 'комментариев'}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Компонент секции последних операций
+const RecentOperationsSection = ({ 
+  transactions, 
+  theme, 
+  formatCurrency, 
+  formatDate, 
+  categoriesMeta, 
+  onOpenDetails,
+  setActiveTab,
+  vibrate,
+  limit = 6 
+}) => {
+  const recentTransactions = transactions
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, limit)
+
+  if (!recentTransactions || recentTransactions.length === 0) {
+    return (
+      <div className="recent-operations-section">
+        <h2 className="section-title">Последние операции</h2>
+        <div className={`empty-state ${theme === 'dark' ? 'dark' : 'light'}`}>
+          <History className="empty-state-icon" />
+          <p className="empty-state-text">Пока нет операций</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="recent-operations-section">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="section-title">Последние операции</h2>
+        <button
+          onClick={() => {
+            setActiveTab && setActiveTab('history')
+            vibrate && vibrate()
+          }}
+          className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
+        >
+          Все →
+        </button>
+      </div>
+      
+      <div className="recent-operations-grid">
+        {recentTransactions.map((operation) => (
+          <RecentOperationsCard
+            key={operation.id}
+            operation={operation}
+            theme={theme}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+            categoriesMeta={categoriesMeta}
+            onOpenDetails={onOpenDetails}
+          />
+        ))}
       </div>
     </div>
   )
@@ -2747,57 +2912,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               )}
 
-              <div
-                className={`rounded-2xl p-4 border ${
-                  theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Последние операции
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab("history")}
-                    className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                  >
-                    Все →
-                  </button>
-                </div>
-                {transactions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-                      }`}
-                    >
-                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                    </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                      Пока нет операций
-                    </p>
-                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                      Добавьте первую транзакцию
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    {transactions.slice(0, 4).map((tx) => (
-                      <TxRow
-                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
-                        key={tx.id}
-                        categoriesMeta={categoriesMeta}
-                        formatCurrency={formatCurrency}
-                        formatDate={formatDate}
-                        theme={theme}
-                        onDelete={deleteTransaction}
-                        showCreator={showLinkedUsers}
-                        onToggleLike={toggleLike}
-                        onOpenDetails={openTransactionDetails}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Последние операции в стиле pricing cards */}
+              <RecentOperationsSection
+                transactions={transactions}
+                theme={theme}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
+                categoriesMeta={categoriesMeta}
+                onOpenDetails={openTransactionDetails}
+                setActiveTab={setActiveTab}
+                vibrate={vibrate}
+                limit={6}
+              />
             </div>
           )}
 
