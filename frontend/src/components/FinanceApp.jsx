@@ -4834,9 +4834,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowBudgetKeyboard(true)
                     vibrate()
                   }}
-                  className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
+                className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
                     theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-650"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600"
                       : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
                   }`}
                   style={{ minHeight: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -5801,7 +5801,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  <Settings className="h-4 w-[px8]" />
+                  <Settings className="h-4 w-[8px]" />
                 </button>
               </div>
             </div>
@@ -5816,7 +5816,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <feGaussianBlur in="noise" stdDeviation="2" result="blurred" />
             <feDisplacementMap in="SourceGraphic" in2="blurred" scale="77" xChannelSelector="R" yChannelSelector="G" />
           </filter>
-          <filter id="liquid-glass-filter" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+          <filter id="liquid-glass-filter" colorInterpolationFilters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
             <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="30" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
             <feGaussianBlur stdDeviation="3 3" x="0%" y="0%" width="100%" height="100%" in="displacementMap" edgeMode="none" result="blur" />
           </filter>
