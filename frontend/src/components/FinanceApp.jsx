@@ -544,6 +544,52 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   )
 }
 
+// Компонент контейнера бюджетов в стиле pricing
+const BudgetsContainer = ({ children, theme, onSetup }) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    setMousePosition({ x, y })
+    
+    // Устанавливаем CSS переменные для свечения
+    containerRef.current.style.setProperty('--mouse-x', `${x}%`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`budgets-container ${theme}`}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="container-header">
+        <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+          Бюджеты
+        </h3>
+        <button
+          onClick={onSetup}
+          className="show-all-button"
+        >
+          Настроить
+        </button>
+      </div>
+      
+      <div className="container-content">
+        {children}
+      </div>
+      
+      {/* Эффект свечения */}
+      <div className="glow-overlay" />
+    </div>
+  )
+}
+
 // Компонент контейнера последних операций в стиле pricing
 const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -2669,23 +2715,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
-                <div className="rounded-2xl p-4 border glass-gradient">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      Бюджеты
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setShowBudgetModal(true)
-                        setSelectedBudgetCategory('')
-                        setBudgetLimitInput('')
-                        vibrate()
-                      }}
-                      className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors touch-none"
-                    >
-                      Настроить
-                    </button>
-                  </div>
+                <BudgetsContainer 
+                  theme={theme}
+                  onSetup={() => {
+                    setShowBudgetModal(true)
+                    setSelectedBudgetCategory('')
+                    setBudgetLimitInput('')
+                    vibrate()
+                  }}
+                >
                   <div className="space-y-3">
                     {Object.entries(budgets).map(([category, budget]) => {
                       const status = budgetStatuses[category]
@@ -2697,12 +2735,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       return (
                         <div
                           key={category}
-                          className={`p-3 rounded-xl border transition-all ${
+                          className={`budget-item ${
                             status.isOverBudget
-                              ? theme === "dark" ? "bg-red-900/20 border-red-700/30" : "bg-red-50 border-red-200"
+                              ? 'over-budget'
                               : status.isNearLimit
-                              ? theme === "dark" ? "bg-orange-900/20 border-orange-700/30" : "bg-orange-50 border-orange-200"
-                              : theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200"
+                              ? 'near-limit'
+                              : 'normal'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -2775,7 +2813,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       )
                     })}
                   </div>
-                </div>
+                </BudgetsContainer>
               )}
 
               {/* Последние операции в стиле pricing cards */}
