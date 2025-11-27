@@ -544,6 +544,52 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   )
 }
 
+// Компонент контейнера копилок в стиле pricing
+const SavingsContainer = ({ children, theme, onShowAll }) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    setMousePosition({ x, y })
+    
+    // Устанавливаем CSS переменные для свечения
+    containerRef.current.style.setProperty('--mouse-x', `${x}%`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`savings-container ${theme}`}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="container-header">
+        <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+          Копилки
+        </h3>
+        <button
+          onClick={onShowAll}
+          className="show-all-button"
+        >
+          Все →
+        </button>
+      </div>
+      
+      <div className="container-content">
+        {children}
+      </div>
+      
+      {/* Эффект свечения */}
+      <div className="glow-overlay" />
+    </div>
+  )
+}
+
 // Компонент контейнера бюджетов в стиле pricing
 const BudgetsContainer = ({ children, theme, onSetup }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -2611,14 +2657,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {activeTab === "overview" && (
             <div className="space-y-3">
-              <div className="flex gap-3">
+              {/* Копилки в стиле pricing cards */}
+              <SavingsContainer 
+                theme={theme}
+                onShowAll={() => setActiveTab("savings")}
+              >
                 {/* Основная копилка */}
                 <div
                   onClick={() => {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 glass-gradient`}
+                  className={`savings-item primary`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-1">
@@ -2668,7 +2718,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 glass-gradient`}
+                    className={`savings-item secondary`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
@@ -2711,7 +2761,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 )}
-              </div>
+              </SavingsContainer>
 
               {/* Бюджеты и лимиты */}
               {Object.keys(budgets).length > 0 && (
