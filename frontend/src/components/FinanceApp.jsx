@@ -544,6 +544,46 @@ function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
   )
 }
 
+// Компонент контейнера истории операций в стиле pricing
+const HistoryContainer = ({ children, theme }) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    setMousePosition({ x, y })
+    
+    // Устанавливаем CSS переменные для свечения
+    containerRef.current.style.setProperty('--mouse-x', `${x}%`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`history-container ${theme}`}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="container-header">
+        <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+          История операций
+        </h3>
+      </div>
+      
+      <div className="container-content">
+        {children}
+      </div>
+      
+      {/* Эффект свечения */}
+      <div className="glow-overlay" />
+    </div>
+  )
+}
+
 // Компонент контейнера копилок в стиле pricing
 const SavingsContainer = ({ children, theme, onShowAll }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -2911,40 +2951,31 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    История операций
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    {/* Кнопка экспорта в PDF */}
-                    <button
-                      onClick={exportToPDF}
-                      className={`p-2 rounded-lg transition-colors touch-none ${
-                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
-                      }`}
-                      title="Экспорт в PDF"
-                    >
-                      <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
-                    </button>
-                    {/* Кнопка диаграммы */}
-                    <button
-                      onClick={() => {
-                        setShowChart(true)
-                        setChartType("expense")
-                      }}
-                      className={`p-2 rounded-lg transition-colors touch-none ${
-                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                      }`}
-                      title="Показать диаграмму"
-                    >
-                      <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                    </button>
-                  </div>
+              <HistoryContainer theme={theme}>
+                <div className="flex items-center gap-2 mb-4">
+                  {/* Кнопка экспорта в PDF */}
+                  <button
+                    onClick={exportToPDF}
+                    className={`p-2 rounded-lg transition-colors touch-none ${
+                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
+                    }`}
+                    title="Экспорт в PDF"
+                  >
+                    <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
+                  </button>
+                  {/* Кнопка диаграммы */}
+                  <button
+                    onClick={() => {
+                      setShowChart(true)
+                      setChartType("expense")
+                    }}
+                    className={`p-2 rounded-lg transition-colors touch-none ${
+                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
+                    }`}
+                    title="Показать диаграмму"
+                  >
+                    <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                  </button>
                 </div>
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
@@ -2975,7 +3006,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     ))}
                   </div>
                 )}
-              </div>
+              </HistoryContainer>
             </div>
           )}
 
