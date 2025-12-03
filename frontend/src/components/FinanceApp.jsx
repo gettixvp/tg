@@ -3053,60 +3053,44 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <HistoryContainer theme={theme}>
-                <div className="flex items-center gap-2 mb-4">
-                  {/* Кнопка экспорта в PDF */}
-                  <button
-                    onClick={exportToPDF}
-                    className={`p-2 rounded-lg transition-colors touch-none ${
-                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
-                    }`}
-                    title="Экспорт в PDF"
-                  >
-                    <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
-                  </button>
-                  {/* Кнопка диаграммы */}
-                  <button
-                    onClick={() => {
-                      setShowChart(true)
-                      setChartType("expense")
-                    }}
-                    className={`p-2 rounded-lg transition-colors touch-none ${
-                      theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                    }`}
-                    title="Показать диаграмму"
-                  >
-                    <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                  </button>
+                <div className="container-header flex items-center justify-between"> 
+                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>История операций</h3>
+                  <div className="flex gap-2">
+                    <button /* PDF */>...</button>
+                    <button /* Chart */>...</button>
+                  </div>
                 </div>
-                {transactions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-                      }`}
-                    >
-                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                <div className="container-content">
+                  {transactions.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                          theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                        }`}
+                      >
+                        <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                      </div>
+                      <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
                     </div>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
-                  </div>
-                ) : (
-                  <div>
-                    {transactions.map((tx) => (
-                      <TxRow
-                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
-                        key={tx.id}
-                        categoriesMeta={categoriesMeta}
-                        formatCurrency={formatCurrency}
-                        formatDate={formatDate}
-                        theme={theme}
-                        onDelete={deleteTransaction}
-                        showCreator={showLinkedUsers}
-                        onToggleLike={toggleLike}
-                        onOpenDetails={openTransactionDetails}
-                      />
-                    ))}
-                  </div>
-                )}
+                  ) : (
+                    <div>
+                      {transactions.map((tx) => (
+                        <TxRow
+                          tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
+                          key={tx.id}
+                          categoriesMeta={categoriesMeta}
+                          formatCurrency={formatCurrency}
+                          formatDate={formatDate}
+                          theme={theme}
+                          onDelete={deleteTransaction}
+                          showCreator={showLinkedUsers}
+                          onToggleLike={toggleLike}
+                          onOpenDetails={openTransactionDetails}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </HistoryContainer>
             </div>
           )}
@@ -5889,7 +5873,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {!isKeyboardOpen && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
+          className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
           style={{
             paddingBottom: Math.max(safeAreaInset.bottom, 8),
             paddingLeft: safeAreaInset.left || 0,
@@ -5898,9 +5882,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <nav
-              className="w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 glass-gradient"
+              className="w-full max-w-md backdrop-blur-2xl rounded-2xl p-2 border-2 border-blue-500/30 shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-4 glass-nav-gradient glow-bar"
               role="navigation"
               aria-label="Основная навигация"
+              style={{background: 'rgba(30,41,59,0.7)', boxShadow:'0 8px 32px rgba(30,64,175,0.13),0 2px 6px rgba(59,130,246,0.08)', border:'2px solid rgba(59,130,246,0.20)'}}
             >
               <NavButton
                 active={activeTab === "overview"}
