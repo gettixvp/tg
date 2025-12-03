@@ -213,6 +213,112 @@
   transition: inherit;
 }
 
+/* Плавные переходы для всех интерактивных элементов */
+button, input, select, textarea {
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Плавное появление модальных окон */
+.modal-enter {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Плавное появление элементов списка */
+.list-item-enter {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Анимация загрузки */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Плавные переходы для состояний загрузки */
+.loading-overlay {
+  transition: opacity 0.3s ease;
+}
+
+/* Улучшенная адаптивность для маленьких экранов */
+@media (max-width: 320px) {
+  .container-header {
+    padding: 0.5rem;
+  }
+  
+  .container-title {
+    font-size: 0.875rem;
+  }
+  
+  .container-content {
+    padding: 0.5rem;
+  }
+  
+  button {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Улучшенная контрастность для доступности */
+.recent-operations-container button:focus,
+.budgets-container button:focus,
+.savings-container button:focus,
+.history-container button:focus,
+.settings-container button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Улучшенная видимость в темной теме */
+.recent-operations-container.dark button,
+.budgets-container.dark button,
+.savings-container.dark button,
+.history-container.dark button,
+.settings-container.dark button {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.recent-operations-container.light button,
+.budgets-container.light button,
+.savings-container.light button,
+.history-container.light button,
+.settings-container.light button {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
 /* Улучшение контрастности в темной теме */
 .recent-operations-container.dark .container-header, .budgets-container.dark .container-header, .savings-container.dark .container-header, .history-container.dark .container-header, .settings-container.dark .container-header {
   backdrop-filter: blur(10px);
