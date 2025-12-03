@@ -3053,14 +3053,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <HistoryContainer theme={theme}>
-                <div className="container-header flex items-center justify-between"> 
+                {/* Здесь только заголовок (без более flex header), а PDF/Chart кнопки возвращаем внутрь content/div, как раньше. */}
+                <div className="container-header">
                   <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>История операций</h3>
-                  <div className="flex gap-2">
-                    <button /* PDF */>...</button>
-                    <button /* Chart */>...</button>
-                  </div>
                 </div>
                 <div className="container-content">
+                  <div className="flex items-center gap-2 mb-4">
+                    {/* Кнопка PDF */}
+                    {/* Кнопка Chart */}
+                  </div>
                   {transactions.length === 0 ? (
                     <div className="text-center py-8">
                       <div
