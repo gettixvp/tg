@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, memo, useMemo } from "react"
+import { useEffect, useState, useRef, memo, useMemo, useCallback } from "react"
 import "./RecentOperationsContainer.css"
 import {
   Wallet,
