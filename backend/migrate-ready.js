@@ -18,7 +18,7 @@ const NEW_DATABASE_URL = 'postgresql://neondb_owner:npg_HnsXeph1qi6g@ep-billowin
 // 3. Перейдите в раздел "Connect" или "Info"
 // 4. Скопируйте "Internal Database URL" или "Connection String"
 // 5. Вставьте ниже вместо "YOUR_OLD_RENDER_URL"
-const OLD_DATABASE_URL = process.env.OLD_DATABASE_URL || 'YOUR_OLD_RENDER_URL';
+const OLD_DATABASE_URL = process.env.OLD_DATABASE_URL || 'postgresql://db_1111_ls56_user:eYLQZlG7qH1uCYacouxssLzK7xh1pRXC@dpg-d40bke6mcj7s738vhp3g-a/db_1111_ls56';
 
 // ============================================
 // 🚀 КОД МИГРАЦИИ (не трогайте)
