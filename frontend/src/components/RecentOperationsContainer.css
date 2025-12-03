@@ -495,23 +495,3 @@ button:disabled {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-
-/* Нижний бар навигации — стекло+глоу */
-.glow-bar {
-  box-shadow: 0 2px 24px 6px rgba(59, 130, 246, 0.07), 0 0 0 3px rgba(30, 64, 175, 0.18);
-  border: 2px solid rgba(59,130,246,0.13) !important;
-  background: linear-gradient(120deg, rgba(30,64,175,0.41) 0%, rgba(59,130,246,0.22) 70%, rgba(139,92,246,0.14) 100%) !important;
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-}
-
-.glass-nav-gradient {
-  background: linear-gradient(98deg, rgba(30,64,175,0.3) 0%, rgba(59,130,246,0.17) 70%, rgba(168,85,247,0.12) 100%) !important;
-}
-
-@media (max-width:700px) {
-  .glow-bar {
-    border-radius: 24px;
-    padding: 2.5vw 1vw;
-  }
-}
