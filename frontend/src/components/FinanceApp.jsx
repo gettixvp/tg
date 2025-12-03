@@ -5873,7 +5873,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {!isKeyboardOpen && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
+          className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
           style={{
             paddingBottom: Math.max(safeAreaInset.bottom, 8),
             paddingLeft: safeAreaInset.left || 0,
@@ -5882,10 +5882,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <nav
-              className="w-full max-w-md backdrop-blur-2xl rounded-2xl p-2 border-2 border-blue-500/30 shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-4 glass-nav-gradient glow-bar"
+              className="w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 glass-gradient"
               role="navigation"
               aria-label="Основная навигация"
-              style={{background: 'rgba(30,41,59,0.7)', boxShadow:'0 8px 32px rgba(30,64,175,0.13),0 2px 6px rgba(59,130,246,0.08)', border:'2px solid rgba(59,130,246,0.20)'}}
             >
               <NavButton
                 active={activeTab === "overview"}
