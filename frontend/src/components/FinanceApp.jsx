@@ -678,7 +678,6 @@ const BudgetsContainer = ({ children, theme, onSetup }) => {
 
 // Компонент контейнера последних операций в стиле pricing
 const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const containerRef = useRef(null)
   
   const handleMouseMove = (e) => {
@@ -686,8 +685,6 @@ const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
     const rect = containerRef.current.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
-    
-    setMousePosition({ x, y })
     
     // Устанавливаем CSS переменные для свечения
     containerRef.current.style.setProperty('--mouse-x', `${x}%`)
@@ -711,6 +708,45 @@ const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
           Все →
         </button>
       </div>
+      
+      <div className="container-content">
+        {children}
+      </div>
+      
+      {/* Эффект свечения */}
+      <div className="glow-overlay" />
+    </div>
+  )
+}
+
+// Универсальный компонент контейнера для настроек в стиле pricing
+const SettingsContainer = ({ children, theme, title, showHeader = true }) => {
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    // Устанавливаем CSS переменные для свечения
+    containerRef.current.style.setProperty('--mouse-x', `${x}%`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`settings-container ${theme}`}
+      onMouseMove={handleMouseMove}
+    >
+      {showHeader && title && (
+        <div className="container-header">
+          <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            {title}
+          </h3>
+        </div>
+      )}
       
       <div className="container-content">
         {children}
@@ -3327,11 +3363,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               {/* Приветствие с аватаркой - только для незалогиненных */}
               {!isAuthenticated && (
-                <div
-                  className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                    theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                  }`}
-                >
+                <SettingsContainer theme={theme} showHeader={false}>
                   <div className="flex items-center gap-3">
                     {tgPhotoUrl ? (
                       <img
@@ -3357,23 +3389,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </p>
                     </div>
                   </div>
-                </div>
+                </SettingsContainer>
               )}
 
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
+              <SettingsContainer theme={theme} title="Аккаунт">
                 {linkedUsers.length > 1 && (
                   <p className={`text-xs mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                     Семейный аккаунт
                   </p>
                 )}
-
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Аккаунт
-                </h3>
 
                 {isAuthenticated ? (
                   <div className="space-y-3">
@@ -3533,16 +3557,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </button>
                   </div>
                 )}
-              </div>
+              </SettingsContainer>
 
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Настройки
-                </h3>
+              <SettingsContainer theme={theme} title="Настройки">
 
                 <div className="space-y-3">
                   <div>
@@ -3619,17 +3636,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   )}
                 </div>
-              </div>
+              </SettingsContainer>
 
               {/* Бюджеты */}
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  Бюджеты и лимиты
-                </h3>
+              <SettingsContainer theme={theme} title="Бюджеты и лимиты">
                 <button
                   onClick={() => {
                     setShowBudgetModal(true)
@@ -3651,14 +3661,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     Активных бюджетов: {Object.keys(budgets).length}
                   </p>
                 )}
-              </div>
+              </SettingsContainer>
 
               {/* Системные настройки (раскрываемое меню) */}
-              <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
-              >
+              <SettingsContainer theme={theme} title="Системные настройки">
                 <button
                   onClick={() => {
                     setShowSystemSettings(!showSystemSettings)
@@ -3671,7 +3677,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }`}
                 >
                   <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                    ⚙️ Системные настройки
+                    {showSystemSettings ? "Скрыть настройки" : "Показать настройки"}
                   </span>
                   {showSystemSettings ? (
                     <ChevronUp className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
@@ -3762,7 +3768,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 )}
-              </div>
+              </SettingsContainer>
             </div>
           )}
         </div>
@@ -5828,7 +5834,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("settings")
                   vibrate()
                 }}
-                icon={<Settings className="h-4 w-[px8]" />}
+                icon={<Settings className="h-4 w-4" />}
                 theme={theme}
               />
             </div>
