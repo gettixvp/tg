@@ -1666,70 +1666,70 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const txType = tx.type === 'income' ? 'доход' : tx.type === 'expense' ? 'расход' : 'копилка'
     const txAmount = formatCurrency(Number(tx.amount || 0))
     const confirmMessage = `Удалить транзакцию?\n\nТип: ${txType}\nСумма: ${txAmount}\n${tx.description ? `Описание: ${tx.description}` : ''}\n\nЭто действие нельзя отменить.`
-    
+
     if (!window.confirm(confirmMessage)) return
 
     setIsDeleting(true)
     try {
-      console.log("[v0] Deleting transaction:", tx)
-      console.log("[v0] Current balance (type):", typeof balance, balance)
-      console.log("[v0] Transaction amount (type):", typeof tx.amount, tx.amount)
+    console.log("[v0] Deleting transaction:", tx)
+    console.log("[v0] Current balance (type):", typeof balance, balance)
+    console.log("[v0] Transaction amount (type):", typeof tx.amount, tx.amount)
 
-      setTransactions((p) => p.filter((t) => t.id !== txId))
+    setTransactions((p) => p.filter((t) => t.id !== txId))
 
-      let newBalance = Number(balance)
-      let newIncome = Number(income)
-      let newExpenses = Number(expenses)
-      let newSavings = Number(savings)
+    let newBalance = Number(balance)
+    let newIncome = Number(income)
+    let newExpenses = Number(expenses)
+    let newSavings = Number(savings)
       const txAmountNum = Number(tx.amount)
-      const txConvertedUSD = Number(tx.converted_amount_usd || 0)
+    const txConvertedUSD = Number(tx.converted_amount_usd || 0)
 
-      if (tx.type === "income") {
+    if (tx.type === "income") {
         newIncome -= txAmountNum
         newBalance -= txAmountNum
-        setIncome(newIncome)
-        setBalance(newBalance)
-        console.log("[v0] Deleted income. New balance:", newBalance)
-      } else if (tx.type === "expense") {
+      setIncome(newIncome)
+      setBalance(newBalance)
+      console.log("[v0] Deleted income. New balance:", newBalance)
+    } else if (tx.type === "expense") {
         newExpenses -= txAmountNum
         newBalance += txAmountNum
-        setExpenses(newExpenses)
-        setBalance(newBalance)
-        console.log("[v0] Deleted expense. New balance:", newBalance)
+      setExpenses(newExpenses)
+      setBalance(newBalance)
+      console.log("[v0] Deleted expense. New balance:", newBalance)
+    } else {
+      // Копилка - проверяем какая копилка была пополнена
+      if (tx.savings_goal === 'second') {
+        // Вторая копилка
+        const newSecondGoalSavings = secondGoalSavings - txConvertedUSD
+        setSecondGoalSavings(newSecondGoalSavings)
+        console.log("[v0] Deleted second savings. New second goal savings:", newSecondGoalSavings)
       } else {
-        // Копилка - проверяем какая копилка была пополнена
-        if (tx.savings_goal === 'second') {
-          // Вторая копилка
-          const newSecondGoalSavings = secondGoalSavings - txConvertedUSD
-          setSecondGoalSavings(newSecondGoalSavings)
-          console.log("[v0] Deleted second savings. New second goal savings:", newSecondGoalSavings)
-        } else {
-          // Основная копилка
-          newSavings -= txConvertedUSD
-          setSavings(newSavings)
-          console.log("[v0] Deleted main savings. New savings:", newSavings)
-        }
-        newBalance += txAmountNum
-        setBalance(newBalance)
+        // Основная копилка
+        newSavings -= txConvertedUSD
+        setSavings(newSavings)
+        console.log("[v0] Deleted main savings. New savings:", newSavings)
       }
+        newBalance += txAmountNum
+      setBalance(newBalance)
+    }
 
-      vibrateSuccess()
+    vibrateSuccess()
 
-      if (user && user.email) {
-        try {
-          await fetch(`${API_BASE}/api/transactions/${txId}`, {
-            method: "DELETE",
-          })
-          await saveToServer(newBalance, newIncome, newExpenses, newSavings)
-        } catch (e) {
-          console.warn("Failed to delete tx", e)
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/transactions/${txId}`, {
+          method: "DELETE",
+        })
+        await saveToServer(newBalance, newIncome, newExpenses, newSavings)
+      } catch (e) {
+        console.warn("Failed to delete tx", e)
           vibrateError()
           alert("Ошибка удаления транзакции. Попробуйте еще раз.")
-        }
       }
+    }
     } finally {
       setIsDeleting(false)
-    }
+  }
   }, [transactions, balance, income, expenses, savings, secondGoalSavings, user, vibrate, vibrateSuccess, vibrateError])
 
   // Функции для работы с бюджетами
@@ -2172,88 +2172,88 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     
     setIsSaving(true)
     try {
-      console.log('[RECALCULATE] Начинаем пересчет...')
-      console.log('[RECALCULATE] Текущий баланс:', balance)
-      console.log('[RECALCULATE] Текущие доходы:', income)
-      console.log('[RECALCULATE] Текущие расходы:', expenses)
-      console.log('[RECALCULATE] Текущая копилка:', savings)
-      console.log('[RECALCULATE] Всего транзакций:', transactions.length)
+    console.log('[RECALCULATE] Начинаем пересчет...')
+    console.log('[RECALCULATE] Текущий баланс:', balance)
+    console.log('[RECALCULATE] Текущие доходы:', income)
+    console.log('[RECALCULATE] Текущие расходы:', expenses)
+    console.log('[RECALCULATE] Текущая копилка:', savings)
+    console.log('[RECALCULATE] Всего транзакций:', transactions.length)
+    
+    // Пересчитываем на основе транзакций
+    let newIncome = 0
+    let newExpenses = 0
+    let newSavingsUSD = 0
+    let savingsInRUB = 0
+    
+    transactions.forEach(tx => {
+      const amount = Number(tx.amount || 0)
+      const convertedUSD = Number(tx.converted_amount_usd || 0)
       
-      // Пересчитываем на основе транзакций
-      let newIncome = 0
-      let newExpenses = 0
-      let newSavingsUSD = 0
-      let savingsInRUB = 0
-      
-      transactions.forEach(tx => {
-        const amount = Number(tx.amount || 0)
-        const convertedUSD = Number(tx.converted_amount_usd || 0)
-        
-        console.log('[RECALCULATE] Транзакция:', {
-          type: tx.type,
-          category: tx.category,
-          amount,
-          convertedUSD,
-          savings_goal: tx.savings_goal
-        })
-        
-        if (tx.type === 'income') {
-          newIncome += amount
-        } else if (tx.type === 'expense') {
-          newExpenses += amount
-        } else if (tx.type === 'savings') {
-          savingsInRUB += amount
-          if (tx.savings_goal !== 'second') {
-            newSavingsUSD += convertedUSD
-          }
-        }
+      console.log('[RECALCULATE] Транзакция:', {
+        type: tx.type,
+        category: tx.category,
+        amount,
+        convertedUSD,
+        savings_goal: tx.savings_goal
       })
       
-      // Баланс = доходы - расходы - копилка (в рублях)
-      const newBalance = newIncome - newExpenses - savingsInRUB
-      
-      console.log('[RECALCULATE] Пересчитанные значения:')
-      console.log('[RECALCULATE] Новый баланс:', newBalance)
-      console.log('[RECALCULATE] Новые доходы:', newIncome)
-      console.log('[RECALCULATE] Новые расходы:', newExpenses)
-      console.log('[RECALCULATE] Новая копилка USD:', newSavingsUSD)
-      console.log('[RECALCULATE] Копилка в RUB:', savingsInRUB)
-      
-      // Обновляем состояния
-      setBalance(newBalance)
-      setIncome(newIncome)
-      setExpenses(newExpenses)
-      setSavings(newSavingsUSD)
-      
-      // Сохраняем на сервер
-      if (user && user.email) {
-        try {
-          await fetch(`${API_BASE}/api/user/${user.email}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              balance: newBalance,
-              income: newIncome,
-              expenses: newExpenses,
-              savings: newSavingsUSD,
-              goalSavings,
-            }),
-          })
-          
-          vibrateSuccess()
-          alert(`✅ Баланс пересчитан!\n\nБаланс: ${formatCurrency(newBalance)}\nДоходы: ${formatCurrency(newIncome)}\nРасходы: ${formatCurrency(newExpenses)}\nКопилка: ${formatCurrency(newSavingsUSD, "USD")}`)
-        } catch (e) {
-          console.error('[RECALCULATE] Ошибка сохранения:', e)
-          vibrateError()
-          alert('❌ Ошибка сохранения на сервер. Локальные данные обновлены.')
+      if (tx.type === 'income') {
+        newIncome += amount
+      } else if (tx.type === 'expense') {
+        newExpenses += amount
+      } else if (tx.type === 'savings') {
+        savingsInRUB += amount
+        if (tx.savings_goal !== 'second') {
+          newSavingsUSD += convertedUSD
         }
+      }
+    })
+    
+    // Баланс = доходы - расходы - копилка (в рублях)
+    const newBalance = newIncome - newExpenses - savingsInRUB
+    
+    console.log('[RECALCULATE] Пересчитанные значения:')
+    console.log('[RECALCULATE] Новый баланс:', newBalance)
+    console.log('[RECALCULATE] Новые доходы:', newIncome)
+    console.log('[RECALCULATE] Новые расходы:', newExpenses)
+    console.log('[RECALCULATE] Новая копилка USD:', newSavingsUSD)
+    console.log('[RECALCULATE] Копилка в RUB:', savingsInRUB)
+    
+    // Обновляем состояния
+    setBalance(newBalance)
+    setIncome(newIncome)
+    setExpenses(newExpenses)
+    setSavings(newSavingsUSD)
+    
+    // Сохраняем на сервер
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/user/${user.email}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            balance: newBalance,
+            income: newIncome,
+            expenses: newExpenses,
+            savings: newSavingsUSD,
+            goalSavings,
+          }),
+        })
+        
+        vibrateSuccess()
+          alert(`✅ Баланс пересчитан!\n\nБаланс: ${formatCurrency(newBalance)}\nДоходы: ${formatCurrency(newIncome)}\nРасходы: ${formatCurrency(newExpenses)}\nКопилка: ${formatCurrency(newSavingsUSD, "USD")}`)
+      } catch (e) {
+        console.error('[RECALCULATE] Ошибка сохранения:', e)
+        vibrateError()
+          alert('❌ Ошибка сохранения на сервер. Локальные данные обновлены.')
+      }
       } else {
         vibrateSuccess()
         alert(`✅ Баланс пересчитан!\n\nБаланс: ${formatCurrency(newBalance)}\nДоходы: ${formatCurrency(newIncome)}\nРасходы: ${formatCurrency(newExpenses)}\nКопилка: ${formatCurrency(newSavingsUSD, "USD")}`)
-      }
+    }
     } finally {
       setIsSaving(false)
-    }
+  }
   }, [transactions, balance, income, expenses, savings, user, goalSavings, vibrateSuccess, vibrateError])
 
   // Кэшируем статусы бюджетов для автоматического обновления при изменении транзакций
@@ -2493,32 +2493,32 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const handleResetAll = useCallback(async () => {
     // Улучшенное подтверждение с деталями
     const confirmMessage = `⚠️ ВНИМАНИЕ: Опасное действие!\n\nЭто действие удалит:\n• Все транзакции (${transactions.length} шт.)\n• Баланс: ${formatCurrency(balance)}\n• Доходы: ${formatCurrency(income)}\n• Расходы: ${formatCurrency(expenses)}\n• Копилку: ${formatCurrency(savings, "USD")}\n• Все настройки и бюджеты\n\nЭто действие НЕОБРАТИМО!\n\nВы уверены, что хотите продолжить?`
-    
+
     if (!window.confirm(confirmMessage)) return
 
     setIsSaving(true)
     try {
-      setBalance(0)
-      setIncome(0)
-      setExpenses(0)
-      setSavings(0)
-      setTransactions([])
+    setBalance(0)
+    setIncome(0)
+    setExpenses(0)
+    setSavings(0)
+    setTransactions([])
 
-      if (user && user.email) {
-        try {
-          await fetch(`${API_BASE}/api/user/${user.email}/reset`, {
-            method: "POST",
-          })
-          vibrateSuccess()
-        } catch (e) {
-          console.warn("Failed to reset on server", e)
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/user/${user.email}/reset`, {
+          method: "POST",
+        })
+        vibrateSuccess()
+      } catch (e) {
+        console.warn("Failed to reset on server", e)
           vibrateError()
           alert("Ошибка сброса данных на сервере. Локальные данные очищены.")
-        }
       }
+    }
     } finally {
       setIsSaving(false)
-    }
+  }
   }, [transactions.length, balance, income, expenses, savings, user, vibrateSuccess, vibrateError])
 
   const handleLogout = async () => {
@@ -2551,7 +2551,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Мемоизация вычислений для производительности
   const savingsProgress = useMemo(() => Math.min((savings || 0) / (goalSavings || 1), 1), [savings, goalSavings])
   const savingsPct = useMemo(() => Math.round(savingsProgress * 100), [savingsProgress])
-  
+
   const expenseTransactions = useMemo(() => 
     transactions.filter(tx => tx.type === 'expense'), 
     [transactions]
@@ -3054,39 +3054,51 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <HistoryContainer theme={theme}>
                 <div className="container-content">
-                  <div className="flex items-center gap-2 mb-4">
-                    {/* Кнопка PDF */}
-                    {/* Кнопка Chart */}
+                <div className="flex items-center gap-2 mb-4">
+                    <button
+                      onClick={() => alert('Выгрузка PDF скоро будет!')}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md border text-xs font-semibold shadow transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === "dark" ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"}`}
+                      type="button"
+                    >
+                      <span>Выгрузить PDF</span>
+                    </button>
+                    <button
+                      onClick={() => alert('Диаграмма скоро будет!')}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md border text-xs font-semibold shadow transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === "dark" ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"}`}
+                      type="button"
+                    >
+                      <span>Диаграмма</span>
+                    </button>
+                </div>
+                {transactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                        theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+                      }`}
+                    >
+                      <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                    </div>
+                    <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
                   </div>
-                  {transactions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
-                          theme === "dark" ? "bg-gray-700" : "bg-gray-100"
-                        }`}
-                      >
-                        <History className={`w-6 h-6 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                      </div>
-                      <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
-                    </div>
-                  ) : (
-                    <div>
-                      {transactions.map((tx) => (
-                        <TxRow
-                          tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
-                          key={tx.id}
-                          categoriesMeta={categoriesMeta}
-                          formatCurrency={formatCurrency}
-                          formatDate={formatDate}
-                          theme={theme}
-                          onDelete={deleteTransaction}
-                          showCreator={showLinkedUsers}
-                          onToggleLike={toggleLike}
-                          onOpenDetails={openTransactionDetails}
-                        />
-                      ))}
-                    </div>
-                  )}
+                ) : (
+                  <div>
+                    {transactions.map((tx) => (
+                      <TxRow
+                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
+                        key={tx.id}
+                        categoriesMeta={categoriesMeta}
+                        formatCurrency={formatCurrency}
+                        formatDate={formatDate}
+                        theme={theme}
+                        onDelete={deleteTransaction}
+                        showCreator={showLinkedUsers}
+                        onToggleLike={toggleLike}
+                        onOpenDetails={openTransactionDetails}
+                      />
+                    ))}
+                  </div>
+                )}
                 </div>
               </HistoryContainer>
             </div>
@@ -3809,8 +3821,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           isSaving 
                             ? "opacity-50 cursor-not-allowed"
                             : theme === "dark"
-                              ? "bg-red-700 hover:bg-red-600 text-white"
-                              : "bg-red-500 hover:bg-red-600 text-white"
+                            ? "bg-red-700 hover:bg-red-600 text-white"
+                            : "bg-red-500 hover:bg-red-600 text-white"
                         }`}
                       >
                         {isSaving ? (
@@ -5560,10 +5572,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     isSaving 
                       ? "opacity-50 cursor-not-allowed"
                       : transactionType === "income"
-                        ? "bg-emerald-500 hover:bg-emerald-600"
-                        : transactionType === "expense"
-                          ? "bg-rose-500 hover:bg-rose-600"
-                          : "bg-blue-500 hover:bg-blue-600"
+                      ? "bg-emerald-500 hover:bg-emerald-600"
+                      : transactionType === "expense"
+                        ? "bg-rose-500 hover:bg-rose-600"
+                        : "bg-blue-500 hover:bg-blue-600"
                   }`}
                 >
                   {isSaving ? (
