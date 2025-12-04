@@ -566,3 +566,13 @@ button:disabled {
     box-shadow: inset 1px 1px 1px rgba(255,255,255,0.13);
   }
 }
+
+.recent-operations-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;
+  filter: blur(2.5px) brightness(0.82) saturate(1.2);
+  opacity: 0.878;
+}

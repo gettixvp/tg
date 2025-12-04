@@ -722,6 +722,8 @@ const RecentOperationsContainer = memo(({ children, theme, onShowAll }) => {
       
       {/* Эффект свечения */}
       <div className="glow-overlay" aria-hidden="true" />
+      {/* Фоновая картинка под liquid glass */}
+      <div className="recent-operations-bg" aria-hidden="true"></div>
     </div>
   )
 })
