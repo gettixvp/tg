@@ -3012,6 +3012,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 theme={theme}
                 onShowAll={() => setActiveTab("history")}
               >
+                {/* glass эффектное оформление */}
+                <div className="glass-overlay" />
+                <div className="glass-distortion-overlay" />
+                <div className="glass-specular" />
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
