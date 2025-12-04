@@ -5897,10 +5897,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <nav
-              className="w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5"
+              className="w-full max-w-md bottom-bar-glass relative backdrop-blur-2xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5"
               role="navigation"
               aria-label="Основная навигация"
+              style={{zIndex:50}}
             >
+              <div className="bar-glass-overlay" />
+              <div className="bar-glass-distortion-overlay" />
+              <div className="bar-glass-specular" />
               <NavButton
                 active={activeTab === "overview"}
                 onClick={() => {
