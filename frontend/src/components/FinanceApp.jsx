@@ -1290,9 +1290,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   useEffect(() => {
     // Применяем тему к body для мгновенного эффекта
     if (theme === 'dark') {
+      document.body.style.background = '#0b1220'
       document.body.style.backgroundColor = '#0b1220'
     } else {
       // В светлой теме фон задается через CSS (градиент), не перетираем его inline-стилем
+      document.body.style.background = ''
       document.body.style.backgroundColor = ''
     }
     document.body.style.color = theme === 'dark' ? '#f3f4f6' : '#111827'
@@ -2873,7 +2875,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         <div
           className="px-4 pb-4"
           style={{
-            minHeight: "100%",
+            minHeight: "calc(100% + 1px)",
             touchAction: "pan-y",
           }}
         >
