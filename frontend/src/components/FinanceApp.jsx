@@ -2890,40 +2890,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "history" && (
             <div style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
+                className={`styled-container ${theme}`}
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const x = ((e.clientX - rect.left) / rect.width) * 100
+                  const y = ((e.clientY - rect.top) / rect.height) * 100
+                  e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
+                  e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
+                }}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                <div className="container-header">
+                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     История операций
                   </h3>
                   <div className="flex items-center gap-2">
-                    {/* Кнопка экспорта в PDF */}
                     <button
                       onClick={exportToPDF}
-                      className={`p-2 rounded-lg transition-colors touch-none ${
-                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-green-100 hover:bg-green-200"
-                      }`}
+                      className="show-all-button"
                       title="Экспорт в PDF"
                     >
-                      <Download className={`w-4 h-4 ${theme === "dark" ? "text-green-400" : "text-green-600"}`} />
+                      <Download className="w-4 h-4" />
                     </button>
-                    {/* Кнопка диаграммы */}
                     <button
                       onClick={() => {
                         setShowChart(true)
                         setChartType("expense")
                       }}
-                      className={`p-2 rounded-lg transition-colors touch-none ${
-                        theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-blue-100 hover:bg-blue-200"
-                      }`}
+                      className="show-all-button"
                       title="Показать диаграмму"
                     >
-                      <BarChart3 className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                      <BarChart3 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
+                
+                <div className="container-content">
                 {transactions.length === 0 ? (
                   <div className="text-center py-8">
                     <div
@@ -2953,6 +2954,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     ))}
                   </div>
                 )}
+                </div>
+                
+                {/* Эффект свечения */}
+                <div className="glow-overlay" />
               </div>
             </div>
           )}
@@ -3000,127 +3005,159 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               {savingsTab === 'savings' && (
                 <>
               <div
-                className={`rounded-2xl p-4 text-white shadow-2xl ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600"
-                    : "bg-gradient-to-br from-blue-500 to-purple-600"
-                }`}
+                className={`styled-container ${theme}`}
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const x = ((e.clientX - rect.left) / rect.width) * 100
+                  const y = ((e.clientY - rect.top) / rect.height) * 100
+                  e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
+                  e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
+                }}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-1">Копилка (USD)</h3>
-                    <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
-                      {goalName}
-                    </p>
+                <div className="container-header">
+                  <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
+                      <PiggyBank className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
+                    </div>
+                    <div>
+                      <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        Копилка (USD)
+                      </h3>
+                      <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        {goalName}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
                         setShowSecondGoalModal(true)
                         vibrate()
                       }}
-                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
+                      className="show-all-button"
                       title="Добавить вторую цель"
                     >
-                      <Plus className="w-5 h-5 text-white" />
+                      <Plus className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => {
                         setShowSavingsSettingsModal(true)
                         vibrate()
                       }}
-                      className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-all touch-none"
+                      className="show-all-button"
                     >
-                      <Settings className="w-5 h-5 text-white" />
+                      <Settings className="w-4 h-4" />
                     </button>
-                    <div className="p-2 rounded-xl bg-white/20">
-                      <PiggyBank className="w-6 h-6 text-white" />
-                    </div>
                   </div>
                 </div>
+                
+                <div className="container-content">
 
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>Прогресс</span>
-                    <span className="text-white font-bold">{savingsPct}%</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-500 shadow-lg"
-                      style={{ width: `${savingsPct}%` }}
-                    />
-                  </div>
-                  <div
-                    className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
-                  >
-                    <span>{formatCurrency(savings, "USD")}</span>
-                    <span>{formatCurrency(goalSavings, "USD")}</span>
+                  {/* Прогресс основной копилки */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                        Прогресс
+                      </span>
+                      <span className={`text-sm font-bold ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
+                        {savingsPct}%
+                      </span>
+                    </div>
+                    <div className={`h-2 rounded-full overflow-hidden ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          theme === "dark" ? "bg-gradient-to-r from-blue-500 to-cyan-500" : "bg-gradient-to-r from-blue-600 to-cyan-600"
+                        }`}
+                        style={{ width: `${Math.min(savingsPct, 100)}%` }}
+                      />
+                    </div>
+                    <div className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      <span>{formatCurrency(savings, "USD")}</span>
+                      <span>{formatCurrency(goalSavings, "USD")}</span>
+                    </div>
                   </div>
 
                   {/* Вторая цель */}
                   {secondGoalName && secondGoalAmount > 0 && (
-                    <div className="mt-4 pt-4 border-t border-white/20">
+                    <div className={`mb-3 pt-3 border-t ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}>
+                        <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
                           {secondGoalName}
                         </span>
-                        <span className="text-white font-bold">
+                        <span className={`text-sm font-bold ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`}>
                           {Math.round((secondGoalSavings / secondGoalAmount) * 100)}%
                         </span>
                       </div>
-                      <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                      <div className={`h-2 rounded-full overflow-hidden ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
                         <div
-                          className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500 shadow-lg"
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            theme === "dark" ? "bg-gradient-to-r from-purple-500 to-pink-500" : "bg-gradient-to-r from-purple-600 to-pink-600"
+                          }`}
                           style={{ width: `${Math.min((secondGoalSavings / secondGoalAmount) * 100, 100)}%` }}
                         />
                       </div>
-                      <div
-                        className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-300" : "text-blue-100"}`}
-                      >
+                      <div className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                         <span>{formatCurrency(secondGoalSavings, "USD")}</span>
                         <span>{formatCurrency(secondGoalAmount, "USD")}</span>
                       </div>
                     </div>
                   )}
-                </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setShowGoalModal(true)
-                      vibrate()
-                    }}
-                    className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-all text-sm touch-none"
-                  >
-                    Изменить цель
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTransactionType("savings")
-                      setShowAddModal(true)
-                      setShowNumKeyboard(false)
-                      vibrate()
-                    }}
-                    className={`flex items-center gap-1 px-4 py-2 rounded-xl font-medium transition-all shadow-lg text-sm touch-none ${
-                      theme === "dark"
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-white text-blue-600 hover:bg-blue-50"
-                    }`}
-                  >
-                    <Plus className="w-4 h-4" />
-                    Пополнить
-                  </button>
+                  {/* Кнопки действий */}
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => {
+                        setShowGoalModal(true)
+                        vibrate()
+                      }}
+                      className={`flex-1 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      Изменить цель
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTransactionType("savings")
+                        setShowAddModal(true)
+                        setShowNumKeyboard(false)
+                        vibrate()
+                      }}
+                      className={`flex items-center gap-1 px-4 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                        theme === "dark"
+                          ? "bg-blue-600 text-white hover:bg-blue-500"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Пополнить
+                    </button>
+                  </div>
                 </div>
+                
+                {/* Эффект свечения */}
+                <div className="glow-overlay" />
               </div>
 
               <div
-                className={`backdrop-blur-sm rounded-2xl p-4 border shadow-lg ${
-                  theme === "dark" ? "bg-gray-800/70 border-gray-700/20" : "bg-white/80 border-white/50"
-                }`}
+                className={`styled-container ${theme}`}
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const x = ((e.clientX - rect.left) / rect.width) * 100
+                  const y = ((e.clientY - rect.top) / rect.height) * 100
+                  e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
+                  e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
+                }}
               >
-                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  История пополнений
-                </h3>
+                <div className="container-header">
+                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    История пополнений
+                  </h3>
+                </div>
+                
+                <div className="container-content">
                 {transactions.filter((t) => t.type === "savings").length === 0 ? (
                   <div className="text-center py-8">
                     <div
@@ -3155,44 +3192,53 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       ))}
                   </div>
                 )}
+                </div>
+                
+                {/* Эффект свечения */}
+                <div className="glow-overlay" />
               </div>
               </>
               )}
 
               {savingsTab === 'debts' && (
-                <div className="space-y-4">
-                  {/* Кнопка добавления долга */}
-                  <button
-                    onClick={() => {
-                      setShowAddDebtModal(true)
-                      vibrate()
-                    }}
-                    className={`w-full mx-4 py-3 rounded-full font-semibold transition-all text-sm flex items-center justify-center gap-2 shadow-lg ${
-                      theme === "dark"
-                        ? "bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-500 hover:to-red-500"
-                        : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600"
-                    }`}
-                    style={{ maxWidth: 'calc(100% - 2rem)' }}
-                  >
-                    <Plus className="w-5 h-5" />
-                    Добавить долг
-                  </button>
-
-                  {/* Список долгов */}
+                <div
+                  className={`styled-container ${theme}`}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const x = ((e.clientX - rect.left) / rect.width) * 100
+                    const y = ((e.clientY - rect.top) / rect.height) * 100
+                    e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
+                    e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
+                  }}
+                >
+                  <div className="container-header">
+                    <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Долги
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowAddDebtModal(true)
+                        vibrate()
+                      }}
+                      className="show-all-button"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="container-content">
                   {debts.length === 0 ? (
-                    <div className={`rounded-2xl p-8 text-center mx-4 ${
-                      theme === "dark" ? "bg-gray-800" : "bg-white"
-                    }`}>
+                    <div className="text-center py-8">
                       <div className="text-6xl mb-4">💰</div>
                       <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                         Нет долгов
                       </h3>
                       <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                        Нажмите "Добавить долг" чтобы начать учет
+                        Нажмите "+" чтобы добавить долг
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3 px-4">
+                    <div className="space-y-3">
                       {debts.map((debt) => (
                         <div
                           key={debt.id}
@@ -3265,6 +3311,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       ))}
                     </div>
                   )}
+                  </div>
+                  
+                  {/* Эффект свечения */}
+                  <div className="glow-overlay" />
                 </div>
               )}
             </div>
