@@ -757,6 +757,8 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const startY = useRef(0)
+  const startX = useRef(0)
+  const isVerticalSwipe = useRef(false)
   const sheetRef = useRef(null)
 
   useEffect(() => {
@@ -774,31 +776,63 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     }
   }, [open, mounted])
 
+  useEffect(() => {
+    if (!mounted) return
+
+    // Lock background scroll and prevent layout shift
+    const body = document.body
+    const prevOverflow = body.style.overflow
+    const prevPaddingRight = body.style.paddingRight
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+
+    body.style.overflow = 'hidden'
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`
+    }
+
+    return () => {
+      body.style.overflow = prevOverflow
+      body.style.paddingRight = prevPaddingRight
+    }
+  }, [mounted])
+
   const requestClose = () => {
     onClose && onClose()
   }
 
-  const canStartDrag = (e) => {
-    // Разрешаем свайп вниз для закрытия только если начали жест в верхней зоне модалки
-    const clientY = e.touches?.[0]?.clientY
-    if (!sheetRef.current || typeof clientY !== 'number') return false
-
-    const rect = sheetRef.current.getBoundingClientRect()
-    const withinTopArea = clientY - rect.top <= 48
-    return withinTopArea
-  }
-
   const onTouchStart = (e) => {
-    if (!canStartDrag(e)) return
+    if (!sheetRef.current) return
     setIsDragging(true)
     startY.current = e.touches[0].clientY
+    startX.current = e.touches[0].clientX
+    isVerticalSwipe.current = false
   }
 
   const onTouchMove = (e) => {
     if (!isDragging) return
     const current = e.touches[0].clientY
     const diff = current - startY.current
+    const currentX = e.touches[0].clientX
+    const diffX = currentX - startX.current
+
+    // Determine direction once
+    if (!isVerticalSwipe.current && (Math.abs(diff) > 6 || Math.abs(diffX) > 6)) {
+      isVerticalSwipe.current = Math.abs(diff) > Math.abs(diffX)
+    }
+
+    // If gesture isn't vertical, don't hijack it
+    if (!isVerticalSwipe.current) return
+
+    // If inner content is scrollable and not at top, don't start pull-to-close
+    // (prevents conflict with normal scrolling)
+    const scrollEl = e.target?.closest?.('[data-bsm-scroll]')
+    if (scrollEl && scrollEl.scrollTop > 0) {
+      return
+    }
+
+    // Only handle downward drag
     if (diff > 0) {
+      e.preventDefault()
       setDragY(diff)
     }
   }
@@ -806,6 +840,7 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
   const onTouchEnd = () => {
     if (!isDragging) return
     setIsDragging(false)
+    isVerticalSwipe.current = false
     if (dragY > 110) {
       setDragY(0)
       requestClose()
@@ -833,6 +868,14 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
         e.stopPropagation()
         requestClose()
       }}
+      onTouchMove={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      }}
+      onWheel={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      }}
     >
       <div
         ref={sheetRef}
@@ -857,7 +900,11 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
         <div className="pt-2 pb-1 flex justify-center">
           <div className={`h-1.5 w-10 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`} />
         </div>
-        <div className="p-4 overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>
+        <div
+          data-bsm-scroll
+          className="p-4 overflow-y-auto flex-1"
+          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+        >
           {children}
         </div>
       </div>
@@ -2799,8 +2846,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 style={{
                   background:
                     theme === "dark"
-                      ? "linear-gradient(135deg, rgba(59,130,246,0.22), rgba(99,102,241,0.10))"
-                      : "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(59,130,246,0.08))",
+                      ? "linear-gradient(135deg, rgba(30,58,138,0.45), rgba(37,99,235,0.18))"
+                      : "linear-gradient(135deg, #eef6ff, #dbeafe)",
+                  borderColor: theme === "dark" ? "rgba(59,130,246,0.35)" : "rgba(59,130,246,0.25)",
                 }}
                 onMouseMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect()
@@ -2815,7 +2863,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   style={{
                     backdropFilter: 'none',
                     WebkitBackdropFilter: 'none',
-                    background: theme === 'dark' ? 'rgba(17,24,39,1)' : 'rgba(249,250,251,1)',
+                    background: 'transparent',
+                    borderBottomColor: theme === "dark" ? "rgba(59,130,246,0.25)" : "rgba(59,130,246,0.20)",
                   }}
                 >
                   <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>

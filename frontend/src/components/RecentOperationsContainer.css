@@ -254,15 +254,13 @@
 .budgets-container.dark .container-header,
 .savings-container.dark .container-header,
 .styled-container.dark .container-header {
-  backdrop-filter: blur(10px);
-  background: rgba(17, 24, 39, 0.8);
+  background: rgba(17, 24, 39, 1);
 }
 
 .recent-operations-container.light .container-header, 
 .budgets-container.light .container-header,
 .styled-container.light .container-header {
-  backdrop-filter: blur(10px);
-  background: rgba(249, 250, 251, 0.8);
+  background: rgba(249, 250, 251, 1);
 }
 
 /* Эффект пульсации для кнопки */

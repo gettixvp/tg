@@ -25,20 +25,7 @@
     --ring: 221 83% 53%;
     --radius: 1rem;
     
-    /* Оранжево-синий градиент для светлой темы */
-    --gradient-bg: linear-gradient(135deg, 
-      #ff9a56 0%, 
-      #ff7b3d 15%, 
-      #4f9cf9 40%, 
-      #3b82f6 60%, 
-      #2563eb 85%, 
-      #1d4ed8 100%);
-    --gradient-bg-soft: linear-gradient(135deg, 
-      rgba(255, 154, 86, 0.1) 0%, 
-      rgba(255, 123, 61, 0.05) 25%, 
-      rgba(79, 156, 249, 0.05) 50%, 
-      rgba(59, 130, 246, 0.05) 75%, 
-      rgba(37, 99, 235, 0.1) 100%);
+    --app-bg: #f6f8ff;
   }
 
   .dark {
@@ -62,22 +49,7 @@
     --input: 217 33% 17%;
     --ring: 224 76% 48%;
     
-    /* Оранжево-синий градиент для темной темы */
-    --gradient-bg: linear-gradient(135deg, 
-      #1e3a8a 0%, 
-      #1e40af 15%, 
-      #1d4ed8 25%, 
-      #2563eb 35%, 
-      #3b82f6 50%, 
-      #60a5fa 65%, 
-      #fb923c 85%, 
-      #f97316 100%);
-    --gradient-bg-soft: linear-gradient(135deg, 
-      rgba(30, 58, 138, 0.1) 0%, 
-      rgba(30, 64, 175, 0.05) 25%, 
-      rgba(29, 78, 216, 0.05) 50%, 
-      rgba(37, 99, 235, 0.05) 75%, 
-      rgba(251, 146, 60, 0.1) 100%);
+    --app-bg: #0b1220;
   }
 }
 
@@ -96,23 +68,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    /* Применяем оранжево-синий градиент к фону */
-    background: var(--gradient-bg);
+    background: var(--app-bg);
     min-height: 100vh;
     position: relative;
-  }
-
-  /* Добавляем дополнительный слой для красоты */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--gradient-bg-soft);
-    pointer-events: none;
-    z-index: -1;
   }
 
   #root {
