@@ -567,7 +567,6 @@ const BudgetsContainer = ({ children, theme, onSetup }) => {
     <div 
       ref={containerRef}
       className={`budgets-container ${theme}`}
-      onMouseMove={handleMouseMove}
     >
       <div className="container-header">
         <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -613,15 +612,17 @@ const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
     <div 
       ref={containerRef}
       className={`recent-operations-container ${theme}`}
-      onMouseMove={handleMouseMove}
-      onClick={() => onShowAll && onShowAll()}
     >
       <div className="container-header">
         <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
           Последние операции
         </h3>
         <button
-          onClick={onShowAll}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onShowAll && onShowAll()
+          }}
           className="show-all-button"
         >
           Все →
@@ -694,7 +695,6 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
     <div 
       ref={containerRef}
       className={`recent-operations-container ${theme}`}
-      onMouseMove={handleMouseMove}
     >
       <div className="container-header">
         <div className="flex items-center gap-2">
@@ -783,16 +783,38 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     const body = document.body
     const prevOverflow = body.style.overflow
     const prevPaddingRight = body.style.paddingRight
+    const prevPosition = body.style.position
+    const prevTop = body.style.top
+    const prevWidth = body.style.width
+    const prevLeft = body.style.left
+    const prevRight = body.style.right
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
 
+    const scrollY = window.scrollY || window.pageYOffset || 0
+
     body.style.overflow = 'hidden'
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
     if (scrollbarWidth > 0) {
       body.style.paddingRight = `${scrollbarWidth}px`
     }
 
     return () => {
+      const restoredTop = body.style.top
       body.style.overflow = prevOverflow
       body.style.paddingRight = prevPaddingRight
+      body.style.position = prevPosition
+      body.style.top = prevTop
+      body.style.width = prevWidth
+      body.style.left = prevLeft
+      body.style.right = prevRight
+      const y = Number.parseInt((restoredTop || '0').replace('-', ''), 10)
+      if (Number.isFinite(y) && y > 0) {
+        window.scrollTo(0, y)
+      }
     }
   }, [mounted])
 
@@ -2843,28 +2865,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <div className="space-y-3" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
                 className={`styled-container ${theme}`}
-                style={{
-                  background:
-                    theme === "dark"
-                      ? "linear-gradient(135deg, rgba(30,58,138,0.45), rgba(37,99,235,0.18))"
-                      : "linear-gradient(135deg, #eef6ff, #dbeafe)",
-                  borderColor: theme === "dark" ? "rgba(59,130,246,0.35)" : "rgba(59,130,246,0.25)",
-                }}
-                onMouseMove={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const x = ((e.clientX - rect.left) / rect.width) * 100
-                  const y = ((e.clientY - rect.top) / rect.height) * 100
-                  e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
-                  e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
-                }}
               >
                 <div
                   className="container-header"
                   style={{
                     backdropFilter: 'none',
                     WebkitBackdropFilter: 'none',
-                    background: 'transparent',
-                    borderBottomColor: theme === "dark" ? "rgba(59,130,246,0.25)" : "rgba(59,130,246,0.20)",
+                    background: theme === 'dark' ? 'rgba(17,24,39,1)' : 'rgba(249,250,251,1)',
+                    borderBottomColor: theme === 'dark' ? 'rgba(55,65,81,1)' : 'rgba(229,231,235,1)',
                   }}
                 >
                   <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -5382,13 +5390,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 setIsKeyboardOpen(true)
               }}
               placeholder="0"
-              className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
+              className={`w-full p-3 border rounded-xl transition-all text-sm cursor-pointer ${
                 theme === "dark"
                   ? "bg-gray-700 border-gray-600 text-gray-100"
                   : "bg-gray-50 border-gray-200 text-gray-900"
               }`}
             />
           </div>
+
+          {showNumKeyboard && (
+            <div className="mb-3">
+              <NumericKeyboard
+                theme={theme}
+                onNumberPress={(n) => setAmount((p) => `${p}${n}`.replace(/^0+(?=\d)/, ''))}
+                onBackspace={() => setAmount((p) => p.slice(0, -1))}
+                onDone={() => {
+                  setShowNumKeyboard(false)
+                  setIsKeyboardOpen(false)
+                }}
+              />
+            </div>
+          )}
 
           <div className="mb-3">
             <input
@@ -5489,40 +5511,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </button>
           </div>
         </BottomSheetModal>
-      )}
-
-      {showNumKeyboard && (
-        <div
-          className="fixed inset-0 z-[80] flex items-end justify-center"
-          onMouseDown={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setShowNumKeyboard(false)
-            setIsKeyboardOpen(false)
-          }}
-          onTouchStart={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setShowNumKeyboard(false)
-            setIsKeyboardOpen(false)
-          }}
-        >
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            onMouseDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-          >
-            <NumericKeyboard
-              theme={theme}
-              onNumberPress={(n) => setAmount((p) => `${p}${n}`.replace(/^0+(?=\d)/, ''))}
-              onBackspace={() => setAmount((p) => p.slice(0, -1))}
-              onDone={() => {
-                setShowNumKeyboard(false)
-                setIsKeyboardOpen(false)
-              }}
-            />
-          </div>
-        </div>
       )}
 
       {showSecondGoalModal && (

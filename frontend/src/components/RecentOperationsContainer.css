@@ -54,22 +54,15 @@
   left: 0;
   right: 0;
   bottom: 0;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  opacity: 1;
+  transition: none;
   pointer-events: none;
   background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    circle at 50% 50%,
     var(--glow-color),
     transparent 70%
   );
   z-index: 1;
-}
-
-.recent-operations-container:hover::before, 
-.budgets-container:hover::before, 
-.savings-container:hover::before,
-.styled-container:hover::before {
-  opacity: 1;
 }
 
 /* Дополнительный слой свечения */
@@ -83,22 +76,15 @@
   left: 0;
   right: 0;
   bottom: 0;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  opacity: 0.25;
+  transition: none;
   pointer-events: none;
   background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    circle at 50% 50%,
     var(--glow-intense),
     transparent 50%
   );
   z-index: 1;
-}
-
-.recent-operations-container:hover::after, 
-.budgets-container:hover::after, 
-.savings-container:hover::after,
-.styled-container:hover::after {
-  opacity: 0.3;
 }
 
 /* Hover эффекты для контейнера */
@@ -106,22 +92,8 @@
 .budgets-container:hover, 
 .savings-container:hover,
 .styled-container:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-.recent-operations-container.dark:hover, 
-.budgets-container.dark:hover, 
-.savings-container.dark:hover,
-.styled-container.dark:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.recent-operations-container.light:hover, 
-.budgets-container.light:hover, 
-.savings-container.light:hover,
-.styled-container.light:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Заголовок контейнера */
@@ -174,21 +146,15 @@
   left: 0;
   right: 0;
   bottom: 0;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  opacity: 1;
+  transition: none;
   pointer-events: none;
   z-index: 0;
   background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    circle at 50% 50%,
     rgba(59, 130, 246, 0.03),
     transparent 60%
   );
-}
-
-.recent-operations-container:hover .glow-overlay, 
-.budgets-container:hover .glow-overlay,
-.styled-container:hover .glow-overlay {
-  opacity: 1;
 }
 
 /* Анимация появления */
