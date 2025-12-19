@@ -763,6 +763,17 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
 
     const computeInset = () => {
       try {
+        if (!sheetRef.current) {
+          setKeyboardInset(0)
+          return
+        }
+
+        const active = document.activeElement
+        if (!active || !sheetRef.current.contains(active)) {
+          setKeyboardInset(0)
+          return
+        }
+
         const vv = window.visualViewport
         if (!vv) {
           setKeyboardInset(0)
@@ -792,6 +803,9 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     }
     window.addEventListener('resize', schedule)
 
+    document.addEventListener('focusin', schedule)
+    document.addEventListener('focusout', schedule)
+
     return () => {
       if (raf) cancelAnimationFrame(raf)
       if (vv && vv.removeEventListener) {
@@ -799,6 +813,9 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
         vv.removeEventListener('scroll', schedule)
       }
       window.removeEventListener('resize', schedule)
+
+      document.removeEventListener('focusin', schedule)
+      document.removeEventListener('focusout', schedule)
     }
   }, [mounted])
 
@@ -908,12 +925,21 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center"
       style={{ zIndex }}
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        requestClose()
+      }}
       onMouseDown={(e) => {
         e.preventDefault()
         e.stopPropagation()
         requestClose()
       }}
       onTouchStart={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      }}
+      onTouchEnd={(e) => {
         e.preventDefault()
         e.stopPropagation()
         requestClose()
@@ -928,6 +954,10 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
       }}
     >
       <div
+        onWheel={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+        }}
         ref={sheetRef}
         className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden flex flex-col ${
           theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
@@ -1733,9 +1763,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   async function autoAuth(email, token) {
     try {
+      const decodedPassword = atob(token)
       const payload = {
         email,
-        password: atob(token), // Decode password from base64
+        password: decodedPassword, // Decode password from base64
         first_name: displayName,
         telegram_id: tgUserId,
         telegram_name: displayName,
@@ -1761,13 +1792,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         SESSION_KEY,
         JSON.stringify({
           email,
-          token: btoa(password),
+          token,
         }),
       )
 
       if (rememberMe) {
         // Сохраняем данные для автовхода
-        localStorage.setItem("savedCredentials", JSON.stringify({ email, password: btoa(password) }))
+        localStorage.setItem("savedCredentials", JSON.stringify({ email, password: token }))
       } else {
         localStorage.removeItem("savedCredentials")
       }
