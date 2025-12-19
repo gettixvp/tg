@@ -10,17 +10,17 @@ const app = express()
 app.use(express.json())
 app.use(cors())
 
-async function callDeepSeekChat({ apiKey, baseUrl, messages }) {
-  const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`
+async function callCloudflareChat({ apiToken, accountId, model, messages }) {
+  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1/chat/completions`
 
   const resp = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiToken}`,
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model,
       messages,
       temperature: 0.6,
     }),
@@ -28,10 +28,16 @@ async function callDeepSeekChat({ apiKey, baseUrl, messages }) {
 
   if (!resp.ok) {
     const text = await resp.text().catch(() => '')
-    throw new Error(`DeepSeek error: ${resp.status} ${text}`)
+    throw new Error(`Cloudflare Workers AI error: ${resp.status} ${text}`)
   }
 
-  return resp.json()
+  const json = await resp.json()
+  if (json && json.success === false) {
+    throw new Error(`Cloudflare Workers AI error: ${JSON.stringify(json.errors || json)}`)
+  }
+
+  // Cloudflare returns OpenAI-like response under result
+  return json.result || json
 }
 
 // --- Health check ---
@@ -44,7 +50,7 @@ app.get("/ping", (req, res) => {
   res.send("pong");
 });
 
-// --- AI finance analyzer (DeepSeek via backend proxy) ---
+// --- AI finance analyzer (Cloudflare Workers AI via backend proxy) ---
 app.post('/api/ai/analyze', async (req, res) => {
   const { user_email, message } = req.body || {}
 
@@ -52,11 +58,14 @@ app.post('/api/ai/analyze', async (req, res) => {
     return res.status(400).json({ error: 'user_email обязателен' })
   }
 
-  const apiKey = (process.env.DEEPSEEK_API_KEY || '').trim()
-  const baseUrl = (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').trim()
+  const accountId = (process.env.CF_ACCOUNT_ID || '').trim()
+  const apiToken = (process.env.CF_API_TOKEN || '').trim()
+  const model = (process.env.CF_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct').trim()
 
-  if (!apiKey) {
-    return res.status(500).json({ error: 'DeepSeek API key is not configured on server' })
+  if (!accountId || !apiToken) {
+    return res.status(500).json({
+      error: 'Cloudflare AI is not configured on server (CF_ACCOUNT_ID/CF_API_TOKEN)',
+    })
   }
 
   try {
@@ -123,17 +132,15 @@ app.post('/api/ai/analyze', async (req, res) => {
       (message && String(message).trim()) ||
       'Проанализируй мои финансы и дай советы. Если данных мало — предложи, что начать отслеживать.'
 
-    const ds = await callDeepSeekChat({
-      apiKey,
-      baseUrl,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: `Данные пользователя (JSON):\n${JSON.stringify(context)}` },
-        { role: 'user', content: userPrompt },
-      ],
-    })
+    const messages = [
+      { role: 'system', content: system },
+      { role: 'user', content: `Данные пользователя (JSON):\n${JSON.stringify(context)}` },
+      { role: 'user', content: userPrompt },
+    ]
 
-    const content = ds?.choices?.[0]?.message?.content || ''
+    const cf = await callCloudflareChat({ apiToken, accountId, model, messages })
+    const content = cf?.choices?.[0]?.message?.content || ''
+
     res.json({ success: true, content })
   } catch (e) {
     console.error('AI analyze error:', e)
