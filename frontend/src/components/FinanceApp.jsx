@@ -654,6 +654,32 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
     containerRef.current.style.setProperty('--mouse-y', `${y}%`)
   }
 
+  // Определяем цвета в зависимости от параметра color
+  const colorClasses = {
+    blue: {
+      iconBg: theme === "dark" ? "bg-blue-900/40" : "bg-blue-100",
+      iconText: theme === "dark" ? "text-blue-400" : "text-blue-600",
+      progressBg: theme === "dark" ? "bg-blue-500" : "bg-blue-600"
+    },
+    purple: {
+      iconBg: theme === "dark" ? "bg-purple-900/40" : "bg-purple-100",
+      iconText: theme === "dark" ? "text-purple-400" : "text-purple-600",
+      progressBg: theme === "dark" ? "bg-purple-500" : "bg-purple-600"
+    },
+    green: {
+      iconBg: theme === "dark" ? "bg-green-900/40" : "bg-green-100",
+      iconText: theme === "dark" ? "text-green-400" : "text-green-600",
+      progressBg: theme === "dark" ? "bg-green-500" : "bg-green-600"
+    },
+    orange: {
+      iconBg: theme === "dark" ? "bg-orange-900/40" : "bg-orange-100",
+      iconText: theme === "dark" ? "text-orange-400" : "text-orange-600",
+      progressBg: theme === "dark" ? "bg-orange-500" : "bg-orange-600"
+    }
+  }
+  
+  const currentColor = colorClasses[color] || colorClasses.blue
+
   return (
     <div 
       ref={containerRef}
@@ -662,7 +688,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
     >
       <div className="container-header">
         <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
+          <div className={`p-1.5 rounded-lg ${currentColor.iconBg}`}>
             {icon}
           </div>
           <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -682,9 +708,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
         <div className="mb-3">
           <div className={`h-2 rounded-full overflow-hidden ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
             <div 
-              className={`h-full rounded-full transition-all duration-500 ${
-                theme === "dark" ? "bg-blue-500" : "bg-blue-600"
-              }`}
+              className={`h-full rounded-full transition-all duration-500 ${currentColor.progressBg}`}
               style={{ width: `${Math.min(progress, 100)}%` }}
             ></div>
           </div>
