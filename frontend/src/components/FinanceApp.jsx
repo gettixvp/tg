@@ -24,6 +24,7 @@ import {
   Heart,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   MessageCircle,
   Send,
   RefreshCw,
@@ -744,6 +745,53 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
       
       {/* Эффект свечения */}
       <div className="glow-overlay" />
+    </div>
+  )
+}
+
+const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
+  const [mounted, setMounted] = useState(false)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true)
+      const t = window.setTimeout(() => setVisible(true), 10)
+      return () => window.clearTimeout(t)
+    }
+
+    if (mounted) {
+      setVisible(false)
+      const t = window.setTimeout(() => setMounted(false), 260)
+      return () => window.clearTimeout(t)
+    }
+  }, [open, mounted])
+
+  if (!mounted) return null
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center"
+      style={{ zIndex }}
+      onMouseDown={() => onClose && onClose()}
+      onTouchStart={() => onClose && onClose()}
+    >
+      <div
+        className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+        style={{
+          maxHeight: "85vh",
+          display: "flex",
+          flexDirection: "column",
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 260ms ease',
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>
+          {children}
+        </div>
+      </div>
     </div>
   )
 }
@@ -2763,11 +2811,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   icon={<PiggyBank className="w-4 h-4" />}
                   color="blue"
                 >
-                  <div className="flex items-center justify-between mt-2">
-                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                      {formatCurrency(savings)} / {formatCurrency(goalSavings)} USD
-                    </span>
-                  </div>
+                  {null}
                 </SavingsContainer>
                 
                 {/* Вторая копилка (если есть) */}
@@ -2783,11 +2827,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     icon={<PiggyBank className="w-4 h-4" />}
                     color="purple"
                   >
-                    <div className="flex items-center justify-between mt-2">
-                      <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                        {formatCurrency(secondGoalSavings)} / {formatCurrency(secondGoalAmount)} USD
-                      </span>
-                    </div>
+                    {null}
                   </SavingsContainer>
                 )}
               </div>
@@ -3881,13 +3921,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       </main>
 
       {showGoalModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-          >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Цель накопления (USD)
-            </h3>
+        <BottomSheetModal
+          open={showGoalModal}
+          onClose={() => setShowGoalModal(false)}
+          theme={theme}
+          zIndex={50}
+        >
+          <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            Цель накопления (USD)
+          </h3>
             {secondGoalName && secondGoalAmount > 0 && (
               <div className="mb-3">
                 <label
@@ -4012,17 +4054,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Сохранить
               </button>
             </div>
-          </div>
-        </div>
+        </BottomSheetModal>
       )}
 
       {showSavingsSettingsModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}>
-          <div className="p-4">
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+        <BottomSheetModal
+          open={showSavingsSettingsModal}
+          onClose={() => setShowSavingsSettingsModal(false)}
+          theme={theme}
+          zIndex={60}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
               Настройки копилки
             </h3>
+            <button
+              onClick={() => setShowSavingsSettingsModal(false)}
+              className={`p-2 rounded-full transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+            >
+              <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            </button>
+          </div>
+          <div>
             {secondGoalName && secondGoalAmount > 0 && (
               <div className="mb-3">
                 <label
@@ -4266,7 +4319,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     : "bg-orange-500 hover:bg-orange-600 text-white"
                 }`}
               >
-                🔄 Сбросить прогресс
+                Сбросить прогресс
               </button>
             </div>
 
@@ -4332,211 +4385,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
             )}
           </div>
-
-            {showNumKeyboard && (
-              <NumericKeyboard
-                onNumberPress={(num) => {
-                  if (initialSavingsInput.includes(".") && num === ".") return
-                  setInitialSavingsInput((prev) => prev + num)
-                }}
-                onBackspace={() => setInitialSavingsInput((prev) => prev.slice(0, -1))}
-                onDone={() => setShowNumKeyboard(false)}
-                theme={theme}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {showSecondGoalModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-          >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Вторая цель накопления
-            </h3>
-            <div className="mb-4">
-              <label
-                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-              >
-                Название цели
-              </label>
-              <input
-                type="text"
-                value={secondGoalName}
-                onChange={(e) => setSecondGoalName(e.target.value)}
-                className={`w-full p-3 border rounded-xl transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-                placeholder="Например: Отпуск"
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-              >
-                Целевая сумма (USD)
-              </label>
-              <input
-                type="number"
-                value={secondGoalInput}
-                min={0}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/^0+(?=\d)/, '')
-                  setSecondGoalInput(val || '0')
-                }}
-                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-                placeholder="0"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowSecondGoalModal(false)}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={() => {
-                  const n = Number.parseInt(secondGoalInput, 10)
-                  if (!Number.isNaN(n) && n > 0 && secondGoalName.trim()) {
-                    setSecondGoalAmount(n)
-                    vibrateSuccess()
-                  }
-                  setShowSecondGoalModal(false)
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
+        </BottomSheetModal>
       )}
 
       {showChart && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[80vh] overflow-y-auto ${
-              theme === "dark" ? "bg-gray-800" : "bg-white"
-            }`}
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <div className="mb-4">
-              <h3 className={`text-lg font-bold text-center mb-3 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Диаграмма расходов
-              </h3>
-              
-              {/* Кнопки переключения типа транзакции */}
-              <div className="flex gap-2 mb-3">
-                <button
-                  onClick={() => {
-                    setChartType('income')
-                    vibrateSelect()
-                  }}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                    chartType === 'income'
-                      ? theme === "dark" ? "bg-green-600 text-white" : "bg-green-500 text-white"
-                      : theme === "dark" ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  Доходы
-                </button>
-                <button
-                  onClick={() => {
-                    setChartType('expense')
-                    vibrateSelect()
-                  }}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                    chartType === 'expense'
-                      ? theme === "dark" ? "bg-red-600 text-white" : "bg-red-500 text-white"
-                      : theme === "dark" ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  Расходы
-                </button>
-                <button
-                  onClick={() => {
-                    setChartType('savings')
-                    vibrateSelect()
-                  }}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                    chartType === 'savings'
-                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
-                      : theme === "dark" ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  Копилка
-                </button>
-              </div>
-              
-              {/* Кнопки переключения вида диаграммы */}
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  Вид:
-                </span>
-              <div className="flex items-center gap-2">
-                {/* Кнопки переключения вида диаграммы */}
-                <button
-                  onClick={() => {
-                    setChartView('pie')
-                    vibrate()
-                  }}
-                  className={`p-2 rounded-lg transition-all ${
-                    chartView === 'pie'
-                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
-                      : theme === "dark" ? "bg-gray-700 text-gray-400 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  <PieChart className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setChartView('bar')
-                    vibrate()
-                  }}
-                  className={`p-2 rounded-lg transition-all ${
-                    chartView === 'bar'
-                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
-                      : theme === "dark" ? "bg-gray-700 text-gray-400 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  <BarChart2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setChartView('line')
-                    vibrate()
-                  }}
-                  className={`p-2 rounded-lg transition-all ${
-                    chartView === 'line'
-                      ? theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
-                      : theme === "dark" ? "bg-gray-700 text-gray-400 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  <TrendingUpIcon className="w-4 h-4" />
-                </button>
-                <button onClick={() => setShowChart(false)} className="touch-none">
-                  <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
-                </button>
-              </div>
-              </div>
-            </div>
+        <BottomSheetModal
+          open={showChart}
+          onClose={() => setShowChart(false)}
+          theme={theme}
+          zIndex={50}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Диаграмма расходов
+            </h3>
+            <button
+              onClick={() => setShowChart(false)}
+              className={`p-2 rounded-full transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+            >
+              <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            </button>
+          </div>
             {transactions.filter((t) => t.type === chartType).length > 0 ? (
               <div className="w-full aspect-square">
                 {chartView === 'pie' && (
@@ -4686,944 +4555,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             >
               Закрыть
             </button>
-          </div>
-        </div>
-      )}
-
-      {showTransactionDetails && selectedTransaction && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
-          onClick={() => setShowTransactionDetails(false)}
-        >
-          {/* Header вне модального окна */}
-          <div className="fixed top-4 left-0 right-0 flex justify-center z-10 px-4">
-            <div className="flex items-center justify-between w-full max-w-md">
-              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-white"}`}>
-                Детали операции
-              </h3>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowTransactionDetails(false)
-                }} 
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
-            </div>
-          </div>
-          
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${
-              theme === "dark" ? "bg-gray-800" : "bg-white"
-            }`}
-            style={{ 
-              maxHeight: "85vh",
-              display: "flex",
-              flexDirection: "column"
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="overflow-y-auto flex-1 p-4" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-
-            {/* Иконка категории по центру */}
-            <div className="flex justify-center mb-6">
-              <div
-                className={`flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${
-                  (categoriesMeta[selectedTransaction.category] || categoriesMeta["Другое"]).color
-                } shadow-2xl`}
-              >
-                <span className="text-4xl">
-                  {(categoriesMeta[selectedTransaction.category] || categoriesMeta["Другое"]).icon}
-                </span>
-              </div>
-            </div>
-
-            {/* Информация о транзакции */}
-            <div className="space-y-4 mb-6">
-              <div className="text-center">
-                <p
-                  className={`text-3xl font-bold mb-2 ${
-                    selectedTransaction.type === "income"
-                      ? "text-emerald-500"
-                      : selectedTransaction.type === "expense"
-                        ? "text-rose-500"
-                        : "text-blue-500"
-                  }`}
-                >
-                  {selectedTransaction.type === "income" ? "+" : "-"}
-                  {formatCurrency(selectedTransaction.amount)}
-                </p>
-                <p className={`text-lg font-semibold mb-1 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  {selectedTransaction.description || "Без описания"}
-                </p>
-                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  {selectedTransaction.category}
-                </p>
-              </div>
-
-              <div className={`flex items-center justify-between p-3 rounded-xl ${
-                theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-              }`}>
-                <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Дата</span>
-                <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
-                  {formatDate(selectedTransaction.date)}
-                </span>
-              </div>
-
-              {showLinkedUsers && selectedTransaction.created_by_name && (
-                <div className={`flex items-center justify-between p-3 rounded-xl ${
-                  theme === "dark" ? "bg-gray-700/50" : "bg-gray-100"
-                }`}>
-                  <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Автор</span>
-                  <div className="flex items-center gap-2">
-                    {selectedTransaction.telegram_photo_url ? (
-                      <img
-                        src={selectedTransaction.telegram_photo_url}
-                        alt="Avatar"
-                        className="w-6 h-6 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        theme === "dark" ? "bg-blue-700" : "bg-blue-200"
-                      }`}>
-                        <User className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                    <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
-                      {selectedTransaction.created_by_name}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Комментарии */}
-            <div className="mb-4">
-              <h4 className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                Комментарии
-              </h4>
-              
-              {transactionComments[selectedTransaction.id] && transactionComments[selectedTransaction.id].length > 0 ? (
-                <div className="space-y-2 mb-3 overflow-visible">
-                  {transactionComments[selectedTransaction.id].map((comment) => (
-                    <CommentRow
-                      key={comment.id}
-                      comment={comment}
-                      theme={theme}
-                      tgUserId={tgUserId}
-                      onDelete={() => deleteComment(selectedTransaction.id, comment.id)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className={`text-sm text-center py-4 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
-                  Пока нет комментариев
-                </p>
-              )}
-
-              {/* Поле ввода комментария */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={detailsCommentText}
-                  onChange={(e) => setDetailsCommentText(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendDetailsComment()}
-                  placeholder="Написать комментарий..."
-                  className={`flex-1 p-2 rounded-xl border text-sm ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
-                      : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500"
-                  }`}
-                />
-                <button
-                  onClick={handleSendDetailsComment}
-                  className={`p-3 rounded-xl transition-all ${
-                    detailsCommentText.trim()
-                      ? theme === "dark"
-                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                        : "bg-blue-500 hover:bg-blue-600 text-white"
-                      : theme === "dark"
-                        ? "bg-gray-700 text-gray-500"
-                        : "bg-gray-200 text-gray-400"
-                  }`}
-                  disabled={!detailsCommentText.trim()}
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Кнопка закрытия внизу */}
-            <div className="p-4 border-t" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
-              <button
-                onClick={() => setShowTransactionDetails(false)}
-                className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Закрыть
-              </button>
-            </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно списка бюджетов */}
-      {showBudgetModal && !selectedBudgetCategory && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
-          style={{ touchAction: "none" }}
-        >
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
-          >
-            {/* Контент - прокручиваемый */}
-            <div 
-              className="p-4 overflow-y-auto flex-1"
-              style={{ 
-                WebkitOverflowScrolling: "touch", 
-                touchAction: "pan-y"
-              }}
-            >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Управление бюджетами
-              </h3>
-              {/* Список существующих бюджетов */}
-              <div className="space-y-3">
-                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  Установите лимиты расходов для категорий
-                </p>
-                
-                {Object.keys(categoriesMeta).map((category) => {
-                  const budget = budgets[category]
-                  const meta = categoriesMeta[category]
-                  
-                  return (
-                    <button
-                      key={category}
-                      onClick={() => {
-                        setSelectedBudgetCategory(category)
-                        setBudgetLimitInput(budget ? String(budget.limit) : '')
-                        setBudgetPeriod(budget ? budget.period : 'month')
-                        setShowBudgetKeyboard(false)
-                        vibrate()
-                      }}
-                      className={`w-full p-3 rounded-xl border text-left transition-colors ${
-                        budget
-                          ? theme === "dark"
-                            ? "bg-blue-900/20 border-blue-700/30"
-                            : "bg-blue-50 border-blue-200"
-                          : theme === "dark"
-                            ? "bg-gray-700 border-gray-600 hover:bg-gray-650"
-                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{meta.icon}</span>
-                          <div>
-                            <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
-                              {category}
-                            </p>
-                            {budget && (
-                              <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                                {formatCurrency(budget.limit)} / {budget.period === 'week' ? 'неделю' : budget.period === 'month' ? 'месяц' : 'год'}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        {budget ? (
-                          <span className={`text-xs font-medium ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
-                            Изменить
-                          </span>
-                        ) : (
-                          <span className={`text-xs font-medium ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            Добавить
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Футер - фиксированный */}
-            <div className="px-4 py-3 border-t flex-shrink-0" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
-              <button
-                onClick={() => {
-                  setShowBudgetModal(false)
-                  vibrate()
-                }}
-                className={`w-full py-2.5 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Закрыть
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно редактирования бюджета */}
-      {showBudgetModal && selectedBudgetCategory && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
-          style={{ touchAction: "none" }}
-        >
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
-          >
-            <div
-              className="p-4 overflow-y-auto flex-1"
-              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">{categoriesMeta[selectedBudgetCategory]?.icon}</span>
-                <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  {selectedBudgetCategory}
-                </h3>
-              </div>
-
-              <div className="mb-4">
-                <label
-                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  Лимит расходов (USD)
-                </label>
-                <div
-                  onClick={() => {
-                    setShowBudgetKeyboard(true)
-                    vibrate()
-                  }}
-                  className={`w-full p-4 border rounded-xl text-center text-3xl font-bold cursor-pointer transition-all ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-650"
-                      : "bg-gray-50 border-gray-200 text-gray-900 hover:bg-gray-100"
-                  }`}
-                  style={{ minHeight: "60px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  {budgetLimitInput || "0"}
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label
-                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  Период
-                </label>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'week', label: 'Неделя' },
-                    { value: 'month', label: 'Месяц' },
-                    { value: 'year', label: 'Год' }
-                  ].map((period) => (
-                    <button
-                      key={period.value}
-                      onClick={() => {
-                        setBudgetPeriod(period.value)
-                        vibrateSelect()
-                      }}
-                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none active:scale-95 ${
-                        budgetPeriod === period.value
-                          ? theme === "dark"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-500 text-white"
-                          : theme === "dark"
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {period.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {budgetPeriod === 'month' && (
-                <div className="mb-4">
-                  <label
-                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                  >
-                    День начала месяца (для автообнуления)
-                  </label>
-                  <select
-                    value={budgets[selectedBudgetCategory]?.startDay || 1}
-                    onChange={(e) => {
-                      const newBudgets = {
-                        ...budgets,
-                        [selectedBudgetCategory]: {
-                          ...budgets[selectedBudgetCategory],
-                          startDay: Number(e.target.value)
-                        }
-                      }
-                      setBudgets(newBudgets)
-                      vibrateSelect()
-                    }}
-                    className={`w-full p-3 border rounded-xl text-sm font-medium ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100"
-                        : "bg-gray-50 border-gray-200 text-gray-900"
-                    }`}
-                  >
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                      <option key={day} value={day}>
-                        {day} число каждого месяца
-                      </option>
-                    ))}
-                  </select>
-                  <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                    Бюджет будет автоматически обнуляться в этот день каждого месяца
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Кастомная клавиатура */}
-            {showBudgetKeyboard && (
-            <NumericKeyboard
-              onNumberPress={(num) => {
-                setBudgetLimitInput((prev) => {
-                  const current = prev || "0"
-                  if (current === "0") return num
-                  if (current.length >= 10) return current
-                  return current + num
-                })
-                vibrateSelect()
-              }}
-              onBackspace={() => {
-                setBudgetLimitInput((prev) => {
-                  if (!prev || prev.length === 1) return "0"
-                  return prev.slice(0, -1)
-                })
-                vibrate()
-              }}
-              onDone={() => {
-                setShowBudgetKeyboard(false)
-                vibrate()
-              }}
-              theme={theme}
-            />
-            )}
-
-            {/* Кнопки внизу */}
-            <div className="p-4 border-t flex gap-2" style={{ borderColor: theme === "dark" ? "#374151" : "#e5e7eb" }}>
-              <button
-                onClick={() => {
-                  setSelectedBudgetCategory('')
-                  setBudgetLimitInput('')
-                  vibrate()
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              
-              {budgets[selectedBudgetCategory] && (
-                <>
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Очистить прогресс бюджета? Счетчик начнется заново с текущего момента.')) return
-                    
-                    // Сбрасываем дату создания бюджета на текущий момент
-                    const newBudgets = {
-                      ...budgets,
-                      [selectedBudgetCategory]: {
-                        ...budgets[selectedBudgetCategory],
-                        createdAt: new Date().toISOString()
-                      }
-                    }
-                    setBudgets(newBudgets)
-                    
-                    // Сохраняем на сервер
-                    await saveBudgetToServer(newBudgets)
-                    
-                    vibrateSuccess()
-                    alert('Прогресс очищен! Бюджет начнет отслеживать транзакции с этого момента.')
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-orange-700 hover:bg-orange-600 text-white"
-                      : "bg-orange-500 hover:bg-orange-600 text-white"
-                  }`}
-                >
-                  Очистить
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!window.confirm('Удалить этот бюджет?')) return
-                    
-                    // Удаляем только бюджет, транзакции остаются в истории
-                    const newBudgets = { ...budgets }
-                    delete newBudgets[selectedBudgetCategory]
-                    setBudgets(newBudgets)
-                    
-                    // Сохраняем на сервер
-                    await saveBudgetToServer(newBudgets)
-                    
-                    setSelectedBudgetCategory('')
-                    setBudgetLimitInput('')
-                    setShowBudgetKeyboard(false)
-                    vibrateSuccess()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-red-700 hover:bg-red-600 text-white"
-                      : "bg-red-500 hover:bg-red-600 text-white"
-                  }`}
-                >
-                  Удалить
-                </button>
-                </>
-              )}
-              
-              <button
-                onClick={async () => {
-                  const limit = Number(budgetLimitInput)
-                  if (!limit || limit <= 0) {
-                    vibrateError()
-                    alert('Введите корректную сумму')
-                    return
-                  }
-                  
-                  const newBudgets = {
-                    ...budgets,
-                    [selectedBudgetCategory]: {
-                      limit,
-                      period: budgetPeriod,
-                      createdAt: budgets[selectedBudgetCategory]?.createdAt || new Date().toISOString(),
-                      startDay: budgets[selectedBudgetCategory]?.startDay || 1
-                    }
-                  }
-                  
-                  setBudgets(newBudgets)
-                  await saveBudgetToServer(newBudgets)
-                  setSelectedBudgetCategory('')
-                  setBudgetLimitInput('')
-                  vibrateSuccess()
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно добавления долга */}
-      {showAddDebtModal && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
-          onClick={() => {
-            setShowAddDebtModal(false)
-            setDebtPerson('')
-            setDebtAmount('')
-            setDebtDescription('')
-          }}
-        >
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ 
-              maxHeight: "85vh",
-              display: "flex",
-              flexDirection: "column"
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Контент - прокручиваемый */}
-            <div 
-              className="p-6 overflow-y-auto flex-1"
-              style={{ 
-                WebkitOverflowScrolling: "touch", 
-                touchAction: "pan-y"
-              }}
-            >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Добавить долг
-              </h3>
-
-            {/* Тип долга */}
-            <div className="mb-4">
-              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                Тип долга
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setDebtType('owe')
-                    vibrateSelect()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    debtType === 'owe'
-                      ? theme === "dark"
-                        ? "bg-red-600 text-white"
-                        : "bg-red-500 text-white"
-                      : theme === "dark"
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  📤 Я должен
-                </button>
-                <button
-                  onClick={() => {
-                    setDebtType('owed')
-                    vibrateSelect()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                    debtType === 'owed'
-                      ? theme === "dark"
-                        ? "bg-green-600 text-white"
-                        : "bg-green-500 text-white"
-                      : theme === "dark"
-                        ? "bg-gray-700 text-gray-300"
-                        : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  📥 Мне должны
-                </button>
-              </div>
-            </div>
-
-            {/* Кто должен */}
-            <div className="mb-4">
-              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                {debtType === 'owe' ? 'Кому я должен' : 'Кто мне должен'}
-              </label>
-              <input
-                type="text"
-                value={debtPerson}
-                onChange={(e) => setDebtPerson(e.target.value)}
-                placeholder="Имя человека"
-                className={`w-full p-3 border rounded-xl ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100"
-                    : "bg-gray-50 border-gray-200 text-gray-900"
-                }`}
-              />
-            </div>
-
-            {/* Сумма */}
-            <div className="mb-4">
-              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                Сумма (USD)
-              </label>
-              <input
-                type="number"
-                value={debtAmount}
-                onChange={(e) => setDebtAmount(e.target.value)}
-                placeholder="0"
-                className={`w-full p-3 border rounded-xl text-lg font-bold ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100"
-                    : "bg-gray-50 border-gray-200 text-gray-900"
-                }`}
-              />
-            </div>
-
-            {/* Описание */}
-            <div className="mb-4">
-              <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                Описание (необязательно)
-              </label>
-              <textarea
-                value={debtDescription}
-                onChange={(e) => setDebtDescription(e.target.value)}
-                placeholder="За что долг..."
-                rows={3}
-                className={`w-full p-3 border rounded-xl resize-none ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100"
-                    : "bg-gray-50 border-gray-200 text-gray-900"
-                }`}
-              />
-            </div>
-
-            {/* Кнопки */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowAddDebtModal(false)
-                  setDebtPerson('')
-                  setDebtAmount('')
-                  setDebtDescription('')
-                  vibrate()
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={addDebt}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                Добавить
-              </button>
-            </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddModal && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50"
-          style={{ touchAction: "none" }}
-        >
-          <div
-            className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
-            style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}
-          >
-            <div
-              className="p-4 overflow-y-auto flex-1"
-              style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
-            >
-              <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Новая операция
-              </h3>
-
-              <div className="flex gap-2 mb-4">
-                {["expense", "income", "savings"].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => {
-                      setTransactionType(type)
-                      vibrateSelect()
-                    }}
-                    className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
-                      transactionType === type
-                        ? type === "income"
-                          ? "bg-emerald-500 text-white"
-                          : type === "expense"
-                            ? "bg-rose-500 text-white"
-                            : "bg-blue-500 text-white"
-                        : theme === "dark"
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {type === "income" ? "Доход" : type === "expense" ? "Расход" : "Копилка"}
-                  </button>
-                ))}
-              </div>
-
-              {transactionType === "savings" && secondGoalName && secondGoalAmount > 0 && (
-                <div className="mb-3">
-                  <label
-                    className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                  >
-                    Выберите копилку
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedSavingsGoal('main')}
-                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
-                        selectedSavingsGoal === 'main'
-                          ? theme === "dark"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-500 text-white"
-                          : theme === "dark"
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {goalName}
-                    </button>
-                    <button
-                      onClick={() => setSelectedSavingsGoal('second')}
-                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
-                        selectedSavingsGoal === 'second'
-                          ? theme === "dark"
-                            ? "bg-purple-600 text-white"
-                            : "bg-purple-500 text-white"
-                          : theme === "dark"
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {secondGoalName}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="mb-3">
-                {transactionType === "savings" && (
-                  <p className={`text-xs mb-2 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
-                    💡 Введите сумму в {currentCurrency.symbol} - будет конвертировано в USD (курс: 1{" "}
-                    {currentCurrency.code} ≈ {exchangeRate.toFixed(2)} USD)
-                  </p>
-                )}
-                <input
-                  type="text"
-                  inputMode="none"
-                  placeholder="Сумма"
-                  value={amount}
-                  onTouchStart={(e) => {
-                    // Открываем цифровую клавиатуру максимально рано, предотвращаем системный фокус
-                    e.preventDefault()
-                    setShowNumKeyboard(true)
-                    setIsKeyboardOpen(true)
-                  }}
-                  onClick={() => {
-                    setShowNumKeyboard(true)
-                    setIsKeyboardOpen(true)
-                    // Убираем фокус с других полей
-                    document.activeElement?.blur()
-                  }}
-                  onFocus={() => {
-                    setShowNumKeyboard(true)
-                    setIsKeyboardOpen(true)
-                    // Убираем фокус сразу, чтобы не показывалась системная клавиатура
-                    setTimeout(() => document.activeElement?.blur(), 0)
-                  }}
-                  readOnly
-                  className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm cursor-pointer ${
-                    theme === "dark"
-                      ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                      : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  }`}
-                />
-              </div>
-
-              <input
-                type="text"
-                placeholder="Описание (необязательно)"
-                value={description}
-                onTouchStart={() => {
-                  // Устанавливаем флаг заранее, до фокуса, чтобы интерфейс сразу подстроился
-                  setIsKeyboardOpen(true)
-                }}
-                onFocus={() => {
-                  setShowNumKeyboard(false)
-                  setIsKeyboardOpen(true)
-                }}
-                onBlur={() => setIsKeyboardOpen(false)}
-                onChange={(e) => setDescription(e.target.value)}
-                className={`w-full p-3 border rounded-xl mb-3 transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-              />
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                onTouchStart={() => {
-                  // Аналогично описанию — выставляем флаг заранее
-                  setIsKeyboardOpen(true)
-                }}
-                onFocus={() => {
-                  setShowNumKeyboard(false)
-                  setIsKeyboardOpen(true)
-                }}
-                onBlur={() => setIsKeyboardOpen(false)}
-                className={`w-full p-3 border rounded-xl mb-4 transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-              >
-                <option value="">Категория</option>
-                {categoriesList[transactionType].map((cat) => (
-                  <option key={cat} value={cat}>
-                    {(categoriesMeta[cat]?.icon ? categoriesMeta[cat].icon + " " : "") + cat}
-                  </option>
-                ))}
-              </select>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setShowNumKeyboard(false)
-                    setIsKeyboardOpen(false)
-                    blurAll()
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={() => {
-                    setShowNumKeyboard(false)
-                    setIsKeyboardOpen(false)
-                    addTransaction()
-                  }}
-                  className={`flex-1 py-3 rounded-xl text-white font-medium transition-all text-sm touch-none active:scale-95 ${
-                    transactionType === "income"
-                      ? "bg-emerald-500 hover:bg-emerald-600"
-                      : transactionType === "expense"
-                        ? "bg-rose-500 hover:bg-rose-600"
-                        : "bg-blue-500 hover:bg-blue-600"
-                  }`}
-                >
-                  Добавить
-                </button>
-              </div>
-            </div>
-
-            {showNumKeyboard && (
-              <NumericKeyboard
-                onNumberPress={(num) => {
-                  if (amount.includes(".") && num === ".") return
-                  setAmount((prev) => prev + num)
-                }}
-                onBackspace={() => setAmount((prev) => prev.slice(0, -1))}
-                onDone={() => {
-                  setShowNumKeyboard(false)
-                  setIsKeyboardOpen(false)
-                }}
-                theme={theme}
-              />
-            )}
-          </div>
-        </div>
+        </BottomSheetModal>
       )}
 
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
-              theme === "dark" ? "bg-gray-800" : "bg-white"
-            }`}
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              {authMode === "login" ? "Вход через Email" : "Регистрация"}
+        <BottomSheetModal
+          open={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          theme={theme}
+          zIndex={50}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              {authMode === "login" ? "Вход" : "Регистрация"}
             </h3>
-
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className={`p-2 rounded-full transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+            >
+              <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            </button>
+          </div>
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setAuthMode("login")}
@@ -5755,22 +4707,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 {authMode === "login" ? "Войти" : "Зарегистрироваться"}
               </button>
             </div>
-          </div>
-        </div>
+        </BottomSheetModal>
       )}
 
       {/* Модальное окно смены пароля */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl max-h-[90vh] overflow-y-auto ${
-              theme === "dark" ? "bg-gray-800" : "bg-white"
-            }`}
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Смена пароля
-            </h3>
+        <BottomSheetModal
+          open={showChangePasswordModal}
+          onClose={() => setShowChangePasswordModal(false)}
+          theme={theme}
+          zIndex={50}
+        >
+          <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            Смена пароля
+          </h3>
 
             {/* Старый пароль */}
             <div className="relative mb-3">
@@ -5880,8 +4830,401 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Сменить пароль
               </button>
             </div>
+        </BottomSheetModal>
+      )}
+
+      {showTransactionDetails && selectedTransaction && (
+        <BottomSheetModal
+          open={showTransactionDetails}
+          onClose={() => setShowTransactionDetails(false)}
+          theme={theme}
+          zIndex={55}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Детали операции
+            </h3>
+            <button
+              onClick={() => setShowTransactionDetails(false)}
+              className={`p-2 rounded-full transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+            >
+              <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            </button>
           </div>
-        </div>
+
+          <div className={`rounded-xl p-3 border ${theme === "dark" ? "bg-gray-700/40 border-gray-600" : "bg-gray-50 border-gray-200"}`}>
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  {selectedTransaction.description || selectedTransaction.category || "Операция"}
+                </p>
+                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  {formatDate(selectedTransaction.date)}
+                </p>
+              </div>
+              <p
+                className={`text-base font-bold whitespace-nowrap ${
+                  selectedTransaction.type === 'income'
+                    ? theme === "dark" ? "text-emerald-300" : "text-emerald-700"
+                    : selectedTransaction.type === 'expense'
+                      ? theme === "dark" ? "text-rose-300" : "text-rose-700"
+                      : theme === "dark" ? "text-blue-300" : "text-blue-700"
+                }`}
+              >
+                {formatCurrency(selectedTransaction.amount)}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+              Комментарии
+            </h4>
+            <div className="space-y-2">
+              {(transactionComments[selectedTransaction.id] || []).length === 0 ? (
+                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Нет комментариев
+                </p>
+              ) : (
+                (transactionComments[selectedTransaction.id] || []).map((c) => (
+                  <div
+                    key={c.id}
+                    className={`rounded-xl p-3 border ${theme === "dark" ? "bg-gray-700/30 border-gray-600" : "bg-white border-gray-200"}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className={`text-xs font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+                          {c.author || 'Пользователь'}
+                        </p>
+                        <p className={`text-sm mt-1 break-words ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                          {c.text}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => deleteComment(selectedTransaction.id, c.id)}
+                        className={`p-2 rounded-lg transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                      >
+                        <Trash2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={detailsCommentText}
+                onChange={(e) => setDetailsCommentText(e.target.value)}
+                placeholder="Добавить комментарий"
+                className={`flex-1 p-3 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+              />
+              <button
+                onClick={handleSendDetailsComment}
+                className={`px-4 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-blue-700 hover:bg-blue-600 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              deleteTransaction(selectedTransaction.id)
+              setShowTransactionDetails(false)
+            }}
+            className={`mt-4 w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+              theme === "dark"
+                ? "bg-red-700 hover:bg-red-600 text-white"
+                : "bg-red-500 hover:bg-red-600 text-white"
+            }`}
+          >
+            Удалить операцию
+          </button>
+        </BottomSheetModal>
+      )}
+
+      {showAddDebtModal && (
+        <BottomSheetModal
+          open={showAddDebtModal}
+          onClose={() => setShowAddDebtModal(false)}
+          theme={theme}
+          zIndex={55}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Добавить долг
+            </h3>
+            <button
+              onClick={() => setShowAddDebtModal(false)}
+              className={`p-2 rounded-full transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+            >
+              <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            </button>
+          </div>
+
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setDebtType('owe')}
+              className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                debtType === 'owe'
+                  ? "bg-rose-500 text-white"
+                  : theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Я должен
+            </button>
+            <button
+              onClick={() => setDebtType('owed')}
+              className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                debtType === 'owed'
+                  ? "bg-emerald-500 text-white"
+                  : theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Мне должны
+            </button>
+          </div>
+
+          <div className="mb-3">
+            <input
+              type="text"
+              value={debtPerson}
+              onChange={(e) => setDebtPerson(e.target.value)}
+              placeholder="Кто?"
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <div className="mb-3">
+            <input
+              type="number"
+              value={debtAmount}
+              onChange={(e) => setDebtAmount(e.target.value)}
+              placeholder="Сумма"
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <div className="mb-4">
+            <textarea
+              value={debtDescription}
+              onChange={(e) => setDebtDescription(e.target.value)}
+              placeholder="Описание (необязательно)"
+              className={`w-full p-3 border rounded-xl transition-all text-sm min-h-[88px] ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowAddDebtModal(false)
+                setDebtPerson('')
+                setDebtAmount('')
+                setDebtDescription('')
+              }}
+              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                theme === "dark"
+                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+              }`}
+            >
+              Отмена
+            </button>
+            <button
+              onClick={addDebt}
+              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                theme === "dark"
+                  ? "bg-blue-700 hover:bg-blue-600 text-white"
+                  : "bg-blue-500 hover:bg-blue-600 text-white"
+              }`}
+            >
+              Добавить
+            </button>
+          </div>
+        </BottomSheetModal>
+      )}
+
+      {showBudgetModal && (
+        <BottomSheetModal
+          open={showBudgetModal}
+          onClose={() => {
+            setShowBudgetModal(false)
+            setSelectedBudgetCategory('')
+            setBudgetLimitInput('')
+            setShowBudgetKeyboard(false)
+          }}
+          theme={theme}
+          zIndex={55}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              {selectedBudgetCategory ? 'Редактирование бюджета' : 'Бюджеты'}
+            </h3>
+            <button
+              onClick={() => {
+                setShowBudgetModal(false)
+                setSelectedBudgetCategory('')
+                setBudgetLimitInput('')
+                setShowBudgetKeyboard(false)
+              }}
+              className={`p-2 rounded-full transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+            >
+              <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            </button>
+          </div>
+
+          {!selectedBudgetCategory ? (
+            <div className="space-y-2">
+              {Object.keys(categoriesMeta)
+                .filter((c) => c !== 'Все')
+                .map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => {
+                      setSelectedBudgetCategory(category)
+                      setBudgetLimitInput(String(budgets[category]?.limit || ''))
+                      setBudgetPeriod(budgets[category]?.period || 'month')
+                      setShowBudgetKeyboard(false)
+                    }}
+                    className={`w-full text-left rounded-xl p-3 border transition-all ${theme === "dark" ? "bg-gray-700/30 border-gray-600 hover:bg-gray-700/50" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className={`text-sm font-semibold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                          {category}
+                        </p>
+                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                          {budgets[category]?.limit ? `Лимит: ${formatCurrency(budgets[category].limit)}` : 'Лимит не задан'}
+                        </p>
+                      </div>
+                      <ChevronRight className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                    </div>
+                  </button>
+                ))}
+            </div>
+          ) : (
+            <div>
+              <p className={`text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Категория: {selectedBudgetCategory}
+              </p>
+
+              <div className="mb-3">
+                <label className={`block text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Лимит
+                </label>
+                <input
+                  type="number"
+                  value={budgetLimitInput}
+                  onChange={(e) => setBudgetLimitInput(e.target.value)}
+                  placeholder="0"
+                  className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                    theme === "dark"
+                      ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                      : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  }`}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className={`block text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Период
+                </label>
+                <div className="flex gap-2">
+                  {['week', 'month', 'year'].map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setBudgetPeriod(p)}
+                      className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                        budgetPeriod === p
+                          ? "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {p === 'week' ? 'Неделя' : p === 'month' ? 'Месяц' : 'Год'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedBudgetCategory('')
+                    setBudgetLimitInput('')
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  Назад
+                </button>
+                <button
+                  onClick={async () => {
+                    const limit = Number(budgetLimitInput)
+                    if (!selectedBudgetCategory || !limit || limit <= 0) {
+                      vibrateError()
+                      alert('Введите корректный лимит')
+                      return
+                    }
+
+                    const newBudgets = {
+                      ...budgets,
+                      [selectedBudgetCategory]: {
+                        limit,
+                        period: budgetPeriod,
+                        createdAt: budgets[selectedBudgetCategory]?.createdAt || new Date().toISOString(),
+                      },
+                    }
+
+                    setBudgets(newBudgets)
+                    await saveBudgetToServer(newBudgets)
+                    setSelectedBudgetCategory('')
+                    setBudgetLimitInput('')
+                    setShowBudgetModal(false)
+                    vibrateSuccess()
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-blue-700 hover:bg-blue-600 text-white"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                  }`}
+                >
+                  Сохранить
+                </button>
+              </div>
+            </div>
+          )}
+        </BottomSheetModal>
       )}
 
       {!isKeyboardOpen && (
@@ -5912,7 +5255,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("history")
                   vibrate()
                 }}
-                icon={<History className="h-4 w-[4px28]" />}
+                icon={<History className="h-5 w-5" />}
                 theme={theme}
               />
               <button
@@ -5931,7 +5274,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("savings")
                   vibrate()
                 }}
-                icon={<PiggyBank className="h-4 w-[4px28]" />}
+                icon={<PiggyBank className="h-5 w-5" />}
                 theme={theme}
               />
               <NavButton
@@ -5940,7 +5283,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setActiveTab("settings")
                   vibrate()
                 }}
-                icon={<Settings className="h-4 w-[px8]" />}
+                icon={<Settings className="h-5 w-5" />}
                 theme={theme}
               />
             </div>
