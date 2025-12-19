@@ -2251,9 +2251,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
       
       const botUsername = 'kvpoiskby_bot'
-      
-      // Формируем ссылку для открытия бота с параметром start
-      const inviteUrl = `https://t.me/${botUsername}?start=${startParam}`
+
+      const webAppShortName = (import.meta.env.VITE_TG_WEBAPP_SHORTNAME || '').trim() || 'app'
+
+      // Формируем ссылку для открытия Telegram Mini App с параметром startapp
+      // В этом случае Telegram передаст параметр в tg.initDataUnsafe.start_param
+      const inviteUrl = `https://t.me/${botUsername}/${webAppShortName}?startapp=${startParam}`
       
       // Текст приглашения
       const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
