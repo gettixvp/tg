@@ -8,6 +8,7 @@ export default defineConfig({
     react(),
     legacy({
       targets: ["defaults", "not IE 11"],
+      modernTargets: ["chrome >= 61", "safari >= 11"],
       modernPolyfills: true,
     }),
   ],

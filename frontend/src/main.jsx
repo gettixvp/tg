@@ -23,11 +23,24 @@ const showFatalError = (title, err) => {
 }
 
 window.addEventListener("error", (e) => {
-  showFatalError("Ошибка приложения", e?.error || e?.message)
+  const details = {
+    message: e?.message,
+    filename: e?.filename,
+    lineno: e?.lineno,
+    colno: e?.colno,
+    error: e?.error,
+  }
+  const err = e?.error || new Error(`${details.message || "Unknown error"} @ ${details.filename || ""}:${details.lineno || ""}:${details.colno || ""}`)
+  showFatalError("Ошибка приложения", err)
 })
 
 window.addEventListener("unhandledrejection", (e) => {
-  showFatalError("Unhandled Promise Rejection", e?.reason)
+  const reason = e?.reason
+  const err =
+    reason instanceof Error
+      ? reason
+      : new Error(typeof reason === "string" ? reason : JSON.stringify(reason))
+  showFatalError("Unhandled Promise Rejection", err)
 })
 
 // === Chart.js ===
