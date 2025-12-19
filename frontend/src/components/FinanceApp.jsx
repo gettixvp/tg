@@ -275,7 +275,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
   )
 }
 
-const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator = false, onToggleLike, onOpenDetails, tgPhotoUrl }) {
+const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator, onToggleLike, onOpenDetails, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
@@ -511,39 +511,6 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
     </div>
   )
 })
-
-function NumericKeyboard({ onNumberPress, onBackspace, onDone, theme }) {
-  return (
-    <div
-      className={`grid grid-cols-3 gap-2 p-4 rounded-t-2xl w-full ${
-        theme === "dark" ? "bg-gray-800 border-t border-gray-700" : "bg-gray-100 border-t border-gray-200"
-      }`}
-    >
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, ".", 0, "⌫"].map((key) => (
-        <button
-          key={key}
-          onClick={() => {
-            if (key === "⌫") onBackspace()
-            else onNumberPress(key.toString())
-          }}
-          className={`p-3 rounded-lg text-lg font-semibold transition-all touch-none active:scale-95 ${
-            theme === "dark"
-              ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
-              : "bg-white text-gray-900 hover:bg-gray-50 shadow-sm"
-          }`}
-        >
-          {key}
-        </button>
-      ))}
-      <button
-        onClick={onDone}
-        className="col-span-3 p-3 rounded-lg text-base font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-all touch-none active:scale-95"
-      >
-        Готово
-      </button>
-    </div>
-  )
-}
 
 // Компонент контейнера бюджетов в стиле pricing
 const BudgetsContainer = ({ children, theme, onSetup }) => {
@@ -1062,7 +1029,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [safeAreaInset, setSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
   const [contentSafeAreaInset, setContentSafeAreaInset] = useState({ top: 0, bottom: 0, left: 0, right: 0 })
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [goalInput, setGoalInput] = useState("50000")
   const [goalName, setGoalName] = useState("Моя цель")
@@ -1073,7 +1039,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [fullscreenEnabled, setFullscreenEnabled] = useState(true)
   const [isReady, setIsReady] = useState(false)
-  const [showNumKeyboard, setShowNumKeyboard] = useState(false)
   const [exchangeRate, setExchangeRate] = useState(3.2)
 
   const [linkedUsers, setLinkedUsers] = useState([])
@@ -1676,24 +1641,54 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   async function autoAuth(email, token) {
     try {
-      const resp = await fetch(`${API_BASE}/api/auth`, {
+      const payload = {
+        email,
+        password: atob(token), // Decode password from base64
+        first_name: displayName,
+        telegram_id: tgUserId,
+        telegram_name: displayName,
+        mode: authMode, // Добавляем режим (login или register)
+      }
+
+      const res = await fetch(`${API_BASE}/api/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password: atob(token), // Decode password from base64
-          first_name: displayName,
-          telegram_id: tgUserId,
-          telegram_name: displayName,
-        }),
+        body: JSON.stringify(payload),
       })
 
-      if (!resp.ok) throw new Error("auth failed")
-      const json = await resp.json()
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Ошибка сервера" }))
+        alert(err.error || "Ошибка входа")
+        vibrateError()
+        return
+      }
+
+      const json = await res.json()
       await applyUser(json.user, json.transactions || [], true)
+      localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          email,
+          token: btoa(password),
+        }),
+      )
+
+      if (rememberMe) {
+        // Сохраняем данные для автовхода
+        localStorage.setItem("savedCredentials", JSON.stringify({ email, password: btoa(password) }))
+      } else {
+        localStorage.removeItem("savedCredentials")
+      }
+
+      setShowAuthModal(false)
+      setEmail("")
+      setPassword("")
+      setCurrency(authCurrency)
+      vibrateSuccess()
     } catch (e) {
-      console.warn("autoAuth failed", e)
-      setIsLoading(false) // Завершить загрузку даже при ошибке
+      console.error("Auth error:", e)
+      alert("Ошибка авторизации")
+      vibrateError()
     }
   }
 
@@ -1734,11 +1729,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const addTransaction = async () => {
     blurAll()
-    setShowNumKeyboard(false)
     const n = Number(amount)
     if (!isFinite(n) || n <= 0) {
       vibrateError()
-      alert("Введите корректную сумму > 0")
+      alert("Введите корректную сумму")
       return
     }
 
@@ -2447,26 +2441,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       console.log(`[BUDGET DEBUG] Дата создания бюджета:`, budgetCreatedAt)
       console.log(`[BUDGET DEBUG] Дата начала периода:`, startDate)
       
-      const categoryTransactions = transactions.filter(tx => {
-        const txDate = new Date(tx.date || tx.created_at)
-        const isExpense = tx.type === 'expense'
-        const isCategory = tx.category === category
-        const isInPeriod = txDate >= startDate
-        const isAfterBudgetCreated = budgetCreatedAt ? txDate >= budgetCreatedAt : true
-        
-        console.log(`[BUDGET DEBUG] Транзакция:`, {
-          category: tx.category,
-          type: tx.type,
-          amount: tx.amount,
-          date: tx.date || tx.created_at,
-          isExpense,
-          isCategory,
-          isInPeriod,
-          isAfterBudgetCreated
-        })
-        
-        return isExpense && isCategory && isInPeriod && isAfterBudgetCreated
-      })
+      const categoryTransactions = transactions.filter(tx => 
+        tx.type === 'expense' && 
+        tx.category === category &&
+        new Date(tx.date || tx.created_at) >= startDate
+      )
       
       console.log(`[BUDGET DEBUG] Найдено транзакций для ${category}:`, categoryTransactions.length)
       
@@ -2820,7 +2799,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   if (!isReady || isLoading) {
     return (
       <div
-        className={`w-full h-screen flex items-center justify-center gradient-animated`}
+        className={`w-full h-screen flex items-center justify-center ${
+          theme === "dark" ? "bg-gray-900" : "bg-white"
+        }`}
       >
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto mb-4"></div>
@@ -2849,7 +2830,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           paddingRight: contentSafeAreaInset.right || 0,
           paddingBottom: Math.max(contentSafeAreaInset.bottom + 80, 96),
           WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
+          overscrollBehavior: "none",
           touchAction: "pan-y",
           height: "100%",
         }}
@@ -3346,7 +3327,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       onClick={() => {
                         setTransactionType("savings")
                         setShowAddModal(true)
-                        setShowNumKeyboard(false)
                         vibrate()
                       }}
                       className={`flex items-center gap-1 px-4 py-2.5 rounded-lg font-medium transition-all text-sm ${
@@ -4253,19 +4233,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </p>
               <input
                 type="text"
-                inputMode="none"
-                value={selectedSavingsGoal === 'main' ? (initialSavingsInput || initialSavingsAmount.toString()) : (initialSavingsInput || secondGoalInitialAmount.toString())}
-                readOnly
-                onClick={() => {
-                  // Устанавливаем текущее значение в поле при открытии клавиатуры
-                  if (selectedSavingsGoal === 'main') {
-                    setInitialSavingsInput(initialSavingsAmount.toString())
-                  } else {
-                    setInitialSavingsInput(secondGoalInitialAmount.toString())
-                  }
-                  setShowNumKeyboard(true)
-                }}
-                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
+                inputMode="decimal"
+                value={initialSavingsInput}
+                onChange={(e) => setInitialSavingsInput(e.target.value.replace(/[^0-9.]/g, ''))}
+                className={`w-full p-3 border rounded-xl transition-all text-sm ${
                   theme === "dark"
                     ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                     : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -5325,8 +5296,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           open={showAddModal}
           onClose={() => {
             setShowAddModal(false)
-            setShowNumKeyboard(false)
-            setIsKeyboardOpen(false)
           }}
           theme={theme}
           zIndex={70}
@@ -5383,12 +5352,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <input
               type="text"
               value={amount}
-              readOnly
-              inputMode="none"
-              onClick={() => {
-                setShowNumKeyboard(true)
-                setIsKeyboardOpen(true)
-              }}
+              inputMode="decimal"
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
               placeholder="0"
               className={`w-full p-3 border rounded-xl transition-all text-sm cursor-pointer ${
                 theme === "dark"
@@ -5397,20 +5362,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               }`}
             />
           </div>
-
-          {showNumKeyboard && (
-            <div className="mb-3">
-              <NumericKeyboard
-                theme={theme}
-                onNumberPress={(n) => setAmount((p) => `${p}${n}`.replace(/^0+(?=\d)/, ''))}
-                onBackspace={() => setAmount((p) => p.slice(0, -1))}
-                onDone={() => {
-                  setShowNumKeyboard(false)
-                  setIsKeyboardOpen(false)
-                }}
-              />
-            </div>
-          )}
 
           <div className="mb-3">
             <input
@@ -5488,8 +5439,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <button
               onClick={() => {
                 setShowAddModal(false)
-                setShowNumKeyboard(false)
-                setIsKeyboardOpen(false)
               }}
               className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                 theme === "dark"
@@ -5594,69 +5543,66 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </BottomSheetModal>
       )}
 
-      {!isKeyboardOpen && (
-        <div
-          className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
-          style={{
-            paddingBottom: Math.max(safeAreaInset.bottom, 8),
-            paddingLeft: safeAreaInset.left || 0,
-            paddingRight: safeAreaInset.right || 0,
-          }}
-        >
-          <div className="flex items-center justify-center p-2">
-            <div
-              className={`w-full max-w-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
+        style={{
+          paddingBottom: Math.max(safeAreaInset.bottom, 8),
+          paddingLeft: safeAreaInset.left || 0,
+          paddingRight: safeAreaInset.right || 0,
+        }}
+      >
+        <div className="flex items-center justify-center p-2">
+          <div
+            className={`w-full max-w-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}
+          >
+            <NavButton
+              active={activeTab === "overview"}
+              onClick={() => {
+                setActiveTab("overview")
+                vibrate()
+              }}
+              icon={<Wallet className="h-4 w-7" />}
+              theme={theme}
+            />
+            <NavButton
+              active={activeTab === "history"}
+              onClick={() => {
+                setActiveTab("history")
+                vibrate()
+              }}
+              icon={<History className="h-5 w-5" />}
+              theme={theme}
+            />
+            <button
+              onClick={() => {
+                setShowAddModal(true)
+                vibrate()
+              }}
+              className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
             >
-              <NavButton
-                active={activeTab === "overview"}
-                onClick={() => {
-                  setActiveTab("overview")
-                  vibrate()
-                }}
-                icon={<Wallet className="h-4 w-7" />}
-                theme={theme}
-              />
-              <NavButton
-                active={activeTab === "history"}
-                onClick={() => {
-                  setActiveTab("history")
-                  vibrate()
-                }}
-                icon={<History className="h-5 w-5" />}
-                theme={theme}
-              />
-              <button
-                onClick={() => {
-                  setShowAddModal(true)
-                  setShowNumKeyboard(false)
-                  vibrate()
-                }}
-                className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <NavButton
-                active={activeTab === "savings"}
-                onClick={() => {
-                  setActiveTab("savings")
-                  vibrate()
-                }}
-                icon={<PiggyBank className="h-5 w-5" />}
-                theme={theme}
-              />
-              <NavButton
-                active={activeTab === "settings"}
-                onClick={() => {
-                  setActiveTab("settings")
-                  vibrate()
-                }}
-                icon={<Settings className="h-5 w-5" />}
-                theme={theme}
-              />
-            </div>
+              <Plus className="w-4 h-4" />
+            </button>
+            <NavButton
+              active={activeTab === "savings"}
+              onClick={() => {
+                setActiveTab("savings")
+                vibrate()
+              }}
+              icon={<PiggyBank className="h-5 w-5" />}
+              theme={theme}
+            />
+            <NavButton
+              active={activeTab === "settings"}
+              onClick={() => {
+                setActiveTab("settings")
+                vibrate()
+              }}
+              icon={<Settings className="h-5 w-5" />}
+              theme={theme}
+            />
           </div>
         </div>
-      )}
+      </div>
 
       <style>{`
         @keyframes fadeIn {

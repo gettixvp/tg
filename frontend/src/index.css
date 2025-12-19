@@ -25,7 +25,7 @@
     --ring: 221 83% 53%;
     --radius: 1rem;
     
-    --app-bg: #f2f3f5;
+    --app-bg: linear-gradient(180deg, #f6e9ef 0%, #eef3ff 100%);
   }
 
   .dark {
@@ -68,13 +68,23 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    overflow-y: hidden;
     background: var(--app-bg);
     min-height: 100vh;
     position: relative;
+    overscroll-behavior: none;
+    touch-action: pan-y;
+  }
+
+  html {
+    height: 100%;
+    overscroll-behavior: none;
+    touch-action: pan-y;
   }
 
   #root {
     min-height: 100vh;
+    height: 100vh;
     position: relative;
     z-index: 1;
   }
