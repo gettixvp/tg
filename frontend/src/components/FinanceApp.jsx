@@ -1068,12 +1068,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         const sessionData = JSON.parse(session)
         if (sessionData?.email && sessionData?.token) {
           autoAuth(sessionData.email, sessionData.token)
+        } else {
+          // Сессия есть, но данные невалидны
+          setIsLoading(false)
         }
       } else if (tgUserId) {
         autoAuthTelegram(tgUserId)
+      } else {
+        // Нет сессии и нет Telegram ID - завершаем загрузку
+        setIsLoading(false)
       }
     } catch (e) {
       console.warn("Failed to parse settings", e)
+      setIsLoading(false)
     }
   }, [tgUserId])
 
