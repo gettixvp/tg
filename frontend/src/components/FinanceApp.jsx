@@ -752,10 +752,15 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
 const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
+  const [dragY, setDragY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const startY = useRef(0)
+  const sheetRef = useRef(null)
 
   useEffect(() => {
     if (open) {
       setMounted(true)
+      setDragY(0)
       const t = window.setTimeout(() => setVisible(true), 10)
       return () => window.clearTimeout(t)
     }
@@ -767,27 +772,81 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     }
   }, [open, mounted])
 
+  const requestClose = () => {
+    onClose && onClose()
+  }
+
+  const canStartDrag = (e) => {
+    // Разрешаем свайп вниз для закрытия только если начали жест в верхней зоне модалки
+    const clientY = e.touches?.[0]?.clientY
+    if (!sheetRef.current || typeof clientY !== 'number') return false
+
+    const rect = sheetRef.current.getBoundingClientRect()
+    const withinTopArea = clientY - rect.top <= 48
+    return withinTopArea
+  }
+
+  const onTouchStart = (e) => {
+    if (!canStartDrag(e)) return
+    setIsDragging(true)
+    startY.current = e.touches[0].clientY
+  }
+
+  const onTouchMove = (e) => {
+    if (!isDragging) return
+    const current = e.touches[0].clientY
+    const diff = current - startY.current
+    if (diff > 0) {
+      setDragY(diff)
+    }
+  }
+
+  const onTouchEnd = () => {
+    if (!isDragging) return
+    setIsDragging(false)
+    if (dragY > 110) {
+      setDragY(0)
+      requestClose()
+      return
+    }
+    setDragY(0)
+  }
+
   if (!mounted) return null
+
+  const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
+  const transition = isDragging ? 'none' : 'transform 260ms ease'
 
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center"
       style={{ zIndex }}
-      onMouseDown={() => onClose && onClose()}
-      onTouchStart={() => onClose && onClose()}
+      onMouseDown={requestClose}
+      onTouchStart={requestClose}
     >
       <div
+        ref={sheetRef}
         className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
         style={{
           maxHeight: "85vh",
           display: "flex",
           flexDirection: "column",
-          transform: visible ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 260ms ease',
+          transform: translate,
+          transition,
         }}
         onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
+        onTouchStart={(e) => {
+          e.stopPropagation()
+          onTouchStart(e)
+        }}
+        onTouchMove={(e) => {
+          onTouchMove(e)
+        }}
+        onTouchEnd={onTouchEnd}
       >
+        <div className="pt-2 pb-1 flex justify-center">
+          <div className={`h-1.5 w-10 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`} />
+        </div>
         <div className="p-4 overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>
           {children}
         </div>
@@ -5224,6 +5283,217 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
             </div>
           )}
+        </BottomSheetModal>
+      )}
+
+      {showAddModal && (
+        <BottomSheetModal
+          open={showAddModal}
+          onClose={() => {
+            setShowAddModal(false)
+            setShowNumKeyboard(false)
+            setIsKeyboardOpen(false)
+          }}
+          theme={theme}
+          zIndex={70}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Добавить операцию
+            </h3>
+            <button
+              onClick={() => {
+                setShowAddModal(false)
+                setShowNumKeyboard(false)
+                setIsKeyboardOpen(false)
+              }}
+              className={`p-2 rounded-full transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+            >
+              <X className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+            </button>
+          </div>
+
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setTransactionType('expense')}
+              className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                transactionType === 'expense'
+                  ? "bg-rose-500 text-white"
+                  : theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Расход
+            </button>
+            <button
+              onClick={() => setTransactionType('income')}
+              className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                transactionType === 'income'
+                  ? "bg-emerald-500 text-white"
+                  : theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Доход
+            </button>
+            <button
+              onClick={() => setTransactionType('savings')}
+              className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                transactionType === 'savings'
+                  ? "bg-blue-500 text-white"
+                  : theme === "dark"
+                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Копилка
+            </button>
+          </div>
+
+          <div className="mb-3">
+            <label className={`block text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+              Сумма
+            </label>
+            <input
+              type="text"
+              value={amount}
+              readOnly
+              inputMode="none"
+              onClick={() => {
+                setShowNumKeyboard(true)
+                setIsKeyboardOpen(true)
+              }}
+              placeholder="0"
+              className={`w-full p-3 border rounded-xl transition-all text-lg font-bold cursor-pointer ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100"
+                  : "bg-gray-50 border-gray-200 text-gray-900"
+              }`}
+            />
+          </div>
+
+          <div className="mb-3">
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Описание (необязательно)"
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          {transactionType !== 'savings' ? (
+            <div className="mb-4">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                }`}
+              >
+                <option value="">Категория</option>
+                {Object.keys(categoriesMeta)
+                  .filter((c) => c !== 'Все')
+                  .map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          ) : (
+            secondGoalName && secondGoalAmount > 0 && (
+              <div className="mb-4">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedSavingsGoal('main')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                      selectedSavingsGoal === 'main'
+                        ? theme === "dark"
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {goalName}
+                  </button>
+                  <button
+                    onClick={() => setSelectedSavingsGoal('second')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
+                      selectedSavingsGoal === 'second'
+                        ? theme === "dark"
+                          ? "bg-purple-600 text-white"
+                          : "bg-purple-500 text-white"
+                        : theme === "dark"
+                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {secondGoalName}
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowAddModal(false)
+                setShowNumKeyboard(false)
+                setIsKeyboardOpen(false)
+              }}
+              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                theme === "dark"
+                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+              }`}
+            >
+              Отмена
+            </button>
+            <button
+              onClick={addTransaction}
+              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                theme === "dark"
+                  ? "bg-blue-700 hover:bg-blue-600 text-white"
+                  : "bg-blue-500 hover:bg-blue-600 text-white"
+              }`}
+            >
+              Добавить
+            </button>
+          </div>
+        </BottomSheetModal>
+      )}
+
+      {showNumKeyboard && (
+        <BottomSheetModal
+          open={showNumKeyboard}
+          onClose={() => {
+            setShowNumKeyboard(false)
+            setIsKeyboardOpen(false)
+          }}
+          theme={theme}
+          zIndex={80}
+        >
+          <NumericKeyboard
+            theme={theme}
+            onNumberPress={(n) => setAmount((p) => `${p}${n}`.replace(/^0+(?=\d)/, ''))}
+            onBackspace={() => setAmount((p) => p.slice(0, -1))}
+            onDone={() => {
+              setShowNumKeyboard(false)
+              setIsKeyboardOpen(false)
+            }}
+          />
         </BottomSheetModal>
       )}
 
