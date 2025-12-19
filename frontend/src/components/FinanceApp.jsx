@@ -636,6 +636,53 @@ const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
   )
 }
 
+// Компонент контейнера копилок в стиле pricing
+const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, color }) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+    
+    setMousePosition({ x, y })
+    
+    // Устанавливаем CSS переменные для свечения
+    containerRef.current.style.setProperty('--mouse-x', `${x}%`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}%`)
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`savings-container ${theme} ${color}`}
+      onMouseMove={handleMouseMove}
+      onClick={onShowAll}
+    >
+      <div className="container-header">
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-opacity-40" : ""} ${color}-bg`}>
+            {icon}
+          </div>
+          <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            {title}
+          </h3>
+        </div>
+        <span className="progress-text">{progress}%</span>
+      </div>
+      
+      <div className="progress-bar">
+        <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }}></div>
+      </div>
+      
+      {/* Эффект свечения */}
+      <div className="glow-overlay" />
+    </div>
+  )
+}
+
 const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLinkedUser }) => {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
@@ -2611,105 +2658,45 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {activeTab === "overview" && (
             <div className="space-y-3">
-              <div className="flex gap-3">
+              <div className="space-y-3">
                 {/* Основная копилка */}
-                <div
-                  onClick={() => {
+                <SavingsContainer
+                  theme={theme}
+                  onShowAll={() => {
                     setActiveTab("savings")
                     vibrate()
                   }}
-                  className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 glass-gradient`}
+                  title={goalName || "Копилка"}
+                  progress={Math.round(savingsPct) || 0}
+                  icon={<PiggyBank className="w-4 h-4" />}
+                  color="blue"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
-                        <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
-                      </div>
-                      <div>
-                        <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{goalName || "Копилка"}</p>
-                      </div>
-                    </div>
-                    {/* Маленькая круговая диаграмма */}
-                    <div className="relative w-14 h-14 flex-shrink-0">
-                      <svg className="w-14 h-14 transform -rotate-90">
-                        <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
-                          stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-                          strokeWidth="5"
-                          fill="none"
-                        />
-                        <circle
-                          cx="28"
-                          cy="28"
-                          r="24"
-                          stroke={theme === "dark" ? "#3b82f6" : "#6366f1"}
-                          strokeWidth="5"
-                          fill="none"
-                          strokeDasharray={`${2 * Math.PI * 24}`}
-                          strokeDashoffset={`${2 * Math.PI * 24 * (1 - savingsProgress)}`}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                          {savingsPct || 0}%
-                        </span>
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-gray-500">
+                      {formatCurrency(savings)} / {formatCurrency(goalSavings)} USD
+                    </span>
                   </div>
-                </div>
+                </SavingsContainer>
                 
                 {/* Вторая копилка (если есть) */}
                 {secondGoalName && secondGoalAmount > 0 && (
-                  <div
-                    onClick={() => {
+                  <SavingsContainer
+                    theme={theme}
+                    onShowAll={() => {
                       setActiveTab("savings")
                       vibrate()
                     }}
-                    className={`rounded-xl p-3 border flex-1 cursor-pointer transition-all touch-none active:scale-95 glass-gradient`}
+                    title={secondGoalName}
+                    progress={Math.round(secondGoalPct) || 0}
+                    icon={<PiggyBank className="w-4 h-4" />}
+                    color="purple"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-1">
-                        <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-purple-900/40" : "bg-purple-100"}`}>
-                          <PiggyBank className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-                        </div>
-                        <div>
-                          <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{secondGoalName}</p>
-                        </div>
-                      </div>
-                      {/* Маленькая круговая диаграмма для второй цели */}
-                      <div className="relative w-14 h-14 flex-shrink-0">
-                        <svg className="w-14 h-14 transform -rotate-90">
-                          <circle
-                            cx="28"
-                            cy="28"
-                            r="24"
-                            stroke={theme === "dark" ? "#374151" : "#e5e7eb"}
-                            strokeWidth="5"
-                            fill="none"
-                          />
-                          <circle
-                            cx="28"
-                            cy="28"
-                            r="24"
-                            stroke={theme === "dark" ? "#a855f7" : "#9333ea"}
-                            strokeWidth="5"
-                            fill="none"
-                            strokeDasharray={`${2 * Math.PI * 24}`}
-                            strokeDashoffset={`${2 * Math.PI * 24 * (1 - (secondGoalSavings / secondGoalAmount))}`}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className={`text-xs font-bold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                            {Math.round((secondGoalSavings / secondGoalAmount) * 100) || 0}%
-                          </span>
-                        </div>
-                      </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm text-gray-500">
+                        {formatCurrency(secondGoalSavings)} / {formatCurrency(secondGoalAmount)} USD
+                      </span>
                     </div>
-                  </div>
+                  </SavingsContainer>
                 )}
               </div>
 

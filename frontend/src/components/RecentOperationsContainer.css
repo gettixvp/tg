@@ -1,6 +1,6 @@
 /* Стили для контейнера последних операций в стиле pricing */
 
-.recent-operations-container, .budgets-container {
+.recent-operations-container, .budgets-container, .savings-container {
   position: relative;
   border-radius: 1rem;
   border: 1px solid;
@@ -10,7 +10,7 @@
   border-color: var(--container-border);
 }
 
-.recent-operations-container.dark, .budgets-container.dark {
+.recent-operations-container.dark, .budgets-container.dark, .savings-container.dark {
   --container-bg: #1f2937;
   --container-border: #374151;
   --header-bg: #111827;
@@ -22,7 +22,7 @@
   --glow-intense: rgba(59, 130, 246, 0.2);
 }
 
-.recent-operations-container.light, .budgets-container.light {
+.recent-operations-container.light, .budgets-container.light, .savings-container.light {
   --container-bg: #ffffff;
   --container-border: #e5e7eb;
   --header-bg: #f9fafb;
@@ -35,7 +35,7 @@
 }
 
 /* Эффект свечения при наведении */
-.recent-operations-container::before, .budgets-container::before {
+.recent-operations-container::before, .budgets-container::before, .savings-container::before {
   content: '';
   position: absolute;
   top: 0;
@@ -53,12 +53,12 @@
   z-index: 1;
 }
 
-.recent-operations-container:hover::before, .budgets-container:hover::before {
+.recent-operations-container:hover::before, .budgets-container:hover::before, .savings-container:hover::before {
   opacity: 1;
 }
 
 /* Дополнительный слой свечения */
-.recent-operations-container::after, .budgets-container::after {
+.recent-operations-container::after, .budgets-container::after, .savings-container::after {
   content: '';
   position: absolute;
   top: 0;
@@ -76,21 +76,21 @@
   z-index: 1;
 }
 
-.recent-operations-container:hover::after, .budgets-container:hover::after {
+.recent-operations-container:hover::after, .budgets-container:hover::after, .savings-container:hover::after {
   opacity: 0.3;
 }
 
 /* Hover эффекты для контейнера */
-.recent-operations-container:hover, .budgets-container:hover {
+.recent-operations-container:hover, .budgets-container:hover, .savings-container:hover {
   transform: translateY(-2px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
 
-.recent-operations-container.dark:hover, .budgets-container.dark:hover {
+.recent-operations-container.dark:hover, .budgets-container.dark:hover, .savings-container.dark:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-.recent-operations-container.light:hover, .budgets-container.light:hover {
+.recent-operations-container.light:hover, .budgets-container.light:hover, .savings-container.light:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
@@ -214,7 +214,9 @@
 }
 
 /* Улучшение контрастности в темной теме */
-.recent-operations-container.dark .container-header, .budgets-container.dark .container-header {
+.recent-operations-container.dark .container-header, 
+.budgets-container.dark .container-header,
+.savings-container.dark .container-header {
   backdrop-filter: blur(10px);
   background: rgba(17, 24, 39, 0.8);
 }
