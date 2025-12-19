@@ -1,9 +1,16 @@
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
+import legacy from "@vitejs/plugin-legacy"
 import path from "path"
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    legacy({
+      targets: ["defaults", "not IE 11"],
+      modernPolyfills: true,
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -23,5 +30,6 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: true,
+    target: "es2015",
   },
 })

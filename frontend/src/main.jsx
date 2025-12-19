@@ -3,6 +3,33 @@ import ReactDOM from "react-dom/client"
 import App from "./App"
 import "./index.css"
 
+const showFatalError = (title, err) => {
+  try {
+    const rootEl = document.getElementById("root")
+    if (!rootEl) return
+    const msg =
+      err && typeof err === "object"
+        ? err.stack || err.message || String(err)
+        : String(err)
+    rootEl.innerHTML = `
+      <div style="padding:16px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">${title}</div>
+        <pre style="white-space:pre-wrap;word-break:break-word;background:#111827;color:#f3f4f6;padding:12px;border-radius:12px;overflow:auto;max-height:60vh;">${msg}</pre>
+      </div>
+    `
+  } catch (_) {
+    // ignore
+  }
+}
+
+window.addEventListener("error", (e) => {
+  showFatalError("Ошибка приложения", e?.error || e?.message)
+})
+
+window.addEventListener("unhandledrejection", (e) => {
+  showFatalError("Unhandled Promise Rejection", e?.reason)
+})
+
 // === Chart.js ===
 import Chart from "chart.js/auto"
 window.Chart = Chart
