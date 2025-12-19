@@ -1312,18 +1312,36 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       try {
         if (!tgUserId) return
 
-        // 1) start_param из Telegram WebApp (startapp)
-        // 2) запуск через Menu Button / web_app button: ?ref=... в URL
         const urlRef = (() => {
           try {
-            const params = new URLSearchParams(window.location.search)
-            return (params.get('ref') || '').trim()
+            const direct = new URLSearchParams(window.location.search).get('ref')
+            if (direct) return String(direct).trim()
+
+            const hash = String(window.location.hash || '')
+            const qIndex = hash.indexOf('?')
+            if (qIndex >= 0) {
+              const hashQuery = hash.slice(qIndex + 1)
+              const fromHash = new URLSearchParams(hashQuery).get('ref')
+              if (fromHash) return String(fromHash).trim()
+            }
+
+            const href = String(window.location.href || '')
+            const hrefIndex = href.indexOf('?')
+            if (hrefIndex >= 0) {
+              const query = href.slice(hrefIndex + 1)
+              const fromHref = new URLSearchParams(query).get('ref')
+              if (fromHref) return String(fromHref).trim()
+            }
+
+            return ''
           } catch (e) {
             return ''
           }
         })()
 
         const startParam = (tg && tg.initDataUnsafe && (tg.initDataUnsafe.start_param || '').trim()) || urlRef
+
+        console.log('[InviteLink] tgUserId=', tgUserId, 'startParam=', startParam, 'urlRef=', urlRef)
 
         if (startParam) {
           

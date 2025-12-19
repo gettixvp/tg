@@ -55,6 +55,8 @@ bot.start(async (ctx) => {
       lines.push('Нажмите кнопку ниже, чтобы открыть приложение и автоматически подключиться.')
 
       const webAppUrl = buildWebAppUrlWithRef(payload)
+      lines.push('')
+      lines.push(`Ссылка для открытия: ${webAppUrl}`)
       return ctx.reply(
         lines.join('\n'),
         Markup.inlineKeyboard([
