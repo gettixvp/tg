@@ -72,14 +72,10 @@
     background: var(--app-bg);
     min-height: 100vh;
     position: relative;
-    overscroll-behavior: none;
-    touch-action: pan-y;
   }
 
   html {
     height: 100%;
-    overscroll-behavior: none;
-    touch-action: pan-y;
   }
 
   #root {

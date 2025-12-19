@@ -4,10 +4,15 @@ const { Telegraf, Markup } = require('telegraf')
 
 const BOT_TOKEN = process.env.BOT_TOKEN
 const BOT_USERNAME = (process.env.BOT_USERNAME || '').replace(/^@/, '') || 'kvpoiskby_bot'
-const WEBAPP_SHORTNAME = (process.env.WEBAPP_SHORTNAME || '').trim() || 'Wallet'
+const WEBAPP_SHORTNAME = (process.env.WEBAPP_SHORTNAME || '').trim()
 
 if (!BOT_TOKEN) {
   console.error('Missing BOT_TOKEN in tg/bot/.env')
+  process.exit(1)
+}
+
+if (!WEBAPP_SHORTNAME) {
+  console.error('Missing WEBAPP_SHORTNAME in tg/bot/.env (Mini App short name from BotFather)')
   process.exit(1)
 }
 

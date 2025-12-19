@@ -728,6 +728,18 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
   const isVerticalSwipe = useRef(false)
   const sheetRef = useRef(null)
 
+  const hapticImpact = (style = 'light') => {
+    try {
+      const tg = typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp
+      const haptic = tg && tg.HapticFeedback
+      if (haptic && haptic.impactOccurred) {
+        haptic.impactOccurred(style)
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     if (open) {
       setMounted(true)
@@ -795,6 +807,7 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     startY.current = e.touches[0].clientY
     startX.current = e.touches[0].clientX
     isVerticalSwipe.current = false
+    hapticImpact('light')
   }
 
   const onTouchMove = (e) => {
@@ -832,6 +845,7 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     isVerticalSwipe.current = false
     if (dragY > 110) {
       setDragY(0)
+      hapticImpact('medium')
       requestClose()
       return
     }
@@ -2243,7 +2257,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       
       const botUsername = 'kvpoiskby_bot'
 
-      const webAppShortName = (import.meta.env.VITE_TG_WEBAPP_SHORTNAME || '').trim() || 'Wallet'
+      const webAppShortName = (import.meta.env.VITE_TG_WEBAPP_SHORTNAME || '').trim()
+      if (!webAppShortName) {
+        alert('Не задан VITE_TG_WEBAPP_SHORTNAME (short name Mini App в BotFather)')
+        return
+      }
 
       // Формируем ссылку для открытия Telegram Mini App с параметром startapp
       // В этом случае Telegram передаст параметр в tg.initDataUnsafe.start_param
@@ -2824,7 +2842,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           paddingRight: contentSafeAreaInset.right || 0,
           paddingBottom: Math.max(contentSafeAreaInset.bottom + 80, 96),
           WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "none",
+          overscrollBehavior: "auto",
           touchAction: "pan-y",
           height: "100%",
         }}
@@ -5614,7 +5632,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         main {
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
-          overscroll-behavior-y: contain;
+          overscroll-behavior-y: auto;
         }
         
         main::-webkit-scrollbar {
