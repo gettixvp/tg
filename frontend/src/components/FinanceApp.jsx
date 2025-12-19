@@ -925,32 +925,29 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center"
       style={{ zIndex }}
-      onClick={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        requestClose()
-      }}
       onMouseDown={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        requestClose()
-      }}
-      onTouchStart={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-      }}
-      onTouchEnd={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        requestClose()
+        if (e.target === e.currentTarget) {
+          e.preventDefault()
+          requestClose()
+        }
       }}
       onTouchMove={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
+        // Prevent background scrolling when user drags on backdrop
+        if (e.target === e.currentTarget) {
+          e.preventDefault()
+        }
       }}
-      onWheel={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault()
+          requestClose()
+        }
+      }}
+      onTouchEnd={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault()
+          requestClose()
+        }
       }}
     >
       <div
