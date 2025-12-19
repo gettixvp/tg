@@ -2645,47 +2645,76 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }}
           />
           <div
-            className="relative overflow-hidden rounded-2xl p-4 z-10"
-            style={{ backgroundColor: theme === "dark" ? "#3b82f6" : "#6366f1" }}
+            className={`styled-container ${theme}`}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const x = ((e.clientX - rect.left) / rect.width) * 100
+              const y = ((e.clientY - rect.top) / rect.height) * 100
+              e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
+              e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
+            }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5 flex-1">
-                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
-                  <CreditCard className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-white/80">Общий баланс</p>
-                  <p className="text-2xl font-bold text-white">{balanceVisible ? formatCurrency(balance) : "••••••"}</p>
-                </div>
-              </div>
+            <div className="container-header">
+              <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                Общий баланс
+              </h3>
               <button
                 onClick={() => setBalanceVisible(!balanceVisible)}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-all touch-none"
+                className="show-all-button"
+                title={balanceVisible ? "Скрыть" : "Показать"}
               >
                 {balanceVisible ? (
-                  <Eye className="w-4 h-4 text-white" />
+                  <Eye className="w-4 h-4" />
                 ) : (
-                  <EyeOff className="w-4 h-4 text-white" />
+                  <EyeOff className="w-4 h-4" />
                 )}
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingUp className="w-3 h-3 text-emerald-300" />
-                  <span className="text-xs text-white/90">Доходы</span>
+            <div className="container-content">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div
+                  className={`p-2 rounded-xl ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"}`}
+                >
+                  <CreditCard className={`w-5 h-5 ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`} />
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(income) : "••••••"}</p>
+                <p className={`text-2xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  {balanceVisible ? formatCurrency(balance) : "••••••"}
+                </p>
               </div>
-              <div className="rounded-xl p-2.5 bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="flex items-center gap-1 mb-0.5">
-                  <TrendingDown className="w-3 h-3 text-rose-300" />
-                  <span className="text-xs text-white/90">Расходы</span>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div
+                  className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200"}`}
+                >
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
+                    <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                      Доходы
+                    </span>
+                  </div>
+                  <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    {balanceVisible ? formatCurrency(income) : "••••••"}
+                  </p>
                 </div>
-                <p className="text-base font-bold text-white">{balanceVisible ? formatCurrency(expenses) : "••••••"}</p>
+
+                <div
+                  className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200"}`}
+                >
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
+                    <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                      Расходы
+                    </span>
+                  </div>
+                  <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    {balanceVisible ? formatCurrency(expenses) : "••••••"}
+                  </p>
+                </div>
               </div>
             </div>
+
+            <div className="glow-overlay" />
           </div>
         </header>
       )}
