@@ -1305,9 +1305,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   useEffect(() => {
     const handleReferralLink = async () => {
       try {
-        // Проверяем, есть ли start параметр в Telegram WebApp
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param && tgUserId) {
-          const startParam = tg.initDataUnsafe.start_param
+        if (!tgUserId) return
+
+        // 1) start_param из Telegram WebApp (startapp)
+        // 2) запуск через Menu Button / web_app button: ?ref=... в URL
+        const urlRef = (() => {
+          try {
+            const params = new URLSearchParams(window.location.search)
+            return (params.get('ref') || '').trim()
+          } catch (e) {
+            return ''
+          }
+        })()
+
+        const startParam = (tg && tg.initDataUnsafe && (tg.initDataUnsafe.start_param || '').trim()) || urlRef
+
+        if (startParam) {
           
           console.log('Start param received:', startParam)
           
@@ -1315,15 +1328,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           let referrerTelegramId = null
           
           // Парсим параметр в зависимости от формата
-          if (startParam.startsWith('email_')) {
-            // Формат: email_BASE64_tg_123456789
-            const parts = startParam.split('_tg_')
-            if (parts.length === 2) {
-              const emailPart = parts[0].replace('email_', '')
-              referrerEmail = atob(emailPart)
-              referrerTelegramId = parts[1]
-            }
-          } else if (startParam.startsWith('tg_')) {
+          if (startParam.startsWith('tg_')) {
             // Формат: tg_123456789
             referrerTelegramId = startParam.replace('tg_', '')
           }
@@ -2257,15 +2262,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       
       const botUsername = 'kvpoiskby_bot'
 
-      const webAppShortName = (import.meta.env.VITE_TG_WEBAPP_SHORTNAME || '').trim()
-      if (!webAppShortName) {
-        alert('Не задан VITE_TG_WEBAPP_SHORTNAME (short name Mini App в BotFather)')
-        return
-      }
-
-      // Формируем ссылку для открытия Telegram Mini App с параметром startapp
-      // В этом случае Telegram передаст параметр в tg.initDataUnsafe.start_param
-      const inviteUrl = `https://t.me/${botUsername}/${webAppShortName}?startapp=${startParam}`
+      // Приглашение через deep-link на бота. Далее бот открывает приложение кнопкой web_app
+      // и передает параметр через URL ?ref=...
+      const inviteUrl = `https://t.me/${botUsername}?start=${startParam}`
       
       // Текст приглашения
       const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
@@ -2836,7 +2835,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     >
       <main
         ref={mainContentRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+        className="flex-1 overflow-y-scroll overflow-x-hidden"
         style={{
           paddingLeft: contentSafeAreaInset.left || 0,
           paddingRight: contentSafeAreaInset.right || 0,
@@ -2844,6 +2843,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "auto",
           touchAction: "pan-y",
+          overflowY: "scroll",
           height: "100%",
         }}
       >

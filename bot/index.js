@@ -5,6 +5,7 @@ const { Telegraf, Markup } = require('telegraf')
 const BOT_TOKEN = process.env.BOT_TOKEN
 const BOT_USERNAME = (process.env.BOT_USERNAME || '').replace(/^@/, '') || 'kvpoiskby_bot'
 const WEBAPP_SHORTNAME = (process.env.WEBAPP_SHORTNAME || '').trim()
+const WEBAPP_URL = (process.env.WEBAPP_URL || '').trim()
 
 if (!BOT_TOKEN) {
   console.error('Missing BOT_TOKEN in tg/bot/.env')
@@ -16,12 +17,23 @@ if (!WEBAPP_SHORTNAME) {
   process.exit(1)
 }
 
+if (!WEBAPP_URL) {
+  console.error('Missing WEBAPP_URL in tg/bot/.env (public https URL of your webapp)')
+  process.exit(1)
+}
+
 const bot = new Telegraf(BOT_TOKEN)
 
-function buildStartAppUrl(startParam) {
-  // Telegram Mini App start link format
-  // https://t.me/<botUsername>/<shortname>?startapp=<payload>
-  return `https://t.me/${BOT_USERNAME}/${WEBAPP_SHORTNAME}?startapp=${encodeURIComponent(startParam)}`
+function buildDeepLinkUrl(startParam) {
+  // Bot deep-link format:
+  // https://t.me/<botUsername>?start=<payload>
+  return `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(startParam)}`
+}
+
+function buildWebAppUrlWithRef(startParam) {
+  const u = new URL(WEBAPP_URL)
+  u.searchParams.set('ref', startParam)
+  return u.toString()
 }
 
 function isValidTgId(x) {
@@ -29,43 +41,48 @@ function isValidTgId(x) {
 }
 
 bot.start(async (ctx) => {
-  const payload = (ctx.startPayload || '').trim()
+  try {
+    const payload = (ctx.startPayload || '').trim()
+    const me = ctx.from
+    const myId = me?.id
 
-  const me = ctx.from
-  const myId = me?.id
+    const lines = []
+    lines.push('Кошелёк: мини‑приложение в Telegram.')
 
-  const lines = []
-  lines.push('Кошелёк: мини‑приложение в Telegram.')
+    if (payload) {
+      lines.push('')
+      lines.push('Похоже, вы пришли по приглашению.')
+      lines.push('Нажмите кнопку ниже, чтобы открыть приложение и автоматически подключиться.')
 
-  if (payload) {
-    lines.push('')
-    lines.push('Похоже, вы пришли по приглашению.')
-    lines.push('Нажмите кнопку ниже, чтобы открыть приложение и автоматически подключиться.')
+      const webAppUrl = buildWebAppUrlWithRef(payload)
+      return ctx.reply(
+        lines.join('\n'),
+        Markup.inlineKeyboard([
+          Markup.button.webApp('Открыть Wallet', webAppUrl),
+        ]),
+      )
+    }
 
-    const url = buildStartAppUrl(payload)
+    // No payload: provide self invite link
+    if (isValidTgId(myId)) {
+      const startParam = `tg_${myId}`
+      const deepLink = buildDeepLinkUrl(startParam)
+      lines.push('')
+      lines.push('Ваша личная ссылка-приглашение:')
 
-    return ctx.reply(lines.join('\n'),
-      Markup.inlineKeyboard([
-        Markup.button.url('Открыть кошелёк', url),
-      ])
-    )
+      return ctx.reply(
+        lines.join('\n'),
+        Markup.inlineKeyboard([
+          Markup.button.url('Пригласить в Wallet', deepLink),
+        ]),
+      )
+    }
+
+    return ctx.reply(lines.join('\n'))
+  } catch (e) {
+    console.error(e)
+    return ctx.reply('Ошибка. Попробуйте позже.')
   }
-
-  // No payload: provide self invite link
-  if (isValidTgId(myId)) {
-    const startParam = `tg_${myId}`
-    const url = buildStartAppUrl(startParam)
-    lines.push('')
-    lines.push('Ваша личная ссылка-приглашение:')
-
-    return ctx.reply(lines.join('\n'),
-      Markup.inlineKeyboard([
-        Markup.button.url('Открыть кошелёк', url),
-      ])
-    )
-  }
-
-  return ctx.reply(lines.join('\n'))
 })
 
 bot.command('invite', async (ctx) => {
@@ -77,7 +94,7 @@ bot.command('invite', async (ctx) => {
   }
 
   const startParam = `tg_${myId}`
-  const url = buildStartAppUrl(startParam)
+  const url = buildDeepLinkUrl(startParam)
 
   return ctx.reply(
     'Ссылка-приглашение готова. Отправьте её другу в Telegram:',
@@ -98,7 +115,7 @@ bot.command('link', async (ctx) => {
   }
 
   const startParam = `tg_${tgId}`
-  const url = buildStartAppUrl(startParam)
+  const url = buildDeepLinkUrl(startParam)
 
   return ctx.reply(
     `Вот ссылка для подключения к пользователю TG ${tgId}:`,
