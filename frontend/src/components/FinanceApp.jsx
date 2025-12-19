@@ -2669,14 +2669,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }}
       >
         <div
-          className="px-4 pt-2 pb-4"
+          className="px-4 pb-4"
           style={{
             minHeight: "100%",
             touchAction: "pan-y",
           }}
         >
           {activeTab === "overview" && (
-            <div className="space-y-3">
+            <div className="space-y-3" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               <div
                 className={`styled-container ${theme}`}
                 style={{
@@ -2722,25 +2722,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                   <div className="grid grid-cols-2 gap-2.5">
                     <div
-                      className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/40 border-gray-600" : "bg-white/70 border-gray-200"}`}
+                      className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
                     >
                       <div className="flex items-center gap-1 mb-0.5">
                         <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Доходы</span>
                       </div>
-                      <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      <p className={`text-base font-bold ${theme === "dark" ? "text-emerald-300" : "text-emerald-700"}`}>
                         {balanceVisible ? formatCurrency(income) : "••••••"}
                       </p>
                     </div>
 
                     <div
-                      className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/40 border-gray-600" : "bg-white/70 border-gray-200"}`}
+                      className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
                     >
                       <div className="flex items-center gap-1 mb-0.5">
                         <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Расходы</span>
                       </div>
-                      <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      <p className={`text-base font-bold ${theme === "dark" ? "text-rose-300" : "text-rose-700"}`}>
                         {balanceVisible ? formatCurrency(expenses) : "••••••"}
                       </p>
                     </div>
