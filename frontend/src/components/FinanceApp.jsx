@@ -2475,6 +2475,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const savingsProgress = Math.min((savings || 0) / (goalSavings || 1), 1)
   const savingsPct = Math.round(savingsProgress * 100)
 
+  const secondGoalProgress = Math.min(
+    (secondGoalSavings || 0) / (secondGoalAmount > 0 ? secondGoalAmount : 1),
+    1,
+  )
+  const secondGoalPct = Math.round(secondGoalProgress * 100)
+
   const toggleLike = (txId) => {
     vibrate()
     setLikedTransactions((prev) => {
