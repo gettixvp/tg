@@ -2631,94 +2631,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
-      {activeTab === "overview" && (
-        <header className="relative overflow-hidden flex-shrink-0 z-20 px-4 pb-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-          {/* Градиент на заднем плане */}
-          <div 
-            className="absolute inset-0 opacity-30 blur-3xl"
-            style={{
-              background: theme === "dark" 
-                ? "radial-gradient(circle at 50% 20%, #3b82f6 0%, transparent 70%)"
-                : "radial-gradient(circle at 50% 20%, #6366f1 0%, transparent 70%)",
-              top: "-20px",
-              height: "200px"
-            }}
-          />
-          <div
-            className={`styled-container ${theme}`}
-            onMouseMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect()
-              const x = ((e.clientX - rect.left) / rect.width) * 100
-              const y = ((e.clientY - rect.top) / rect.height) * 100
-              e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
-              e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
-            }}
-          >
-            <div className="container-header">
-              <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                Общий баланс
-              </h3>
-              <button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                className="show-all-button"
-                title={balanceVisible ? "Скрыть" : "Показать"}
-              >
-                {balanceVisible ? (
-                  <Eye className="w-4 h-4" />
-                ) : (
-                  <EyeOff className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-
-            <div className="container-content">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div
-                  className={`p-2 rounded-xl ${theme === "dark" ? "bg-gray-700" : "bg-gray-100"}`}
-                >
-                  <CreditCard className={`w-5 h-5 ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`} />
-                </div>
-                <p className={`text-2xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  {balanceVisible ? formatCurrency(balance) : "••••••"}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div
-                  className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200"}`}
-                >
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                      Доходы
-                    </span>
-                  </div>
-                  <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    {balanceVisible ? formatCurrency(income) : "••••••"}
-                  </p>
-                </div>
-
-                <div
-                  className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200"}`}
-                >
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
-                      Расходы
-                    </span>
-                  </div>
-                  <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    {balanceVisible ? formatCurrency(expenses) : "••••••"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="glow-overlay" />
-          </div>
-        </header>
-      )}
-
       <main
         ref={mainContentRef}
         className="flex-1 overflow-y-auto overflow-x-hidden"
@@ -2741,6 +2653,79 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {activeTab === "overview" && (
             <div className="space-y-3">
+              <div
+                className={`styled-container ${theme}`}
+                style={{
+                  background:
+                    theme === "dark"
+                      ? "linear-gradient(135deg, rgba(59,130,246,0.22), rgba(99,102,241,0.10))"
+                      : "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(59,130,246,0.08))",
+                }}
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const x = ((e.clientX - rect.left) / rect.width) * 100
+                  const y = ((e.clientY - rect.top) / rect.height) * 100
+                  e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
+                  e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
+                }}
+              >
+                <div className="container-header">
+                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Общий баланс
+                  </h3>
+                  <button
+                    onClick={() => setBalanceVisible(!balanceVisible)}
+                    className="show-all-button"
+                    title={balanceVisible ? "Скрыть" : "Показать"}
+                  >
+                    {balanceVisible ? (
+                      <Eye className="w-4 h-4" />
+                    ) : (
+                      <EyeOff className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="container-content">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-blue-600/30" : "bg-blue-600/15"}`}>
+                      <CreditCard className={`w-5 h-5 ${theme === "dark" ? "text-blue-200" : "text-blue-700"}`} />
+                    </div>
+                    <p className={`text-2xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      {balanceVisible ? formatCurrency(balance) : "••••••"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div
+                      className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/40 border-gray-600" : "bg-white/70 border-gray-200"}`}
+                    >
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
+                        <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Доходы</span>
+                      </div>
+                      <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        {balanceVisible ? formatCurrency(income) : "••••••"}
+                      </p>
+                    </div>
+
+                    <div
+                      className={`rounded-xl p-2.5 border ${theme === "dark" ? "bg-gray-700/40 border-gray-600" : "bg-white/70 border-gray-200"}`}
+                    >
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
+                        <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Расходы</span>
+                      </div>
+                      <p className={`text-base font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                        {balanceVisible ? formatCurrency(expenses) : "••••••"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glow-overlay" />
+              </div>
+
               <div className="space-y-3">
                 {/* Основная копилка */}
                 <SavingsContainer
@@ -3437,10 +3422,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       Семейный аккаунт
                     </p>
                   )}
-
-                  <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Аккаунт
-                  </h3>
 
                   {isAuthenticated ? (
                     <div className="space-y-3">
@@ -5890,7 +5871,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-center p-2">
             <div
-              className="w-full max-w-md backdrop-blur-xl rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 glass-gradient"
+              className="w-full max-w-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 glass-gradient"
             >
               <NavButton
                 active={activeTab === "overview"}
