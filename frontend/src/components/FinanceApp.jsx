@@ -723,6 +723,7 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [keyboardInset, setKeyboardInset] = useState(0)
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
@@ -754,6 +755,52 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
       return () => window.clearTimeout(t)
     }
   }, [open, mounted])
+
+  useEffect(() => {
+    if (!mounted) return
+
+    let raf = 0
+
+    const computeInset = () => {
+      try {
+        const vv = window.visualViewport
+        if (!vv) {
+          setKeyboardInset(0)
+          return
+        }
+
+        // When keyboard opens, visualViewport height shrinks.
+        // We lift the sheet by the missing height so inputs are not covered.
+        const inset = Math.max(0, Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0)))
+        setKeyboardInset(inset)
+      } catch (e) {
+        setKeyboardInset(0)
+      }
+    }
+
+    const schedule = () => {
+      if (raf) cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(computeInset)
+    }
+
+    schedule()
+
+    const vv = window.visualViewport
+    if (vv && vv.addEventListener) {
+      vv.addEventListener('resize', schedule)
+      vv.addEventListener('scroll', schedule)
+    }
+    window.addEventListener('resize', schedule)
+
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      if (vv && vv.removeEventListener) {
+        vv.removeEventListener('resize', schedule)
+        vv.removeEventListener('scroll', schedule)
+      }
+      window.removeEventListener('resize', schedule)
+    }
+  }, [mounted])
 
   useEffect(() => {
     if (!mounted) return
@@ -855,7 +902,7 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
   if (!mounted) return null
 
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 260ms ease'
+  const transition = isDragging ? 'none' : 'transform 180ms ease-out, bottom 180ms ease-out'
 
   return (
     <div
@@ -882,13 +929,14 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
     >
       <div
         ref={sheetRef}
-        className={`w-full max-w-md rounded-t-2xl shadow-2xl ${theme === "dark" ? "bg-gray-800" : "bg-white"}`}
+        className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden flex flex-col ${
+          theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
+        }`}
         style={{
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
           transform: translate,
           transition,
+          bottom: keyboardInset,
+          touchAction: 'none',
         }}
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => {
