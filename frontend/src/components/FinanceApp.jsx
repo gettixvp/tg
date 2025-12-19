@@ -1172,6 +1172,51 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [debtAmount, setDebtAmount] = useState('')
   const [debtDescription, setDebtDescription] = useState('')
 
+  const [aiMessages, setAiMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Привет! Я ИИ-анализатор. Напиши вопрос или нажми «Проанализировать», и я дам советы по бюджету.'
+    }
+  ])
+  const [aiInput, setAiInput] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+
+  const sendAiMessage = async (text) => {
+    if (!user || !user.email) {
+      alert('Сначала войдите в аккаунт (email)')
+      return
+    }
+
+    const trimmed = String(text || '').trim()
+    if (!trimmed) return
+
+    setAiMessages((prev) => [...prev, { role: 'user', content: trimmed }])
+    setAiInput('')
+    setAiLoading(true)
+
+    try {
+      const resp = await fetch(`${API_URL}/api/ai/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_email: user.email, message: trimmed }),
+      })
+
+      const json = await resp.json().catch(() => ({}))
+      if (!resp.ok) {
+        throw new Error(json.error || 'Ошибка AI')
+      }
+
+      setAiMessages((prev) => [...prev, { role: 'assistant', content: json.content || '' }])
+      vibrateSuccess()
+    } catch (e) {
+      console.error('AI error:', e)
+      vibrateError()
+      alert(e.message || 'Ошибка AI')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
   const vibrate = () => haptic && haptic.impactOccurred && haptic.impactOccurred("light")
@@ -2972,17 +3017,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     Общий баланс
                   </h3>
-                  <button
-                    onClick={() => setBalanceVisible(!balanceVisible)}
-                    className="show-all-button"
-                    title={balanceVisible ? "Скрыть" : "Показать"}
-                  >
-                    {balanceVisible ? (
-                      <Eye className="w-4 h-4" />
-                    ) : (
-                      <EyeOff className="w-4 h-4" />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setActiveTab('ai')
+                        vibrateSelect()
+                      }}
+                      className="show-all-button"
+                      title="ИИ-анализ"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setBalanceVisible(!balanceVisible)}
+                      className="show-all-button"
+                      title={balanceVisible ? "Скрыть" : "Показать"}
+                    >
+                      {balanceVisible ? (
+                        <Eye className="w-4 h-4" />
+                      ) : (
+                        <EyeOff className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="container-content">
@@ -3275,6 +3332,107 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
                 
                 {/* Эффект свечения */}
+                <div className="glow-overlay" />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "ai" && (
+            <div className="space-y-3" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
+              <div className={`styled-container ${theme}`}>
+                <div className="container-header">
+                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    ИИ-анализатор
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setActiveTab('overview')
+                      vibrateSelect()
+                    }}
+                    className="show-all-button"
+                    title="Назад"
+                  >
+                    <ChevronRight className="w-4 h-4" style={{ transform: 'rotate(180deg)' }} />
+                  </button>
+                </div>
+
+                <div className="container-content">
+                  <div className="space-y-3">
+                    <div
+                      className={`rounded-xl p-3 border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'}`}
+                      style={{ maxHeight: '42vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                    >
+                      <div className="space-y-3">
+                        {aiMessages.map((m, idx) => (
+                          <div
+                            key={idx}
+                            className={`text-sm leading-relaxed ${m.role === 'user' ? 'text-right' : 'text-left'}`}
+                          >
+                            <div
+                              className={`inline-block rounded-xl px-3 py-2 max-w-[90%] ${
+                                m.role === 'user'
+                                  ? theme === 'dark'
+                                    ? 'bg-blue-700 text-white'
+                                    : 'bg-blue-600 text-white'
+                                  : theme === 'dark'
+                                    ? 'bg-gray-700/60 text-gray-100'
+                                    : 'bg-gray-100 text-gray-900'
+                              }`}
+                              style={{ whiteSpace: 'pre-wrap' }}
+                            >
+                              {m.content}
+                            </div>
+                          </div>
+                        ))}
+                        {aiLoading && (
+                          <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Анализирую…
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => sendAiMessage('Проанализируй мои финансы и дай рекомендации по экономии и бюджету')}
+                        className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                          theme === 'dark'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-100'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                        }`}
+                        disabled={aiLoading}
+                      >
+                        Проанализировать
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        value={aiInput}
+                        onChange={(e) => setAiInput(e.target.value)}
+                        placeholder="Например: где я трачу больше всего и как сократить?"
+                        className={`flex-1 p-3 border rounded-xl transition-all text-sm ${
+                          theme === 'dark'
+                            ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
+                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                        }`}
+                      />
+                      <button
+                        onClick={() => sendAiMessage(aiInput)}
+                        className={`px-4 rounded-xl transition-all active:scale-95 ${
+                          theme === 'dark'
+                            ? 'bg-blue-700 hover:bg-blue-600 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                        disabled={aiLoading}
+                        title="Отправить"
+                      >
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="glow-overlay" />
               </div>
             </div>

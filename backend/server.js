@@ -3,11 +3,36 @@ require("dotenv").config()
 const express = require("express")
 const cors = require("cors")
 const bcrypt = require("bcrypt")
+const fetch = require("node-fetch")
 const pool = require("./db")
 
 const app = express()
 app.use(express.json())
 app.use(cors())
+
+async function callDeepSeekChat({ apiKey, baseUrl, messages }) {
+  const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages,
+      temperature: 0.6,
+    }),
+  })
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '')
+    throw new Error(`DeepSeek error: ${resp.status} ${text}`)
+  }
+
+  return resp.json()
+}
 
 // --- Health check ---
 app.get("/api/health", (req, res) => {
@@ -18,6 +43,103 @@ app.get("/api/health", (req, res) => {
 app.get("/ping", (req, res) => {
   res.send("pong");
 });
+
+// --- AI finance analyzer (DeepSeek via backend proxy) ---
+app.post('/api/ai/analyze', async (req, res) => {
+  const { user_email, message } = req.body || {}
+
+  if (!user_email) {
+    return res.status(400).json({ error: 'user_email обязателен' })
+  }
+
+  const apiKey = (process.env.DEEPSEEK_API_KEY || '').trim()
+  const baseUrl = (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').trim()
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'DeepSeek API key is not configured on server' })
+  }
+
+  try {
+    const userRes = await pool.query('SELECT * FROM users WHERE email = $1', [user_email])
+    if (userRes.rowCount === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' })
+    }
+    const user = userRes.rows[0]
+
+    const txRes = await pool.query(
+      'SELECT * FROM transactions WHERE user_email = $1 ORDER BY date DESC LIMIT 200',
+      [user_email],
+    )
+    const transactions = txRes.rows || []
+
+    const totals = transactions.reduce(
+      (acc, t) => {
+        const amt = Number(t.amount || 0)
+        if (t.type === 'income') acc.income += amt
+        else if (t.type === 'expense') acc.expenses += amt
+        else if (t.type === 'savings') acc.savings += amt
+        return acc
+      },
+      { income: 0, expenses: 0, savings: 0 },
+    )
+
+    const topExpenses = transactions
+      .filter((t) => t.type === 'expense')
+      .reduce((acc, t) => {
+        const cat = t.category || 'Другое'
+        acc[cat] = (acc[cat] || 0) + Number(t.amount || 0)
+        return acc
+      }, {})
+
+    const topExpensesArr = Object.entries(topExpenses)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+
+    const system =
+      'Ты — финансовый консультант. Дай конкретные рекомендации по экономии, планированию бюджета и улучшению привычек. ' +
+      'Отвечай по-русски. Структурируй: 1) краткий вывод, 2) 5-10 конкретных советов, 3) 3 риска/ошибки, 4) план на 7 дней. '
+
+    const context = {
+      user: {
+        email: user.email,
+        balance: Number(user.balance || 0),
+        income: Number(user.income || 0),
+        expenses: Number(user.expenses || 0),
+        savings_usd: Number(user.savings_usd || 0),
+        goal_savings: Number(user.goal_savings || 0),
+      },
+      recentTotals: totals,
+      topExpenseCategories: topExpensesArr,
+      recentTransactions: transactions.slice(0, 30).map((t) => ({
+        type: t.type,
+        amount: Number(t.amount || 0),
+        category: t.category,
+        description: t.description,
+        date: t.date || t.created_at,
+      })),
+    }
+
+    const userPrompt =
+      (message && String(message).trim()) ||
+      'Проанализируй мои финансы и дай советы. Если данных мало — предложи, что начать отслеживать.'
+
+    const ds = await callDeepSeekChat({
+      apiKey,
+      baseUrl,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: `Данные пользователя (JSON):\n${JSON.stringify(context)}` },
+        { role: 'user', content: userPrompt },
+      ],
+    })
+
+    const content = ds?.choices?.[0]?.message?.content || ''
+    res.json({ success: true, content })
+  } catch (e) {
+    console.error('AI analyze error:', e)
+    res.status(500).json({ error: 'Ошибка AI: ' + e.message })
+  }
+})
 
 // --- Регистрация / Вход ---
 app.post("/api/auth", async (req, res) => {
