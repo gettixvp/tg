@@ -2238,21 +2238,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         return
       }
       
-      // Формируем параметр приглашения
-      // Если есть email - включаем его, если нет - только Telegram ID
-      let startParam
-      if (user && user.email) {
-        // Пользователь с email аккаунтом приглашает
-        const emailEncoded = btoa(user.email).replace(/=/g, '')
-        startParam = `email_${emailEncoded}_tg_${tgUserId}`
-      } else {
-        // Пользователь без email приглашает
-        startParam = `tg_${tgUserId}`
-      }
+      // Формируем параметр приглашения (только TG ID)
+      const startParam = `tg_${tgUserId}`
       
       const botUsername = 'kvpoiskby_bot'
 
-      const webAppShortName = (import.meta.env.VITE_TG_WEBAPP_SHORTNAME || '').trim() || 'app'
+      const webAppShortName = (import.meta.env.VITE_TG_WEBAPP_SHORTNAME || '').trim() || 'Wallet'
 
       // Формируем ссылку для открытия Telegram Mini App с параметром startapp
       // В этом случае Telegram передаст параметр в tg.initDataUnsafe.start_param
