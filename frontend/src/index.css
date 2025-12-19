@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+    --radius: 1rem;
+    
+    /* Оранжево-синий градиент для светлой темы */
+    --gradient-bg: linear-gradient(135deg, 
+      #ff9a56 0%, 
+      #ff7b3d 15%, 
+      #4f9cf9 40%, 
+      #3b82f6 60%, 
+      #2563eb 85%, 
+      #1d4ed8 100%);
+    --gradient-bg-soft: linear-gradient(135deg, 
+      rgba(255, 154, 86, 0.1) 0%, 
+      rgba(255, 123, 61, 0.05) 25%, 
+      rgba(79, 156, 249, 0.05) 50%, 
+      rgba(59, 130, 246, 0.05) 75%, 
+      rgba(37, 99, 235, 0.1) 100%);
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 15%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 224 76% 48%;
+    
+    /* Оранжево-синий градиент для темной темы */
+    --gradient-bg: linear-gradient(135deg, 
+      #1e3a8a 0%, 
+      #1e40af 15%, 
+      #1d4ed8 25%, 
+      #2563eb 35%, 
+      #3b82f6 50%, 
+      #60a5fa 65%, 
+      #fb923c 85%, 
+      #f97316 100%);
+    --gradient-bg-soft: linear-gradient(135deg, 
+      rgba(30, 58, 138, 0.1) 0%, 
+      rgba(30, 64, 175, 0.05) 25%, 
+      rgba(29, 78, 216, 0.05) 50%, 
+      rgba(37, 99, 235, 0.05) 75%, 
+      rgba(251, 146, 60, 0.1) 100%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+      "Droid Sans", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    /* Применяем оранжево-синий градиент к фону */
+    background: var(--gradient-bg);
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Добавляем дополнительный слой для красоты */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-bg-soft);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  #root {
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Added smooth scrolling and touch optimization */
+  * {
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Hidden scrollbar for clean glassmorphism look */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+
+  /* Added smooth scroll behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Added glassmorphism utilities */
+@layer utilities {
+  .glass {
+    @apply backdrop-blur-xl bg-white/80 dark:bg-gray-800/80 border border-white/20 dark:border-gray-700/20;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-2xl bg-white/90 dark:bg-gray-800/90 border border-white/30 dark:border-gray-700/30;
+  }
+
+  .gradient-primary {
+    @apply bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500;
+  }
+
+  .gradient-card {
+    @apply bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900;
+  }
+
+  /* Новые утилиты для оранжево-синего градиента */
+  .bg-gradient-orange-blue {
+    background: var(--gradient-bg);
+  }
+
+  .bg-gradient-orange-blue-soft {
+    background: var(--gradient-bg-soft);
+  }
+
+  .text-gradient-orange-blue {
+    background: var(--gradient-bg);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Анимированные градиенты */
+  .gradient-animated {
+    background: var(--gradient-bg);
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Градиентные границы */
+  .gradient-border {
+    position: relative;
+    background: var(--gradient-bg-soft);
+    border-radius: 1rem;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-bg);
+    border-radius: 1rem;
+    padding: 2px;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+  }
+
+  /* Улучшенные glassmorphism эффекты с градиентом */
+  .glass-gradient {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .glass-gradient {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+}
