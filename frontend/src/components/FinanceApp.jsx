@@ -1289,7 +1289,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Немедленное применение темы при изменении
   useEffect(() => {
     // Применяем тему к body для мгновенного эффекта
-    document.body.style.backgroundColor = theme === 'dark' ? '#111827' : '#ffffff'
+    if (theme === 'dark') {
+      document.body.style.backgroundColor = '#0b1220'
+    } else {
+      // В светлой теме фон задается через CSS (градиент), не перетираем его inline-стилем
+      document.body.style.backgroundColor = ''
+    }
     document.body.style.color = theme === 'dark' ? '#f3f4f6' : '#111827'
     
     // Форсируем ре-рендер через небольшую задержку
