@@ -659,26 +659,34 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
     blue: {
       iconBg: theme === "dark" ? "bg-blue-900/40" : "bg-blue-100",
       iconText: theme === "dark" ? "text-blue-400" : "text-blue-600",
-      progressBg: theme === "dark" ? "bg-blue-500" : "bg-blue-600"
+      progressStroke: theme === "dark" ? "#3b82f6" : "#2563eb"
     },
     purple: {
       iconBg: theme === "dark" ? "bg-purple-900/40" : "bg-purple-100",
       iconText: theme === "dark" ? "text-purple-400" : "text-purple-600",
-      progressBg: theme === "dark" ? "bg-purple-500" : "bg-purple-600"
+      progressStroke: theme === "dark" ? "#a855f7" : "#7c3aed"
     },
     green: {
       iconBg: theme === "dark" ? "bg-green-900/40" : "bg-green-100",
       iconText: theme === "dark" ? "text-green-400" : "text-green-600",
-      progressBg: theme === "dark" ? "bg-green-500" : "bg-green-600"
+      progressStroke: theme === "dark" ? "#22c55e" : "#16a34a"
     },
     orange: {
       iconBg: theme === "dark" ? "bg-orange-900/40" : "bg-orange-100",
       iconText: theme === "dark" ? "text-orange-400" : "text-orange-600",
-      progressBg: theme === "dark" ? "bg-orange-500" : "bg-orange-600"
+      progressStroke: theme === "dark" ? "#f97316" : "#ea580c"
     }
   }
   
   const currentColor = colorClasses[color] || colorClasses.blue
+
+  const clampedProgress = Math.max(0, Math.min(Number(progress) || 0, 100))
+  const ringSize = 42
+  const ringStrokeWidth = 4
+  const ringRadius = (ringSize - ringStrokeWidth) / 2
+  const ringCircumference = 2 * Math.PI * ringRadius
+  const ringDashOffset = ringCircumference * (1 - clampedProgress / 100)
+  const ringTrackStroke = theme === "dark" ? "#374151" : "#e5e7eb"
 
   return (
     <div 
@@ -695,25 +703,41 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
             {title}
           </h3>
         </div>
-        <button
-          onClick={onShowAll}
-          className="show-all-button"
-        >
-          {progress}%
+        <button onClick={onShowAll} className="show-all-button" title="Открыть">
+          <div className="relative" style={{ width: ringSize, height: ringSize }}>
+            <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`} className="block">
+              <circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={ringRadius}
+                fill="none"
+                stroke={ringTrackStroke}
+                strokeWidth={ringStrokeWidth}
+              />
+              <circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={ringRadius}
+                fill="none"
+                stroke={currentColor.progressStroke}
+                strokeWidth={ringStrokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={ringCircumference}
+                strokeDashoffset={ringDashOffset}
+                transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}
+                style={{ transition: 'stroke-dashoffset 500ms ease' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={`text-[11px] font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                {Math.round(clampedProgress)}%
+              </span>
+            </div>
+          </div>
         </button>
       </div>
       
       <div className="container-content">
-        {/* Прогресс-бар */}
-        <div className="mb-3">
-          <div className={`h-2 rounded-full overflow-hidden ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ${currentColor.progressBg}`}
-              style={{ width: `${Math.min(progress, 100)}%` }}
-            ></div>
-          </div>
-        </div>
-        
         {/* Дополнительный контент */}
         {children}
       </div>
@@ -2726,7 +2750,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <div className="glow-overlay" />
               </div>
 
-              <div className="space-y-3">
+              <div className={secondGoalName && secondGoalAmount > 0 ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
                 {/* Основная копилка */}
                 <SavingsContainer
                   theme={theme}
@@ -2740,7 +2764,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   color="blue"
                 >
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-gray-500">
+                    <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                       {formatCurrency(savings)} / {formatCurrency(goalSavings)} USD
                     </span>
                   </div>
@@ -2760,7 +2784,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     color="purple"
                   >
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm text-gray-500">
+                      <span className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
                         {formatCurrency(secondGoalSavings)} / {formatCurrency(secondGoalAmount)} USD
                       </span>
                     </div>
