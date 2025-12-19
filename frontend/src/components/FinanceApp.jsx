@@ -657,24 +657,41 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   return (
     <div 
       ref={containerRef}
-      className={`savings-container ${theme} ${color}`}
+      className={`recent-operations-container ${theme}`}
       onMouseMove={handleMouseMove}
-      onClick={onShowAll}
     >
       <div className="container-header">
         <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-opacity-40" : ""} ${color}-bg`}>
+          <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
             {icon}
           </div>
           <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
             {title}
           </h3>
         </div>
-        <span className="progress-text">{progress}%</span>
+        <button
+          onClick={onShowAll}
+          className="show-all-button"
+        >
+          {progress}%
+        </button>
       </div>
       
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }}></div>
+      <div className="container-content">
+        {/* Прогресс-бар */}
+        <div className="mb-3">
+          <div className={`h-2 rounded-full overflow-hidden ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${
+                theme === "dark" ? "bg-blue-500" : "bg-blue-600"
+              }`}
+              style={{ width: `${Math.min(progress, 100)}%` }}
+            ></div>
+          </div>
+        </div>
+        
+        {/* Дополнительный контент */}
+        {children}
       </div>
       
       {/* Эффект свечения */}
