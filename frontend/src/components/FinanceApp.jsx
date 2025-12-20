@@ -791,17 +791,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
   const isVerticalSwipe = useRef(false)
   const sheetRef = useRef(null)
 
-  const hapticImpact = (style = 'light') => {
-    try {
-      const tg = typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp
-      const haptic = tg && tg.HapticFeedback
-      if (haptic && haptic.impactOccurred) {
-        haptic.impactOccurred(style)
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
+  const hapticImpact = () => {}
 
   useEffect(() => {
     if (!open) {
@@ -939,7 +929,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
     startY.current = e.touches[0].clientY
     startX.current = e.touches[0].clientX
     isVerticalSwipe.current = false
-    hapticImpact('light')
   }
 
   const onTouchMove = (e) => {
@@ -977,7 +966,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
     isVerticalSwipe.current = false
     if (dragY > 110) {
       setDragY(0)
-      hapticImpact('medium')
       requestClose()
       return
     }
@@ -1127,6 +1115,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [linkingLoading, setLinkingLoading] = useState(false)
   const [selectedWalletMember, setSelectedWalletMember] = useState(null)
   const [showWalletMemberModal, setShowWalletMemberModal] = useState(false)
+  const [showBlockedUsersModal, setShowBlockedUsersModal] = useState(false)
+  const [blockedWalletMembers, setBlockedWalletMembers] = useState([])
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
@@ -1551,6 +1541,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }
           // Apply on top of whatever we loaded
           await loadWalletView(String(serverActiveWallet))
+        } else {
+          // If server cleared active wallet (e.g. owner removed you), ensure client also exits shared mode
+          try {
+            const stored = localStorage.getItem(ACTIVE_WALLET_KEY)
+            if (stored) {
+              localStorage.removeItem(ACTIVE_WALLET_KEY)
+            }
+          } catch (e) {
+            // ignore
+          }
+
+          if (activeWalletEmail) {
+            setActiveWalletEmail(null)
+          }
+
+          if (currentUserEmail) {
+            // Reload own wallet view
+            await loadWalletView(String(currentUserEmail))
+          }
         }
       } catch (e) {
         console.warn('Failed to ensure telegram account', e)
@@ -1559,6 +1568,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     ensureTelegramAccount()
   }, [tgUserId, displayName, tgPhotoUrl])
+
+  const loadBlockedWalletMembers = async (ownerEmail) => {
+    if (!ownerEmail) return
+    try {
+      const resp = await fetch(`${API_URL}/api/wallet/${encodeURIComponent(ownerEmail)}/blocked`)
+      if (!resp.ok) return
+      const data = await resp.json().catch(() => null)
+      setBlockedWalletMembers(data?.members || [])
+    } catch (e) {
+      console.warn('Failed to load blocked wallet members', e)
+    }
+  }
 
   useEffect(() => {
     if (isSharedWalletView && !activeWalletEmail) return
@@ -1685,8 +1706,46 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           let referrerTelegramId = null
           
           // Парсим параметр в зависимости от формата
+          if (startParam && startParam.startsWith('inv_')) {
+            const token = startParam.replace('inv_', '').trim()
+            if (!token) return
+
+            if (inviteDoneRef.current || inviteInFlightRef.current) return
+            inviteInFlightRef.current = true
+            setLinkingLoading(true)
+            try {
+              const resp = await fetch(`${API_URL}/api/invite/consume`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, currentTelegramId: tgUserId, currentEmail: currentUserEmail || null, currentUserName: displayName }),
+              })
+              const json = await resp.json().catch(() => ({}))
+              if (!resp.ok) {
+                alert(json.error || 'Приглашение недействительно')
+                vibrateError()
+                return
+              }
+              const walletEmail = json.walletEmail
+              if (walletEmail) {
+                try {
+                  localStorage.setItem(ACTIVE_WALLET_KEY, String(walletEmail))
+                } catch (e) {
+                  // ignore
+                }
+                setActiveWalletEmail(String(walletEmail))
+                await loadWalletView(String(walletEmail))
+                inviteDoneRef.current = true
+                vibrateSuccess()
+              }
+            } finally {
+              setLinkingLoading(false)
+              inviteInFlightRef.current = false
+            }
+            return
+          }
+
           if (startParam && startParam.startsWith('tg_') && tgUserId) {
-            // Формат: tg_123456789
+            // Legacy format: tg_123456789
             referrerTelegramId = startParam.replace('tg_', '')
           }
           
@@ -2741,53 +2800,67 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         alert('Не удалось получить ваш Telegram ID')
         return
       }
-      
-      // Формируем параметр приглашения (только TG ID)
-      const startParam = `tg_${tgUserId}`
-      
+
       const botUsername = 'kvpoiskby_bot'
 
       // Приглашение через direct link к Main Mini App
       // https://core.telegram.org/bots/webapps
       // payload попадет в initDataUnsafe.start_param и tgWebAppStartParam
-      const inviteUrl = `https://t.me/${botUsername}?startapp=${encodeURIComponent(startParam)}`
-      
-      // Текст приглашения
-      const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
-        `Я использую этот финансовый трекер для управления бюджетом. ` +
-        `Нажми на ссылку, чтобы автоматически подключиться к моему аккаунту и следить за общими расходами!`
-      
-      console.log('Invite URL:', inviteUrl)
-      console.log('Start param:', startParam)
-      console.log('Inviter Telegram ID:', tgUserId)
-      console.log('Inviter Email:', user?.email || 'none')
-      
-      // Проверяем, работаем ли в Telegram WebApp
-      if (tg && tg.openTelegramLink) {
-        // Используем Telegram WebApp API для открытия диалога выбора контакта
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(inviteText)}`
-        tg.openTelegramLink(shareUrl)
-      } else if (navigator.share) {
-        // Fallback: используем Web Share API
-        navigator.share({
-          title: 'Приглашение в кошелек',
-          text: inviteText,
-          url: inviteUrl
-        }).catch(err => {
-          console.log('Share cancelled', err)
+      const createInviteAndShare = async () => {
+        const ownerEmail = ownerWalletEmail
+        if (!ownerEmail) {
+          alert('Не удалось определить владельца кошелька')
+          return
+        }
+
+        const resp = await fetch(`${API_URL}/api/invite/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ owner_email: ownerEmail, created_by_telegram_id: tgUserId }),
         })
-      } else {
-        // Fallback: копируем в буфер обмена
-        const fullText = `${inviteText}\n\n${inviteUrl}`
-        navigator.clipboard.writeText(fullText).then(() => {
-          alert('Ссылка-приглашение скопирована в буфер обмена!\n\nОтправьте её другу в Telegram.')
-          vibrateSuccess()
-        }).catch(() => {
-          alert(`Скопируйте эту ссылку и отправьте другу:\n\n${inviteUrl}`)
-        })
+        const json = await resp.json().catch(() => ({}))
+        if (!resp.ok) {
+          alert(json.error || 'Не удалось создать приглашение')
+          return
+        }
+        const token = json.token
+        if (!token) {
+          alert('Не удалось создать приглашение')
+          return
+        }
+        const inviteUrl = `https://t.me/${botUsername}?startapp=${encodeURIComponent(`inv_${token}`)}`
+
+        // Текст приглашения
+        const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
+          `Нажми на ссылку, чтобы подключиться к моему аккаунту. ` +
+          `Ссылка одноразовая и подходит только для одного входа.`
+
+        console.log('Invite URL:', inviteUrl)
+        console.log('Token:', token)
+
+        if (tg && tg.openTelegramLink) {
+          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(inviteText)}`
+          tg.openTelegramLink(shareUrl)
+        } else if (navigator.share) {
+          navigator.share({
+            title: 'Приглашение в кошелек',
+            text: inviteText,
+            url: inviteUrl,
+          }).catch(() => {})
+        } else {
+          const fullText = `${inviteText}\n\n${inviteUrl}`
+          navigator.clipboard.writeText(fullText).then(() => {
+            alert('Ссылка-приглашение скопирована в буфер обмена!\n\nОтправьте её другу в Telegram.')
+            vibrateSuccess()
+          }).catch(() => {
+            alert(`Скопируйте эту ссылку и отправьте другу:\n\n${inviteUrl}`)
+          })
+        }
+
+        vibrateSuccess()
       }
-      
-      vibrateSuccess()
+
+      createInviteAndShare()
     } catch (e) {
       console.error('Invite error:', e)
       vibrateError()
@@ -4319,15 +4392,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             Участники кошелька
                           </p>
                           <div className="space-y-2">
-                            {walletMembers.map((m) => (
-                              <WalletMemberRow
-                                key={`${m.owner_email}-${m.member_telegram_id}`}
-                                member={m}
-                                theme={theme}
-                                isSelf={String(m.member_telegram_id) === String(tgUserId)}
-                                onOpen={openWalletMemberModal}
-                              />
-                            ))}
+                            {walletMembers
+                              .filter((m) => String(m.member_telegram_id) !== String(tgUserId))
+                              .map((m) => (
+                                <WalletMemberRow
+                                  key={`${m.owner_email}-${m.member_telegram_id}`}
+                                  member={m}
+                                  theme={theme}
+                                  isSelf={false}
+                                  onOpen={openWalletMemberModal}
+                                />
+                              ))}
                           </div>
                         </div>
                       )}
@@ -4343,6 +4418,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         >
                           <UserPlus className="w-4 h-4" />
                           Пригласить пользователя
+                        </button>
+                      )}
+
+                      {isWalletOwner && (
+                        <button
+                          onClick={async () => {
+                            await loadBlockedWalletMembers(ownerWalletEmail)
+                            setShowBlockedUsersModal(true)
+                          }}
+                          className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                            theme === "dark"
+                              ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          Заблокированные пользователи
                         </button>
                       )}
 
@@ -4842,6 +4933,86 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Сохранить
               </button>
             </div>
+        </BottomSheetModal>
+      )}
+
+      {showBlockedUsersModal && (
+        <BottomSheetModal
+          open={showBlockedUsersModal}
+          onClose={() => setShowBlockedUsersModal(false)}
+          theme={theme}
+          zIndex={70}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+              Заблокированные
+            </h3>
+          </div>
+
+          {blockedWalletMembers.length === 0 ? (
+            <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Нет заблокированных пользователей.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {blockedWalletMembers.map((m) => (
+                <div
+                  key={`${m.owner_email}-${m.member_telegram_id}`}
+                  className={`p-3 rounded-2xl border flex items-center gap-3 ${
+                    theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'
+                  }`}
+                >
+                  {m.photo_url ? (
+                    <img src={m.photo_url} alt="Avatar" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                      }`}
+                    >
+                      <User className={`w-5 h-5 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
+                    </div>
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-sm font-semibold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                      {m.telegram_name || `TG ${m.member_telegram_id}`}
+                    </div>
+                    <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Заблокирован
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const resp = await fetch(
+                          `${API_URL}/api/wallet/${encodeURIComponent(ownerWalletEmail)}/unblock/${encodeURIComponent(
+                            String(m.member_telegram_id),
+                          )}`,
+                          { method: 'POST' },
+                        )
+                        if (!resp.ok) {
+                          const j = await resp.json().catch(() => ({}))
+                          alert(j.error || 'Не удалось разблокировать')
+                          return
+                        }
+                        await loadBlockedWalletMembers(ownerWalletEmail)
+                        await loadWalletMembers(ownerWalletEmail)
+                      } catch (e) {
+                        alert('Не удалось разблокировать')
+                      }
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-all touch-none active:scale-95 ${
+                      theme === 'dark' ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                    }`}
+                  >
+                    Разблокировать
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </BottomSheetModal>
       )}
 

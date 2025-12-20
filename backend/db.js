@@ -132,6 +132,17 @@ async function initDB() {
       UNIQUE(owner_email, member_telegram_id)
     );`)
 
+    // Single-use invite tokens
+    await pool.query(`CREATE TABLE IF NOT EXISTS invite_tokens (
+      token TEXT PRIMARY KEY,
+      owner_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+      created_by_telegram_id BIGINT,
+      used_by_telegram_id BIGINT,
+      used_at TIMESTAMP,
+      expires_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    );`)
+
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_telegram_id BIGINT;`)
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_name TEXT;`)
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
@@ -174,6 +185,10 @@ async function initDB() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_telegram_accounts_active_wallet ON telegram_accounts(active_wallet_email);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_members_owner ON wallet_members(owner_email);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_members_member ON wallet_members(member_telegram_id);`)
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invite_tokens_owner ON invite_tokens(owner_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invite_tokens_used_at ON invite_tokens(used_at);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invite_tokens_expires_at ON invite_tokens(expires_at);`)
 
     console.log("БД готова!")
   } catch (error) {

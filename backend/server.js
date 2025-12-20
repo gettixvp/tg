@@ -4,6 +4,7 @@ const express = require("express")
 const cors = require("cors")
 const bcrypt = require("bcrypt")
 const fetch = require("node-fetch")
+const crypto = require('crypto')
 const pool = require("./db")
 
 const app = express()
@@ -39,6 +40,164 @@ async function callCloudflareChat({ apiToken, accountId, model, messages }) {
   // Cloudflare returns OpenAI-like response under result
   return json.result || json
 }
+
+// --- Список заблокированных участников ---
+app.get("/api/wallet/:ownerEmail/blocked", async (req, res) => {
+  const { ownerEmail } = req.params
+  if (!ownerEmail) return res.status(400).json({ error: "ownerEmail обязателен" })
+
+  try {
+    const r = await pool.query(
+      `SELECT wm.owner_email,
+              wm.member_telegram_id,
+              COALESCE(ta.telegram_name, '') AS telegram_name,
+              COALESCE(ta.photo_url, '') AS photo_url,
+              ta.last_seen_at,
+              ta.last_ip,
+              ta.last_user_agent,
+              wm.status,
+              wm.created_at,
+              wm.updated_at,
+              'member'::text AS role
+       FROM wallet_members wm
+       LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
+       WHERE wm.owner_email = $1 AND wm.status = 'blocked'
+       ORDER BY wm.updated_at DESC`,
+      [ownerEmail],
+    )
+    res.json({ success: true, members: r.rows })
+  } catch (e) {
+    console.error('Wallet blocked members get error:', e)
+    res.status(500).json({ error: 'Ошибка получения заблокированных: ' + e.message })
+  }
+})
+
+// --- Разблокировать участника ---
+app.post("/api/wallet/:ownerEmail/unblock/:telegramId", async (req, res) => {
+  const { ownerEmail, telegramId } = req.params
+  if (!ownerEmail || !telegramId) return res.status(400).json({ error: 'ownerEmail и telegramId обязательны' })
+
+  try {
+    const r = await pool.query(
+      `UPDATE wallet_members SET status='active', updated_at=NOW() WHERE owner_email=$1 AND member_telegram_id=$2::bigint RETURNING *`,
+      [ownerEmail, String(telegramId)],
+    )
+    if (r.rowCount === 0) return res.status(404).json({ error: 'Участник не найден' })
+    res.json({ success: true })
+  } catch (e) {
+    console.error('Wallet member unblock error:', e)
+    res.status(500).json({ error: 'Ошибка разблокировки: ' + e.message })
+  }
+})
+
+// --- Создать одноразовый инвайт ---
+app.post('/api/invite/create', async (req, res) => {
+  const { owner_email, created_by_telegram_id } = req.body || {}
+  if (!owner_email) return res.status(400).json({ error: 'owner_email обязателен' })
+
+  try {
+    const token = crypto.randomBytes(16).toString('hex')
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24) // 24h
+    await pool.query(
+      `INSERT INTO invite_tokens (token, owner_email, created_by_telegram_id, expires_at)
+       VALUES ($1, $2, $3::bigint, $4)`,
+      [token, owner_email, created_by_telegram_id ? String(created_by_telegram_id) : null, expiresAt],
+    )
+    res.json({ success: true, token })
+  } catch (e) {
+    console.error('Invite create error:', e)
+    res.status(500).json({ error: 'Не удалось создать приглашение: ' + e.message })
+  }
+})
+
+// --- Использовать одноразовый инвайт ---
+app.post('/api/invite/consume', async (req, res) => {
+  const { token, currentTelegramId, currentEmail, currentUserName } = req.body || {}
+  if (!token || !currentTelegramId) return res.status(400).json({ error: 'token и currentTelegramId обязательны' })
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const inv = await client.query(
+      `SELECT token, owner_email, used_at, used_by_telegram_id, expires_at
+       FROM invite_tokens
+       WHERE token = $1
+       FOR UPDATE`,
+      [token],
+    )
+
+    if (inv.rowCount === 0) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ error: 'Приглашение не найдено' })
+    }
+
+    const row = inv.rows[0]
+    if (row.used_at || row.used_by_telegram_id) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({ error: 'Приглашение уже использовано' })
+    }
+    if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
+      await client.query('ROLLBACK')
+      return res.status(410).json({ error: 'Срок действия приглашения истёк' })
+    }
+
+    // Enforce blocked users cannot join
+    const statusCheck = await client.query(
+      `SELECT status FROM wallet_members WHERE owner_email=$1 AND member_telegram_id=$2::bigint`,
+      [row.owner_email, String(currentTelegramId)],
+    )
+    if (statusCheck.rowCount > 0 && statusCheck.rows[0].status === 'blocked') {
+      await client.query('ROLLBACK')
+      return res.status(403).json({ error: 'Вас заблокировали в этом кошельке' })
+    }
+
+    await client.query(
+      `UPDATE invite_tokens SET used_at = NOW(), used_by_telegram_id = $2::bigint WHERE token = $1`,
+      [token, String(currentTelegramId)],
+    )
+
+    // Persist membership + active wallet for invited user
+    await client.query(
+      `INSERT INTO telegram_accounts (telegram_id, telegram_name, wallet_email, email, active_wallet_email)
+       VALUES ($1::bigint, $2, $3, $4, $5)
+       ON CONFLICT (telegram_id)
+       DO UPDATE SET
+         telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+         wallet_email = COALESCE(telegram_accounts.wallet_email, EXCLUDED.wallet_email),
+         email = COALESCE(EXCLUDED.email, telegram_accounts.email),
+         active_wallet_email = EXCLUDED.active_wallet_email,
+         updated_at = NOW()`,
+      [
+        String(currentTelegramId),
+        currentUserName || null,
+        `tg_${String(currentTelegramId)}@telegram.user`,
+        currentEmail || null,
+        row.owner_email,
+      ],
+    )
+
+    await client.query(
+      `INSERT INTO wallet_members (owner_email, member_telegram_id, status)
+       VALUES ($1, $2::bigint, 'active')
+       ON CONFLICT (owner_email, member_telegram_id)
+       DO UPDATE SET status='active', updated_at=NOW()`,
+      [row.owner_email, String(currentTelegramId)],
+    )
+
+    await client.query('COMMIT')
+    res.json({ success: true, walletEmail: row.owner_email })
+  } catch (e) {
+    try {
+      await client.query('ROLLBACK')
+    } catch (err) {
+      // ignore
+    }
+    console.error('Invite consume error:', e)
+    res.status(500).json({ error: 'Не удалось применить приглашение: ' + e.message })
+  } finally {
+    client.release()
+  }
+})
 
 // --- Авто-регистрация Telegram аккаунта ---
 app.post("/api/telegram/ensure", async (req, res) => {
@@ -201,7 +360,11 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
                   'owner'::text AS role,
                   0::int AS sort_order
            FROM telegram_accounts ta
-           WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
+           WHERE $2::bigint IS NOT NULL
+             AND ta.telegram_id = $2::bigint
+             AND NOT EXISTS (
+               SELECT 1 FROM wallet_members wm2 WHERE wm2.owner_email = $1 AND wm2.member_telegram_id = $2::bigint
+             )
          )
          SELECT * FROM owner_row
          UNION ALL
@@ -250,7 +413,11 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
                   'owner'::text AS role,
                   0::int AS sort_order
            FROM telegram_accounts ta
-           WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
+           WHERE $2::bigint IS NOT NULL
+             AND ta.telegram_id = $2::bigint
+             AND NOT EXISTS (
+               SELECT 1 FROM wallet_members wm2 WHERE wm2.owner_email = $1 AND wm2.member_telegram_id = $2::bigint
+             )
          )
          SELECT * FROM owner_row
          UNION ALL
