@@ -779,12 +779,13 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   )
 }
 
-const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
+const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, position = 'bottom' }) => {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
+  const [viewport, setViewport] = useState({ top: 0, height: typeof window !== 'undefined' ? window.innerHeight : 0 })
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
@@ -825,6 +826,16 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
 
     const computeInset = () => {
       try {
+        const vv = window.visualViewport
+        if (vv) {
+          setViewport({
+            top: Math.max(0, Math.round(vv.offsetTop || 0)),
+            height: Math.max(0, Math.round(vv.height || window.innerHeight)),
+          })
+        } else {
+          setViewport({ top: 0, height: window.innerHeight })
+        }
+
         if (!sheetRef.current) {
           setKeyboardInset(0)
           return
@@ -836,7 +847,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
           return
         }
 
-        const vv = window.visualViewport
         if (!vv) {
           setKeyboardInset(0)
           return
@@ -978,13 +988,20 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
 
   if (!mounted) return null
 
+  const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 180ms ease-out, bottom 180ms ease-out'
+  const transition = isDragging ? 'none' : 'transform 180ms ease-out'
+
+  const overlayStyle = {
+    zIndex,
+    top: viewport.top,
+    height: viewport.height,
+  }
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center"
-      style={{ zIndex }}
+      className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
+      style={overlayStyle}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
@@ -1016,13 +1033,19 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
           e.stopPropagation()
         }}
         ref={sheetRef}
-        className={`w-full max-w-md rounded-t-3xl shadow-2xl overflow-hidden flex flex-col ${
+        className={`w-full max-w-md shadow-2xl overflow-hidden flex flex-col ${
           theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
         }`}
         style={{
           transform: translate,
           transition,
-          bottom: keyboardInset,
+          maxHeight: Math.max(0, viewport.height - 12),
+          marginTop: isTop ? 12 : 0,
+          borderTopLeftRadius: isTop ? 24 : 24,
+          borderTopRightRadius: isTop ? 24 : 24,
+          borderBottomLeftRadius: isTop ? 24 : 0,
+          borderBottomRightRadius: isTop ? 24 : 0,
+          paddingBottom: isTop ? 0 : keyboardInset,
           touchAction: 'none',
         }}
         onMouseDown={(e) => e.stopPropagation()}
@@ -1203,41 +1226,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   ])
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiKeyboardInset, setAiKeyboardInset] = useState(0)
   const aiInputRef = useRef(null)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!window.visualViewport) return
-
-    const vv = window.visualViewport
-    const recalc = () => {
-      // Use inset only when AI input is focused to avoid layout jumps
-      const focused = document.activeElement && aiInputRef.current && document.activeElement === aiInputRef.current
-      if (!focused) {
-        setAiKeyboardInset(0)
-        return
-      }
-
-      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
-      setAiKeyboardInset(inset)
-    }
-
-    const onFocusIn = () => recalc()
-    const onFocusOut = () => setAiKeyboardInset(0)
-
-    vv.addEventListener('resize', recalc)
-    vv.addEventListener('scroll', recalc)
-    window.addEventListener('focusin', onFocusIn)
-    window.addEventListener('focusout', onFocusOut)
-
-    return () => {
-      vv.removeEventListener('resize', recalc)
-      vv.removeEventListener('scroll', recalc)
-      window.removeEventListener('focusin', onFocusIn)
-      window.removeEventListener('focusout', onFocusOut)
-    }
-  }, [])
 
   const sendAiMessage = async (text) => {
     if (!user || !user.email) {
@@ -4201,7 +4190,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     {!isSharedWalletView && (
                       <button
                         onClick={inviteUser}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all touch-none active:scale-95 ${
+                        className={`h-9 px-3 rounded-xl flex items-center justify-center gap-2 transition-all touch-none active:scale-95 ${
                           theme === "dark"
                             ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
                             : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
@@ -4209,6 +4198,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         title="Пригласить пользователя"
                       >
                         <UserPlus className="w-4 h-4" />
+                        <span className="text-xs font-semibold">пригласить</span>
                       </button>
                     )}
                   </div>
@@ -4860,12 +4850,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           open={showAiModal}
           onClose={() => {
             setShowAiModal(false)
-            setAiKeyboardInset(0)
           }}
           theme={theme}
           zIndex={80}
         >
-          <div className="max-h-[82vh] overflow-auto pr-1">
+          <div className="flex flex-col min-h-[70vh]">
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                 ИИ-анализатор
@@ -4873,8 +4862,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </div>
 
             <div
-              className={`rounded-xl p-3 border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'}`}
-              style={{ maxHeight: '58vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+              className={`rounded-xl p-3 border flex-1 ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'}`}
+              style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
             >
               <div className="space-y-3">
                 {aiMessages.map((m, idx) => (
@@ -4919,7 +4908,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 position: 'sticky',
                 bottom: 0,
                 paddingTop: 8,
-                paddingBottom: Math.max(8, aiKeyboardInset + 8),
+                paddingBottom: 8,
                 background: theme === 'dark' ? 'rgba(17,24,39,0.95)' : 'rgba(255,255,255,0.95)',
                 backdropFilter: 'blur(10px)',
                 WebkitBackdropFilter: 'blur(10px)',
@@ -6133,6 +6122,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
           theme={theme}
           zIndex={55}
+          position="top"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -6331,6 +6321,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               value={amount}
               inputMode="decimal"
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+              onFocus={() => {
+                // Help modal adapt on the earliest possible frame when the keyboard starts opening
+                requestAnimationFrame(() => {
+                  try {
+                    window.visualViewport && window.visualViewport.height
+                  } catch (e) {}
+                })
+              }}
               placeholder="0"
               className={`w-full p-3 border rounded-xl transition-all text-sm cursor-pointer ${
                 theme === "dark"
