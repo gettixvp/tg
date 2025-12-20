@@ -1058,6 +1058,24 @@ app.post("/api/link", async (req, res) => {
       }
     }
 
+    // Persist membership + active wallet for invited user
+    if (resolvedReferrerEmail) {
+      await pool.query(
+        `INSERT INTO wallet_members (owner_email, member_telegram_id, status)
+         VALUES ($1, $2::bigint, 'active')
+         ON CONFLICT (owner_email, member_telegram_id)
+         DO UPDATE SET status='active', updated_at=NOW()`,
+        [resolvedReferrerEmail, String(currentTelegramId)],
+      )
+
+      await pool.query(
+        `UPDATE telegram_accounts
+         SET active_wallet_email = $1, updated_at = NOW()
+         WHERE telegram_id = $2::bigint`,
+        [resolvedReferrerEmail, String(currentTelegramId)],
+      )
+    }
+
     // Если оба пользователя имеют email, создаем также связь по email
     if (currentEmail && resolvedReferrerEmail) {
       const existingEmail = await pool.query(

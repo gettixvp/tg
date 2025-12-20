@@ -1389,6 +1389,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const isSharedWalletView = Boolean(activeWalletEmail && currentUserEmail && activeWalletEmail !== currentUserEmail)
   const ownerWalletEmail = activeWalletEmail || currentUserEmail
   const isWalletOwner = Boolean(ownerWalletEmail && !isSharedWalletView)
+  const isTelegramNativeUser = Boolean(currentUserEmail && String(currentUserEmail).startsWith('tg_') && String(currentUserEmail).endsWith('@telegram.user'))
 
   const loadWalletMembers = async (ownerEmail) => {
     if (!ownerEmail) return
@@ -1956,11 +1957,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     try {
       const userResp = await fetch(`${API_URL}/api/user/${encodeURIComponent(walletEmail)}`)
       if (!userResp.ok) return
-      const walletUser = await userResp.json().catch(() => null)
-      if (!walletUser) return
+      const walletJson = await userResp.json().catch(() => null)
+      if (!walletJson) return
 
-      const txResp = await fetch(`${API_URL}/api/transactions?user_email=${encodeURIComponent(walletEmail)}`)
-      const walletTxs = txResp.ok ? await txResp.json().catch(() => []) : []
+      const walletUser = walletJson.user ? walletJson.user : walletJson
+
+      let walletTxs = []
+      if (Array.isArray(walletJson.transactions)) {
+        walletTxs = walletJson.transactions
+      } else {
+        const txResp = await fetch(`${API_URL}/api/transactions?user_email=${encodeURIComponent(walletEmail)}`)
+        walletTxs = txResp.ok ? await txResp.json().catch(() => []) : []
+      }
 
       setActiveWalletEmail(walletEmail)
       setUser(walletUser)
@@ -4378,17 +4386,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </button>
                       )}
                       
-                      <button
-                        onClick={handleLogout}
-                        className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                          theme === "dark"
-                            ? "bg-rose-700 hover:bg-rose-600 text-white"
-                            : "bg-rose-500 hover:bg-rose-600 text-white"
-                        }`}
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Выйти
-                      </button>
+                      {!isTelegramNativeUser && (
+                        <button
+                          onClick={handleLogout}
+                          className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                            theme === "dark"
+                              ? "bg-rose-700 hover:bg-rose-600 text-white"
+                              : "bg-rose-500 hover:bg-rose-600 text-white"
+                          }`}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Выйти
+                        </button>
+                      )}
                     </div>
                 ) : (
                     <div className="space-y-3">
