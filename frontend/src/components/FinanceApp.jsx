@@ -34,6 +34,7 @@ import {
   Download,
   UserPlus,
   Users,
+  Shield,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
@@ -451,7 +452,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           className={`relative pl-5 pr-4 py-5 cursor-pointer backdrop-blur-lg ${
-            theme === "dark" ? "bg-white/5 border border-white/10" : "bg-white border border-gray-200 shadow-sm"
+            theme === "dark" ? "bg-white/5 border border-white/15" : "bg-white border border-gray-300 shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -4287,7 +4288,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     {!isSharedWalletView && (
                       <button
                         onClick={inviteUser}
-                        className={`h-8 px-2.5 rounded-full flex items-center justify-center gap-1.5 transition-all touch-none active:scale-95 ${
+                        className={`h-8 px-2.5 rounded-[40px] flex items-center justify-center gap-1.5 transition-all touch-none active:scale-95 ${
                           theme === "dark"
                             ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
                             : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
