@@ -42,7 +42,7 @@ async function callCloudflareChat({ apiToken, accountId, model, messages }) {
 
 // --- Авто-регистрация Telegram аккаунта ---
 app.post("/api/telegram/ensure", async (req, res) => {
-  const { telegram_id, telegram_name } = req.body || {}
+  const { telegram_id, telegram_name, photo_url } = req.body || {}
 
   if (!telegram_id) return res.status(400).json({ error: "telegram_id обязателен" })
 
@@ -51,12 +51,16 @@ app.post("/api/telegram/ensure", async (req, res) => {
     const walletEmail = `tg_${tgId}@telegram.user`
 
     await pool.query(
-      `INSERT INTO telegram_accounts (telegram_id, telegram_name)
-       VALUES ($1::bigint, $2)
+      `INSERT INTO telegram_accounts (telegram_id, telegram_name, photo_url, last_seen_at, last_ip, last_user_agent)
+       VALUES ($1::bigint, $2, $3, NOW(), $4, $5)
        ON CONFLICT (telegram_id) DO UPDATE
        SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+           photo_url = COALESCE(EXCLUDED.photo_url, telegram_accounts.photo_url),
+           last_seen_at = NOW(),
+           last_ip = EXCLUDED.last_ip,
+           last_user_agent = EXCLUDED.last_user_agent,
            updated_at = NOW()`,
-      [tgId, telegram_name || null],
+      [tgId, telegram_name || null, photo_url || null, req.ip || null, String(req.headers['user-agent'] || '')],
     )
 
     // Ensure wallet_email is set (Telegram-first identity)
@@ -69,7 +73,7 @@ app.post("/api/telegram/ensure", async (req, res) => {
 
     const r = await pool.query(
       `SELECT telegram_id, telegram_name, email, active_wallet_email, status
-       , wallet_email
+       , wallet_email, photo_url, last_seen_at, last_ip, last_user_agent
        FROM telegram_accounts WHERE telegram_id = $1::bigint`,
       [tgId],
     )
@@ -83,7 +87,7 @@ app.post("/api/telegram/ensure", async (req, res) => {
 
 // --- Telegram-first login (no email required) ---
 app.post("/api/telegram/login", async (req, res) => {
-  const { telegram_id, telegram_name } = req.body || {}
+  const { telegram_id, telegram_name, photo_url } = req.body || {}
   if (!telegram_id) return res.status(400).json({ error: "telegram_id обязателен" })
 
   try {
@@ -97,8 +101,12 @@ app.post("/api/telegram/login", async (req, res) => {
        ON CONFLICT (telegram_id) DO UPDATE
        SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
            wallet_email = COALESCE(telegram_accounts.wallet_email, EXCLUDED.wallet_email),
+           photo_url = COALESCE(EXCLUDED.photo_url, telegram_accounts.photo_url),
+           last_seen_at = NOW(),
+           last_ip = $4,
+           last_user_agent = $5,
            updated_at = NOW()`,
-      [tgId, telegram_name || null, walletEmail],
+      [tgId, telegram_name || null, walletEmail, req.ip || null, String(req.headers['user-agent'] || '')],
     )
 
     // Create user profile for this wallet if missing
@@ -116,6 +124,7 @@ app.post("/api/telegram/login", async (req, res) => {
 
     const tgAcc = await pool.query(
       `SELECT telegram_id, telegram_name, email, active_wallet_email, wallet_email, status
+       , photo_url, last_seen_at, last_ip, last_user_agent
        FROM telegram_accounts WHERE telegram_id = $1::bigint`,
       [tgId],
     )
@@ -155,18 +164,47 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
   if (!ownerEmail) return res.status(400).json({ error: "ownerEmail обязателен" })
 
   try {
+    const ownerTgId = (() => {
+      const m = String(ownerEmail || '').match(/^tg_(\d+)@telegram\.user$/)
+      return m ? m[1] : null
+    })()
+
     const r = await pool.query(
-      `SELECT wm.owner_email,
-              wm.member_telegram_id,
-              COALESCE(ta.telegram_name, '') AS telegram_name,
-              wm.status,
-              wm.created_at,
-              wm.updated_at
-       FROM wallet_members wm
-       LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
-       WHERE wm.owner_email = $1
-       ORDER BY wm.created_at`,
-      [ownerEmail],
+      `WITH members AS (
+         SELECT wm.owner_email,
+                wm.member_telegram_id,
+                COALESCE(ta.telegram_name, '') AS telegram_name,
+                COALESCE(ta.photo_url, '') AS photo_url,
+                ta.last_seen_at,
+                ta.last_ip,
+                ta.last_user_agent,
+                wm.status,
+                wm.created_at,
+                wm.updated_at,
+                'member'::text AS role
+         FROM wallet_members wm
+         LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
+         WHERE wm.owner_email = $1
+       ), owner_row AS (
+         SELECT $1::text AS owner_email,
+                $2::bigint AS member_telegram_id,
+                COALESCE(ta.telegram_name, '') AS telegram_name,
+                COALESCE(ta.photo_url, '') AS photo_url,
+                ta.last_seen_at,
+                ta.last_ip,
+                ta.last_user_agent,
+                'active'::text AS status,
+                NOW() AS created_at,
+                NOW() AS updated_at,
+                'owner'::text AS role
+         FROM telegram_accounts ta
+         WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
+       )
+       SELECT * FROM owner_row
+       UNION ALL
+       SELECT * FROM members
+       ORDER BY CASE WHEN role='owner' THEN 0 ELSE 1 END, created_at`,
+      [ownerEmail, ownerTgId],
     )
     res.json({ success: true, members: r.rows })
   } catch (e) {

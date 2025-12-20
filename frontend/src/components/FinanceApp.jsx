@@ -166,114 +166,52 @@ const categoriesMeta = {
   },
 }
 
-const WalletMemberRow = ({ member, ownerEmail, currentTelegramId, theme, vibrate, onDelete, onSetStatus }) => {
-  const [swipeX, setSwipeX] = useState(0)
-  const [isSwiping, setIsSwiping] = useState(false)
-  const startX = useRef(0)
-
-  const isSelf = String(member.member_telegram_id) === String(currentTelegramId)
-
-  const handleTouchStart = (e) => {
-    if (isSelf) return
-    startX.current = e.touches[0].clientX
-    setIsSwiping(true)
-  }
-
-  const handleTouchMove = (e) => {
-    if (!isSwiping || isSelf) return
-    const diff = e.touches[0].clientX - startX.current
-    if (diff < 0) {
-      setSwipeX(Math.max(diff, -140))
-    } else if (swipeX < 0) {
-      setSwipeX(Math.min(0, swipeX + diff / 2))
-    }
-  }
-
-  const handleTouchEnd = () => {
-    if (!isSwiping) return
-    setIsSwiping(false)
-    if (swipeX < -70) setSwipeX(-140)
-    else setSwipeX(0)
-  }
-
+const WalletMemberRow = ({ member, theme, isSelf, onOpen }) => {
   const statusLabel = member.status === 'blocked' ? 'Заблокирован' : 'Активен'
+  const roleLabel = member.role === 'owner' ? 'Владелец' : null
 
   return (
-    <div className="relative overflow-hidden">
-      {!isSelf && (
-        <div className="absolute inset-y-0 right-0 flex items-center">
-          <div className="flex gap-2 px-2">
-            {member.status !== 'blocked' ? (
-              <button
-                onClick={() => {
-                  onSetStatus(ownerEmail, member.member_telegram_id, 'blocked')
-                  setSwipeX(0)
-                  vibrate()
-                }}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  theme === "dark"
-                    ? "bg-amber-700 hover:bg-amber-600 text-white"
-                    : "bg-amber-500 hover:bg-amber-600 text-white"
-                }`}
-              >
-                Блок
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  onSetStatus(ownerEmail, member.member_telegram_id, 'active')
-                  setSwipeX(0)
-                  vibrate()
-                }}
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  theme === "dark"
-                    ? "bg-green-700 hover:bg-green-600 text-white"
-                    : "bg-green-500 hover:bg-green-600 text-white"
-                }`}
-              >
-                Разблок
-              </button>
-            )}
-
-            <button
-              onClick={() => {
-                onDelete(ownerEmail, member.member_telegram_id)
-                setSwipeX(0)
-                vibrate()
-              }}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                theme === "dark"
-                  ? "bg-rose-700 hover:bg-rose-600 text-white"
-                  : "bg-rose-500 hover:bg-rose-600 text-white"
-              }`}
-            >
-              Удалить
-            </button>
+    <button
+      onClick={() => onOpen(member)}
+      className={`w-full p-3 rounded-2xl border text-left transition-all active:scale-[0.99] ${
+        theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-white border-gray-200"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        {member.photo_url ? (
+          <img
+            src={member.photo_url}
+            alt="Avatar"
+            className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+          />
+        ) : (
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+            }`}
+          >
+            <User className={`w-5 h-5 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
           </div>
-        </div>
-      )}
+        )}
 
-      <div
-        style={{ transform: `translateX(${swipeX}px)` }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className={`p-3 rounded-2xl relative z-10 border ${
-          theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-white border-gray-200"
-        }`}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className={`text-sm font-semibold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              {member.telegram_name || `TG ${member.member_telegram_id}`}
-            </p>
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-semibold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+            {member.telegram_name || `TG ${member.member_telegram_id}`}
+            {isSelf ? ' (вы)' : ''}
+          </p>
+          <div className="flex items-center gap-2">
             <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
               {statusLabel}
             </p>
+            {roleLabel && (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${theme === 'dark' ? 'border-purple-600/40 text-purple-300 bg-purple-900/20' : 'border-purple-200 text-purple-700 bg-purple-50'}`}>
+                {roleLabel}
+              </span>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -1108,63 +1046,11 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
 }
 
 const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLinkedUser }) => {
-  const [swipeX, setSwipeX] = useState(0)
-  const [isSwiping, setIsSwiping] = useState(false)
-  const startX = useRef(0)
-
-  const handleTouchStart = (e) => {
-    startX.current = e.touches[0].clientX
-    setIsSwiping(true)
-  }
-
-  const handleTouchMove = (e) => {
-    if (!isSwiping) return
-    const diff = e.touches[0].clientX - startX.current
-    if (diff < 0) {
-      setSwipeX(Math.max(diff, -80))
-    } else if (swipeX < 0) {
-      setSwipeX(Math.min(0, swipeX + diff / 2))
-    }
-  }
-
-  const handleTouchEnd = () => {
-    setIsSwiping(false)
-    if (swipeX < -40) {
-      setSwipeX(-80)
-    } else {
-      setSwipeX(0)
-    }
-  }
-
-  const handleDelete = () => {
-    if (window.confirm(`Удалить ${linkedUser.telegram_name || "пользователя"} из семейного аккаунта?`)) {
-      vibrate()
-      removeLinkedUser(linkedUser.telegram_id)
-      setSwipeX(0)
-    }
-  }
-
-  const isCurrentUser = linkedUser.telegram_id === currentTelegramId
+  const isCurrentUser = String(linkedUser.telegram_id) === String(currentTelegramId)
 
   return (
     <div className="relative mb-1.5 overflow-hidden rounded-xl">
       <div
-        onClick={handleDelete}
-        className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer ${
-          theme === "dark" ? "bg-red-600" : "bg-red-500"
-        }`}
-      >
-        <Trash2 className="w-5 h-5 text-white" />
-      </div>
-
-      <div
-        style={{
-          transform: `translateX(${swipeX}px)`,
-          transition: isSwiping ? "none" : "transform 0.3s ease",
-        }}
-        onTouchStart={!isCurrentUser ? handleTouchStart : undefined}
-        onTouchMove={!isCurrentUser ? handleTouchMove : undefined}
-        onTouchEnd={!isCurrentUser ? handleTouchEnd : undefined}
         className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${
           theme === "dark" ? "bg-gray-800 border-gray-700/50" : "bg-white border-gray-200/50"
         }`}
@@ -1226,6 +1112,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showChart, setShowChart] = useState(false)
   const [chartType, setChartType] = useState("expense") // Тип транзакции для диаграммы
   const [linkingLoading, setLinkingLoading] = useState(false)
+  const [selectedWalletMember, setSelectedWalletMember] = useState(null)
+  const [showWalletMemberModal, setShowWalletMemberModal] = useState(false)
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
@@ -1394,6 +1282,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const ownerWalletEmail = activeWalletEmail || currentUserEmail
   const isWalletOwner = Boolean(ownerWalletEmail && !isSharedWalletView)
   const isTelegramNativeUser = Boolean(currentUserEmail && String(currentUserEmail).startsWith('tg_') && String(currentUserEmail).endsWith('@telegram.user'))
+
+  const openWalletMemberModal = (member) => {
+    setSelectedWalletMember(member)
+    setShowWalletMemberModal(true)
+    vibrateSelect()
+  }
+
+  const formatDateTime = (v) => {
+    if (!v) return ''
+    try {
+      const d = new Date(v)
+      if (Number.isNaN(d.getTime())) return String(v)
+      return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    } catch (e) {
+      return String(v)
+    }
+  }
 
   const loadWalletMembers = async (ownerEmail) => {
     if (!ownerEmail) return
@@ -1616,7 +1521,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         const resp = await fetch(`${API_URL}/api/telegram/ensure`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_id: tgUserId, telegram_name: displayName }),
+          body: JSON.stringify({ telegram_id: tgUserId, telegram_name: displayName, photo_url: tgPhotoUrl || null }),
         })
         if (!resp.ok) return
         const data = await resp.json().catch(() => null)
@@ -1636,12 +1541,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
 
     ensureTelegramAccount()
-  }, [tgUserId, displayName])
+  }, [tgUserId, displayName, tgPhotoUrl])
 
   useEffect(() => {
     if (!ownerWalletEmail) return
-    if (!isWalletOwner) return
     loadWalletMembers(ownerWalletEmail)
+
+    if (isWalletOwner) {
+      const interval = setInterval(() => {
+        loadWalletMembers(ownerWalletEmail)
+      }, 15000)
+
+      return () => clearInterval(interval)
+    }
   }, [ownerWalletEmail, isWalletOwner])
 
   const leaveSharedWallet = async () => {
@@ -2186,6 +2098,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         body: JSON.stringify({
           telegram_id: telegramId,
           telegram_name: displayName,
+          photo_url: tgPhotoUrl || null,
         }),
       })
 
@@ -4341,7 +4254,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </div>
                       </div>
 
-                      {linkedUsers.length > 1 && (
+                      {!isSharedWalletView && linkedUsers.length > 1 && (
                         <div className="mb-3">
                           <button
                             onClick={() => {
@@ -4366,16 +4279,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           
                           {showLinkedUsersDropdown && (
                             <div className="space-y-2 mt-2">
-                              {linkedUsers.map((linkedUser) => (
-                                <LinkedUserRow
-                                  key={linkedUser.telegram_id}
-                                  linkedUser={linkedUser}
-                                  currentTelegramId={tgUserId}
-                                  theme={theme}
-                                  vibrate={vibrate}
-                                  removeLinkedUser={removeLinkedUser}
-                                />
-                              ))}
+                              {linkedUsers
+                                .filter((u) => String(u.telegram_id) !== String(tgUserId))
+                                .map((linkedUser) => (
+                                  <LinkedUserRow
+                                    key={linkedUser.telegram_id}
+                                    linkedUser={linkedUser}
+                                    currentTelegramId={tgUserId}
+                                    theme={theme}
+                                    vibrate={vibrate}
+                                    removeLinkedUser={removeLinkedUser}
+                                  />
+                                ))}
                             </div>
                           )}
                         </div>
@@ -4391,12 +4306,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               <WalletMemberRow
                                 key={`${m.owner_email}-${m.member_telegram_id}`}
                                 member={m}
-                                ownerEmail={ownerWalletEmail}
-                                currentTelegramId={tgUserId}
                                 theme={theme}
-                                vibrate={vibrate}
-                                onDelete={deleteMember}
-                                onSetStatus={updateMemberStatus}
+                                isSelf={String(m.member_telegram_id) === String(tgUserId)}
+                                onOpen={openWalletMemberModal}
                               />
                             ))}
                           </div>
@@ -4913,6 +4825,114 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Сохранить
               </button>
             </div>
+        </BottomSheetModal>
+      )}
+
+      {showWalletMemberModal && selectedWalletMember && (
+        <BottomSheetModal
+          open={showWalletMemberModal}
+          onClose={() => {
+            setShowWalletMemberModal(false)
+            setSelectedWalletMember(null)
+          }}
+          theme={theme}
+          zIndex={70}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            {selectedWalletMember.photo_url ? (
+              <img
+                src={selectedWalletMember.photo_url}
+                alt="Avatar"
+                className="w-12 h-12 rounded-full flex-shrink-0 object-cover"
+              />
+            ) : (
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+                }`}
+              >
+                <User className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
+              </div>
+            )}
+
+            <div className="min-w-0">
+              <div className={`text-base font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                {selectedWalletMember.telegram_name || `TG ${selectedWalletMember.member_telegram_id}`}
+              </div>
+              <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                {selectedWalletMember.status === 'blocked' ? 'Заблокирован' : 'Активен'}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 mb-4">
+            <div className={`p-3 rounded-xl border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Последний заход</div>
+              <div className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                {formatDateTime(selectedWalletMember.last_seen_at) || '—'}
+              </div>
+            </div>
+
+            <div className={`p-3 rounded-xl border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>IP</div>
+              <div className={`text-sm font-medium break-all ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                {selectedWalletMember.last_ip || '—'}
+              </div>
+            </div>
+
+            <div className={`p-3 rounded-xl border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-gray-50 border-gray-200'}`}>
+              <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Устройство</div>
+              <div className={`text-xs break-words ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+                {selectedWalletMember.last_user_agent || '—'}
+              </div>
+            </div>
+          </div>
+
+          {isWalletOwner && String(selectedWalletMember.member_telegram_id) !== String(tgUserId) && (
+            <div className="space-y-2">
+              {selectedWalletMember.status !== 'blocked' ? (
+                <button
+                  onClick={async () => {
+                    await updateMemberStatus(ownerWalletEmail, selectedWalletMember.member_telegram_id, 'blocked')
+                    setShowWalletMemberModal(false)
+                    setSelectedWalletMember(null)
+                  }}
+                  className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                    theme === 'dark' ? 'bg-amber-700 hover:bg-amber-600 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'
+                  }`}
+                >
+                  Заблокировать
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    await updateMemberStatus(ownerWalletEmail, selectedWalletMember.member_telegram_id, 'active')
+                    setShowWalletMemberModal(false)
+                    setSelectedWalletMember(null)
+                  }}
+                  className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                    theme === 'dark' ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
+                >
+                  Разблокировать
+                </button>
+              )}
+
+              <button
+                onClick={async () => {
+                  if (!confirm('Удалить пользователя из кошелька?')) return
+                  await deleteMember(ownerWalletEmail, selectedWalletMember.member_telegram_id)
+                  setShowWalletMemberModal(false)
+                  setSelectedWalletMember(null)
+                }}
+                className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                  theme === 'dark' ? 'bg-rose-700 hover:bg-rose-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'
+                }`}
+              >
+                Удалить из аккаунта
+              </button>
+            </div>
+          )}
         </BottomSheetModal>
       )}
 

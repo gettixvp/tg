@@ -106,12 +106,20 @@ async function initDB() {
       wallet_email TEXT,
       email TEXT,
       active_wallet_email TEXT,
+      photo_url TEXT,
+      last_seen_at TIMESTAMP,
+      last_ip TEXT,
+      last_user_agent TEXT,
       status TEXT DEFAULT 'active',
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     );`)
 
     await pool.query(`ALTER TABLE telegram_accounts ADD COLUMN IF NOT EXISTS wallet_email TEXT;`)
+    await pool.query(`ALTER TABLE telegram_accounts ADD COLUMN IF NOT EXISTS photo_url TEXT;`)
+    await pool.query(`ALTER TABLE telegram_accounts ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP;`)
+    await pool.query(`ALTER TABLE telegram_accounts ADD COLUMN IF NOT EXISTS last_ip TEXT;`)
+    await pool.query(`ALTER TABLE telegram_accounts ADD COLUMN IF NOT EXISTS last_user_agent TEXT;`)
 
     // Wallet members (owner can block/remove members)
     await pool.query(`CREATE TABLE IF NOT EXISTS wallet_members (
