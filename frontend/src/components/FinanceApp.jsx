@@ -425,12 +425,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   const showDeleteAction = swipeX < 0 || isSwiping
 
   return (
-    <div className="mb-2">
-      <div
-        className={`relative overflow-hidden rounded-[40px] border ${
-          theme === "dark" ? "border-white/15" : "border-gray-300"
-        }`}
-      >
+    <div
+      className={`pb-2 ${theme === "dark" ? "border-white/10" : "border-gray-200"} border-b last:border-b-0`}
+    >
+      <div className="relative overflow-hidden rounded-[40px]">
         <div
           onClick={() => {
             if (swipeX === -80) {
@@ -455,7 +453,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative pl-5 pr-4 py-5 cursor-pointer backdrop-blur-lg ${theme === "dark" ? "bg-white/5" : "bg-white shadow-sm"}`}
+          className={`relative pl-5 pr-4 py-5 cursor-pointer backdrop-blur-lg ${theme === "dark" ? "bg-white/5" : "bg-white"}`}
         >
           {/* Лайк в правом верхнем углу */}
           {tx.liked && (
@@ -1391,6 +1389,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       setWalletMembers(data?.members || [])
     } catch (e) {
       console.warn('Failed to load wallet members', e)
+    }
+  }
+
+  const loadBlockedWalletMembers = async (ownerEmail) => {
+    if (!ownerEmail) {
+      setBlockedWalletMembers([])
+      return
+    }
+    try {
+      const resp = await fetch(`${API_URL}/api/wallet/${encodeURIComponent(ownerEmail)}/blocked`)
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        console.warn('[BlockedMembers] Failed:', resp.status, ownerEmail, text)
+        setBlockedWalletMembers([])
+        return
+      }
+      const data = await resp.json().catch(() => null)
+      setBlockedWalletMembers(data?.members || [])
+    } catch (e) {
+      console.warn('Failed to load blocked wallet members', e)
+      setBlockedWalletMembers([])
     }
   }
 
@@ -3571,11 +3590,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       {balanceVisible ? formatCurrency(balance) : "••••••"}
                     </p>
                   </div>
-
                   <div className="grid grid-cols-2 gap-2.5">
-                    <div
-                      className={`rounded-[40px] p-2.5 border text-center ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
-                    >
+                    <div className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-gray-800/60" : "bg-gray-50"}`}>
                       <div className="flex items-center justify-center gap-1 mb-0.5">
                         <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Доходы</span>
@@ -3585,9 +3601,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </p>
                     </div>
 
-                    <div
-                      className={`rounded-[40px] p-2.5 border text-center ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
-                    >
+                    <div className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-gray-800/60" : "bg-gray-50"}`}>
                       <div className="flex items-center justify-center gap-1 mb-0.5">
                         <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Расходы</span>
@@ -3762,7 +3776,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="space-y-0">
                     {transactions.slice(0, 10).map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
@@ -4654,14 +4668,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setBudgetLimitInput('')
                       vibrate()
                     }}
-                    className={`w-full py-3 rounded-[40px] font-medium transition-all shadow-lg text-sm active:scale-95 flex items-center justify-center gap-2 ${
+                    className={`w-full flex items-center justify-between p-3 rounded-[40px] border transition-all active:scale-95 ${
                       theme === "dark"
-                        ? "bg-blue-700 hover:bg-blue-600 text-white"
-                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                        ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700"
+                        : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                     }`}
                   >
-                    <BarChart3 className="w-4 h-4" />
-                    {Object.keys(budgets).length > 0 ? 'Управление бюджетами' : 'Настроить бюджеты'}
+                    <span className={`flex items-center gap-2 min-w-0 ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                      <BarChart3 className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm font-medium truncate">
+                        {Object.keys(budgets).length > 0 ? 'Управление бюджетами' : 'Настроить бюджеты'}
+                      </span>
+                    </span>
+                    <ChevronRight className={`w-4 h-4 flex-shrink-0 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
                   </button>
                   {Object.keys(budgets).length > 0 && (
                     <p className={`text-xs mt-2 text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -4718,37 +4737,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   
                   {showSystemSettings && (
                     <div className="space-y-3 mt-3">
-                      {/* Смена пароля (только для пользователей с email) */}
-                      {user && user.email && (
-                        <div
-                          className={`rounded-[40px] p-3 border ${
-                            theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
-                          }`}
-                        >
-                          <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
-                            Безопасность
-                          </h4>
-                          <button
-                            onClick={() => {
-                              setShowChangePasswordModal(true)
-                              vibrateSelect()
-                            }}
-                            className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${theme === "dark" ? "bg-gray-700 hover:bg-gray-600 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
-                          >
-                            <Settings className="w-3 h-3" />
-                            Сменить пароль
-                          </button>
-                          <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            Измените пароль для входа в аккаунт через email.
-                          </p>
-                        </div>
-                      )}
-
                       {/* Исправление данных */}
                       <div
-                        className={`rounded-[40px] p-3 border ${
-                          theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
-                        }`}
+                        className={`rounded-[40px] p-3 ${theme === "dark" ? "bg-gray-800/40" : "bg-gray-50"}`}
                       >
                         <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
                           Исправление данных
@@ -4766,20 +4757,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </div>
 
                       {/* Опасная зона */}
-                      <div
-                        className={`rounded-[40px] p-3 border ${
-                          theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
-                        }`}
-                      >
+                      <div className={`rounded-[40px] p-3 ${theme === "dark" ? "bg-gray-800/40" : "bg-gray-50"}`}>
                         <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
                           Опасная зона
                         </h4>
                         <button
                           onClick={handleResetAll}
                           className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs touch-none active:scale-95 ${
-                            theme === "dark"
-                              ? "bg-red-700 hover:bg-red-600 text-white"
-                              : "bg-red-500 hover:bg-red-600 text-white"
+                            theme === "dark" ? "bg-red-700 hover:bg-red-600 text-white" : "bg-red-500 hover:bg-red-600 text-white"
                           }`}
                         >
                           Сбросить все данные
@@ -4791,9 +4776,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                       {isWalletOwner && (
                         <div
-                          className={`rounded-[40px] p-3 border ${
-                            theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
-                          }`}
+                          className={`rounded-[40px] p-3 ${theme === "dark" ? "bg-gray-800/40" : "bg-gray-50"}`}
                         >
                           <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
                             Управление доступом
@@ -5171,6 +5154,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <button
                     onClick={async () => {
                       try {
+                        if (!ownerWalletEmail) {
+                          alert('Не удалось определить владельца кошелька')
+                          return
+                        }
                         const resp = await fetch(
                           `${API_URL}/api/wallet/${encodeURIComponent(ownerWalletEmail)}/unblock/${encodeURIComponent(
                             String(m.member_telegram_id),
