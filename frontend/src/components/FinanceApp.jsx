@@ -779,7 +779,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   )
 }
 
-const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, position = 'bottom' }) => {
+const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, position = 'bottom', topOffset = 0 }) => {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
@@ -861,33 +861,37 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       }
     }
 
-    const schedule = () => {
+    const burst = () => {
       if (raf) cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(computeInset)
+      computeInset()
+      raf = requestAnimationFrame(() => {
+        computeInset()
+        requestAnimationFrame(computeInset)
+      })
     }
 
-    schedule()
+    burst()
 
     const vv = window.visualViewport
     if (vv && vv.addEventListener) {
-      vv.addEventListener('resize', schedule)
-      vv.addEventListener('scroll', schedule)
+      vv.addEventListener('resize', burst)
+      vv.addEventListener('scroll', burst)
     }
-    window.addEventListener('resize', schedule)
+    window.addEventListener('resize', burst)
 
-    document.addEventListener('focusin', schedule)
-    document.addEventListener('focusout', schedule)
+    document.addEventListener('focusin', burst)
+    document.addEventListener('focusout', burst)
 
     return () => {
       if (raf) cancelAnimationFrame(raf)
       if (vv && vv.removeEventListener) {
-        vv.removeEventListener('resize', schedule)
-        vv.removeEventListener('scroll', schedule)
+        vv.removeEventListener('resize', burst)
+        vv.removeEventListener('scroll', burst)
       }
-      window.removeEventListener('resize', schedule)
+      window.removeEventListener('resize', burst)
 
-      document.removeEventListener('focusin', schedule)
-      document.removeEventListener('focusout', schedule)
+      document.removeEventListener('focusin', burst)
+      document.removeEventListener('focusout', burst)
     }
   }, [mounted])
 
@@ -992,10 +996,14 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
   const transition = isDragging ? 'none' : 'transform 180ms ease-out'
 
+  const safeTopOffset = Math.max(0, Number(topOffset) || 0)
+  const overlayTop = viewport.top + safeTopOffset
+  const overlayHeight = Math.max(0, viewport.height - safeTopOffset)
+
   const overlayStyle = {
     zIndex,
-    top: viewport.top,
-    height: viewport.height,
+    top: overlayTop,
+    height: overlayHeight,
   }
 
   return (
@@ -1039,7 +1047,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         style={{
           transform: translate,
           transition,
-          maxHeight: Math.max(0, viewport.height - 12),
+          maxHeight: Math.max(0, overlayHeight - 12),
           marginTop: isTop ? 12 : 0,
           borderTopLeftRadius: isTop ? 24 : 24,
           borderTopRightRadius: isTop ? 24 : 24,
@@ -4853,6 +4861,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
           theme={theme}
           zIndex={80}
+          position="top"
+          topOffset={(isFullscreen ? (safeAreaInset.top || 0) : 0) + 48}
         >
           <div className="flex flex-col min-h-[70vh]">
             <div className="flex items-center justify-between mb-3">
@@ -6123,6 +6133,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           theme={theme}
           zIndex={55}
           position="top"
+          topOffset={(isFullscreen ? (safeAreaInset.top || 0) : 0) + 48}
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
