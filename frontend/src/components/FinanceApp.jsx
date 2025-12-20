@@ -1715,6 +1715,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const handleReferralLink = async () => {
       try {
         if (!tgUserId) return
+        // Wait until Telegram auto-login filled our own wallet identity
+        if (!currentUserEmail) return
 
         const readStartParam = () => {
           try {
@@ -1763,7 +1765,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           console.log('Referrer Email:', referrerEmail || 'none')
           console.log('Referrer Telegram ID:', referrerTelegramId)
           console.log('Current User Telegram ID:', tgUserId)
-          console.log('Current User Email:', user?.email || 'none')
+          console.log('Current User Email:', currentUserEmail || 'none')
           
           // Проверяем, что пользователь не приглашает сам себя
           if (referrerTelegramId === String(tgUserId)) {
@@ -1772,7 +1774,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }
           
           // Проверяем, не связаны ли уже
-          const linkKey = referrerEmail ? `linked_email_${referrerEmail}` : `linked_tg_${referrerTelegramId}`
+          const linkKey = `linked_tg_${String(tgUserId)}_${String(referrerTelegramId)}`
           const alreadyLinked = sessionStorage.getItem(linkKey)
           if (alreadyLinked) {
             console.log('Already linked to this user')
@@ -1786,7 +1788,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                 currentTelegramId: tgUserId,
-                currentEmail: user?.email || null,
+                currentEmail: currentUserEmail || null,
                 currentUserName: displayName,
                 referrerTelegramId: referrerTelegramId,
                 referrerEmail: referrerEmail || null,
@@ -1856,7 +1858,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
     
     handleReferralLink()
-  }, [tgUserId, tg, user])
+  }, [tgUserId, tg, currentUserEmail])
 
   useEffect(() => {
     const keepAlive = async () => {
