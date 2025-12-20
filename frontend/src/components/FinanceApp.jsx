@@ -1274,6 +1274,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const displayName = (tgUser && tgUser.first_name) || "Пользователь"
   const tgPhotoUrl = tgUser && tgUser.photo_url
 
+  const isSharedWalletView = Boolean(activeWalletEmail && currentUserEmail && activeWalletEmail !== currentUserEmail)
+
   useEffect(() => {
     const fetchRate = async () => {
       try {
@@ -1437,6 +1439,69 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       setIsLoading(false)
     }
   }, [tgUserId])
+
+  useEffect(() => {
+    const ensureTelegramAccount = async () => {
+      if (!tgUserId) return
+      try {
+        const resp = await fetch(`${API_URL}/api/telegram/ensure`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id: tgUserId, telegram_name: displayName }),
+        })
+        if (!resp.ok) return
+        const data = await resp.json().catch(() => null)
+        const serverActiveWallet = data?.telegramAccount?.active_wallet_email || null
+        if (serverActiveWallet) {
+          try {
+            localStorage.setItem(ACTIVE_WALLET_KEY, String(serverActiveWallet))
+          } catch (e) {
+            // ignore
+          }
+          // Apply on top of whatever we loaded
+          await loadWalletView(String(serverActiveWallet))
+        }
+      } catch (e) {
+        console.warn('Failed to ensure telegram account', e)
+      }
+    }
+
+    ensureTelegramAccount()
+  }, [tgUserId, displayName])
+
+  const leaveSharedWallet = async () => {
+    if (!tgUserId) return
+    try {
+      await fetch(`${API_URL}/api/wallet/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: tgUserId }),
+      })
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      localStorage.removeItem(ACTIVE_WALLET_KEY)
+    } catch (e) {
+      // ignore
+    }
+    setActiveWalletEmail(null)
+    // Reload own data if authenticated
+    if (currentUserEmail) {
+      try {
+        const userResp = await fetch(`${API_URL}/api/user/${encodeURIComponent(currentUserEmail)}`)
+        const u = userResp.ok ? await userResp.json().catch(() => null) : null
+        const txResp = await fetch(`${API_URL}/api/transactions?user_email=${encodeURIComponent(currentUserEmail)}`)
+        const txs = txResp.ok ? await txResp.json().catch(() => []) : []
+        if (u) {
+          await applyUser(u, Array.isArray(txs) ? txs : [], true)
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
 
   useEffect(() => {
     localStorage.setItem(
@@ -1898,14 +1963,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   async function autoAuthTelegram(telegramId) {
     try {
-      const tgEmail = `tg_${telegramId}@telegram.user`
-      const resp = await fetch(`${API_BASE}/api/auth`, {
+      const resp = await fetch(`${API_URL}/api/telegram/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: tgEmail,
-          password: `tg_${telegramId}`,
-          first_name: displayName,
           telegram_id: telegramId,
           telegram_name: displayName,
         }),
@@ -1913,7 +1974,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       if (!resp.ok) throw new Error("auth failed")
       const json = await resp.json()
+
+      const serverActiveWallet = json?.telegramAccount?.active_wallet_email || null
+      if (serverActiveWallet) {
+        try {
+          localStorage.setItem(ACTIVE_WALLET_KEY, String(serverActiveWallet))
+        } catch (e) {
+          // ignore
+        }
+      }
+
       await applyUser(json.user, json.transactions || [], false)
+
+      if (serverActiveWallet) {
+        await loadWalletView(String(serverActiveWallet))
+      }
     } catch (e) {
       console.warn("autoAuthTelegram failed", e)
       setIsLoading(false) // Завершить загрузку даже при ошибке
@@ -4075,18 +4150,33 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </div>
                       )}
 
-                      {/* Кнопка приглашения пользователя */}
-                      <button
-                        onClick={inviteUser}
-                        className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                          theme === "dark"
-                            ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
-                            : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                        }`}
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        Пригласить пользователя
-                      </button>
+                      {!isSharedWalletView && (
+                        <button
+                          onClick={inviteUser}
+                          className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                            theme === "dark"
+                              ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
+                              : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                          }`}
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          Пригласить пользователя
+                        </button>
+                      )}
+
+                      {isSharedWalletView && (
+                        <button
+                          onClick={leaveSharedWallet}
+                          className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                            theme === "dark"
+                              ? "bg-amber-700 hover:bg-amber-600 text-white"
+                              : "bg-amber-500 hover:bg-amber-600 text-white"
+                          }`}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Выйти из семейного аккаунта
+                        </button>
+                      )}
                       
                       <button
                         onClick={handleLogout}

@@ -99,6 +99,31 @@ async function initDB() {
       UNIQUE(user_email, telegram_id)
     );`)
 
+    // Telegram accounts (auto-registration by telegram_id)
+    await pool.query(`CREATE TABLE IF NOT EXISTS telegram_accounts (
+      telegram_id BIGINT PRIMARY KEY,
+      telegram_name TEXT,
+      wallet_email TEXT,
+      email TEXT,
+      active_wallet_email TEXT,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );`)
+
+    await pool.query(`ALTER TABLE telegram_accounts ADD COLUMN IF NOT EXISTS wallet_email TEXT;`)
+
+    // Wallet members (owner can block/remove members)
+    await pool.query(`CREATE TABLE IF NOT EXISTS wallet_members (
+      id SERIAL PRIMARY KEY,
+      owner_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+      member_telegram_id BIGINT NOT NULL,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(owner_email, member_telegram_id)
+    );`)
+
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_telegram_id BIGINT;`)
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS created_by_name TEXT;`)
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
@@ -135,6 +160,12 @@ async function initDB() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date DESC);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_transaction_comments_transaction_id ON transaction_comments(transaction_id);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_linked_users_email ON linked_telegram_users(user_email);`)
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_telegram_accounts_email ON telegram_accounts(email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_telegram_accounts_wallet_email ON telegram_accounts(wallet_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_telegram_accounts_active_wallet ON telegram_accounts(active_wallet_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_members_owner ON wallet_members(owner_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_members_member ON wallet_members(member_telegram_id);`)
 
     console.log("БД готова!")
   } catch (error) {

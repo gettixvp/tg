@@ -40,6 +40,163 @@ async function callCloudflareChat({ apiToken, accountId, model, messages }) {
   return json.result || json
 }
 
+// --- Авто-регистрация Telegram аккаунта ---
+app.post("/api/telegram/ensure", async (req, res) => {
+  const { telegram_id, telegram_name } = req.body || {}
+
+  if (!telegram_id) return res.status(400).json({ error: "telegram_id обязателен" })
+
+  try {
+    const tgId = String(telegram_id)
+    const walletEmail = `tg_${tgId}@telegram.user`
+
+    await pool.query(
+      `INSERT INTO telegram_accounts (telegram_id, telegram_name)
+       VALUES ($1::bigint, $2)
+       ON CONFLICT (telegram_id) DO UPDATE
+       SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+           updated_at = NOW()`,
+      [tgId, telegram_name || null],
+    )
+
+    // Ensure wallet_email is set (Telegram-first identity)
+    await pool.query(
+      `UPDATE telegram_accounts
+       SET wallet_email = COALESCE(wallet_email, $2), updated_at = NOW()
+       WHERE telegram_id = $1::bigint`,
+      [tgId, walletEmail],
+    )
+
+    const r = await pool.query(
+      `SELECT telegram_id, telegram_name, email, active_wallet_email, status
+       , wallet_email
+       FROM telegram_accounts WHERE telegram_id = $1::bigint`,
+      [tgId],
+    )
+
+    res.json({ success: true, telegramAccount: r.rows[0] })
+  } catch (e) {
+    console.error("Telegram ensure error:", e)
+    res.status(500).json({ error: "Ошибка Telegram регистрации: " + e.message })
+  }
+})
+
+// --- Telegram-first login (no email required) ---
+app.post("/api/telegram/login", async (req, res) => {
+  const { telegram_id, telegram_name } = req.body || {}
+  if (!telegram_id) return res.status(400).json({ error: "telegram_id обязателен" })
+
+  try {
+    const tgId = String(telegram_id)
+    const walletEmail = `tg_${tgId}@telegram.user`
+
+    // Ensure telegram account exists and wallet_email is set
+    await pool.query(
+      `INSERT INTO telegram_accounts (telegram_id, telegram_name, wallet_email)
+       VALUES ($1::bigint, $2, $3)
+       ON CONFLICT (telegram_id) DO UPDATE
+       SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+           wallet_email = COALESCE(telegram_accounts.wallet_email, EXCLUDED.wallet_email),
+           updated_at = NOW()`,
+      [tgId, telegram_name || null, walletEmail],
+    )
+
+    // Create user profile for this wallet if missing
+    const existing = await pool.query("SELECT * FROM users WHERE email = $1", [walletEmail])
+    if (existing.rowCount === 0) {
+      await pool.query(
+        `INSERT INTO users (email, password_hash, first_name, balance, income, expenses, savings_usd, goal_savings)
+         VALUES ($1, NULL, $2, 0, 0, 0, 0, 50000)`,
+        [walletEmail, telegram_name || 'Пользователь'],
+      )
+    }
+
+    const userRes = await pool.query("SELECT * FROM users WHERE email = $1", [walletEmail])
+    const tx = await pool.query("SELECT * FROM transactions WHERE user_email = $1 ORDER BY date DESC", [walletEmail])
+
+    const tgAcc = await pool.query(
+      `SELECT telegram_id, telegram_name, email, active_wallet_email, wallet_email, status
+       FROM telegram_accounts WHERE telegram_id = $1::bigint`,
+      [tgId],
+    )
+
+    res.json({
+      success: true,
+      user: convertUser(userRes.rows[0]),
+      transactions: tx.rows,
+      telegramAccount: tgAcc.rows[0],
+    })
+  } catch (e) {
+    console.error("Telegram login error:", e)
+    res.status(500).json({ error: "Ошибка Telegram входа: " + e.message })
+  }
+})
+
+// --- Выйти из семейного аккаунта (вернуться к своему) ---
+app.post("/api/wallet/leave", async (req, res) => {
+  const { telegram_id } = req.body || {}
+  if (!telegram_id) return res.status(400).json({ error: "telegram_id обязателен" })
+
+  try {
+    await pool.query(
+      `UPDATE telegram_accounts SET active_wallet_email = NULL, updated_at = NOW() WHERE telegram_id = $1::bigint`,
+      [String(telegram_id)],
+    )
+    res.json({ success: true })
+  } catch (e) {
+    console.error("Wallet leave error:", e)
+    res.status(500).json({ error: "Ошибка выхода: " + e.message })
+  }
+})
+
+// --- Список участников кошелька владельца ---
+app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
+  const { ownerEmail } = req.params
+  if (!ownerEmail) return res.status(400).json({ error: "ownerEmail обязателен" })
+
+  try {
+    const r = await pool.query(
+      `SELECT owner_email, member_telegram_id, status, created_at, updated_at
+       FROM wallet_members WHERE owner_email = $1 ORDER BY created_at`,
+      [ownerEmail],
+    )
+    res.json({ success: true, members: r.rows })
+  } catch (e) {
+    console.error("Wallet members get error:", e)
+    res.status(500).json({ error: "Ошибка получения участников: " + e.message })
+  }
+})
+
+// --- Изменить статус участника (active/blocked) ---
+app.put("/api/wallet/:ownerEmail/members/:telegramId/status", async (req, res) => {
+  const { ownerEmail, telegramId } = req.params
+  const { status } = req.body || {}
+  if (!ownerEmail || !telegramId) return res.status(400).json({ error: "ownerEmail и telegramId обязательны" })
+  if (status !== 'active' && status !== 'blocked') return res.status(400).json({ error: "Неверный status" })
+
+  try {
+    const r = await pool.query(
+      `UPDATE wallet_members SET status=$1, updated_at=NOW() WHERE owner_email=$2 AND member_telegram_id=$3::bigint RETURNING *`,
+      [status, ownerEmail, String(telegramId)],
+    )
+    if (r.rowCount === 0) return res.status(404).json({ error: "Участник не найден" })
+
+    // If blocked - also force exit from that wallet
+    if (status === 'blocked') {
+      await pool.query(
+        `UPDATE telegram_accounts SET active_wallet_email = NULL, updated_at = NOW()
+         WHERE telegram_id = $1::bigint AND active_wallet_email = $2`,
+        [String(telegramId), ownerEmail],
+      )
+    }
+
+    res.json({ success: true, member: r.rows[0] })
+  } catch (e) {
+    console.error("Wallet member status error:", e)
+    res.status(500).json({ error: "Ошибка обновления статуса: " + e.message })
+  }
+})
+
 // --- Health check ---
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() })
@@ -194,6 +351,16 @@ app.post("/api/auth", async (req, res) => {
            ON CONFLICT (user_email, telegram_id) DO UPDATE SET telegram_name = $3`,
           [email, telegram_id, telegram_name],
         )
+
+        await pool.query(
+          `INSERT INTO telegram_accounts (telegram_id, telegram_name, email)
+           VALUES ($1::bigint, $2, $3)
+           ON CONFLICT (telegram_id) DO UPDATE
+           SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+               email = $3,
+               updated_at = NOW()`,
+          [String(telegram_id), telegram_name, email],
+        )
       }
 
       const tx = await pool.query("SELECT * FROM transactions WHERE user_email = $1 ORDER BY date DESC", [email])
@@ -221,6 +388,16 @@ app.post("/api/auth", async (req, res) => {
            ON CONFLICT (user_email, telegram_id) DO UPDATE SET telegram_name = $3`,
           [email, telegram_id, telegram_name],
         )
+
+        await pool.query(
+          `INSERT INTO telegram_accounts (telegram_id, telegram_name, email)
+           VALUES ($1::bigint, $2, $3)
+           ON CONFLICT (telegram_id) DO UPDATE
+           SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+               email = $3,
+               updated_at = NOW()`,
+          [String(telegram_id), telegram_name, email],
+        )
       }
 
       return res.json({ user: convertUser(user), transactions: [] })
@@ -244,6 +421,16 @@ app.post("/api/auth", async (req, res) => {
            ON CONFLICT (user_email, telegram_id) DO UPDATE SET telegram_name = $3`,
           [email, telegram_id, telegram_name],
         )
+
+        await pool.query(
+          `INSERT INTO telegram_accounts (telegram_id, telegram_name, email)
+           VALUES ($1::bigint, $2, $3)
+           ON CONFLICT (telegram_id) DO UPDATE
+           SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+               email = $3,
+               updated_at = NOW()`,
+          [String(telegram_id), telegram_name, email],
+        )
       }
 
       return res.json({ user: convertUser(user), transactions: [] })
@@ -262,6 +449,16 @@ app.post("/api/auth", async (req, res) => {
          VALUES ($1, $2, $3)
          ON CONFLICT (user_email, telegram_id) DO UPDATE SET telegram_name = $3`,
         [email, telegram_id, telegram_name],
+      )
+
+      await pool.query(
+        `INSERT INTO telegram_accounts (telegram_id, telegram_name, email)
+         VALUES ($1::bigint, $2, $3)
+         ON CONFLICT (telegram_id) DO UPDATE
+         SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
+             email = $3,
+             updated_at = NOW()`,
+        [String(telegram_id), telegram_name, email],
       )
     }
 
@@ -798,15 +995,33 @@ app.post("/api/link", async (req, res) => {
 
     console.log(`✅ Linked users: TG ${currentTelegramId} (${currentEmail || 'no email'}) <-> TG ${referrerTelegramId} (${referrerEmail || 'no email'})`)
 
-    // Resolve wallet email of referrer from linked_telegram_users (filled during /api/auth)
-    // This allows invited user to load the owner's wallet data after linking.
-    let resolvedReferrerEmail = referrerEmail || null
+    // Owner wallet is always the inviter's Telegram wallet_email
+    let resolvedReferrerEmail = null
+    const inviterAcc = await pool.query(
+      `SELECT wallet_email FROM telegram_accounts WHERE telegram_id = $1::bigint`,
+      [String(referrerTelegramId)],
+    )
+    resolvedReferrerEmail = inviterAcc.rows?.[0]?.wallet_email || null
+
+    // Fallback: allow legacy owner_email via referrerEmail if present
+    if (!resolvedReferrerEmail && referrerEmail) {
+      resolvedReferrerEmail = referrerEmail
+    }
+
+    // As a last resort, derive it from telegram id format
     if (!resolvedReferrerEmail) {
-      const refEmailRes = await pool.query(
-        `SELECT user_email FROM linked_telegram_users WHERE telegram_id = $1 ORDER BY linked_at DESC LIMIT 1`,
-        [referrerTelegramId],
+      resolvedReferrerEmail = `tg_${String(referrerTelegramId)}@telegram.user`
+    }
+
+    // If we know the owner's email - enforce wallet membership status (blocked users cannot join)
+    if (resolvedReferrerEmail) {
+      const statusCheck = await pool.query(
+        `SELECT status FROM wallet_members WHERE owner_email=$1 AND member_telegram_id=$2::bigint`,
+        [resolvedReferrerEmail, String(currentTelegramId)],
       )
-      resolvedReferrerEmail = refEmailRes.rows?.[0]?.user_email || null
+      if (statusCheck.rowCount > 0 && statusCheck.rows[0].status === 'blocked') {
+        return res.status(403).json({ error: "Вас заблокировали в этом кошельке" })
+      }
     }
 
     // Если оба пользователя имеют email, создаем также связь по email
