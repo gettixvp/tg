@@ -182,7 +182,8 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
                   wm.status,
                   wm.created_at,
                   wm.updated_at,
-                  'member'::text AS role
+                  'member'::text AS role,
+                  1::int AS sort_order
            FROM wallet_members wm
            LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
            WHERE wm.owner_email = $1
@@ -197,14 +198,15 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
                   'active'::text AS status,
                   NOW() AS created_at,
                   NOW() AS updated_at,
-                  'owner'::text AS role
+                  'owner'::text AS role,
+                  0::int AS sort_order
            FROM telegram_accounts ta
            WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
          )
          SELECT * FROM owner_row
          UNION ALL
          SELECT * FROM members
-         ORDER BY CASE WHEN role='owner' THEN 0 ELSE 1 END, created_at`,
+         ORDER BY sort_order, created_at`,
         [ownerEmail, ownerTgId],
       )
       res.json({ success: true, members: r.rows })
@@ -229,7 +231,8 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
                   wm.status,
                   wm.created_at,
                   wm.updated_at,
-                  'member'::text AS role
+                  'member'::text AS role,
+                  1::int AS sort_order
            FROM wallet_members wm
            LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
            WHERE wm.owner_email = $1
@@ -244,14 +247,15 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
                   'active'::text AS status,
                   NOW() AS created_at,
                   NOW() AS updated_at,
-                  'owner'::text AS role
+                  'owner'::text AS role,
+                  0::int AS sort_order
            FROM telegram_accounts ta
            WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
          )
          SELECT * FROM owner_row
          UNION ALL
          SELECT * FROM members
-         ORDER BY CASE WHEN role='owner' THEN 0 ELSE 1 END, created_at`,
+         ORDER BY sort_order, created_at`,
         [ownerEmail, ownerTgId],
       )
       res.json({ success: true, members: r2.rows })
