@@ -124,7 +124,7 @@
   cursor: pointer;
   transition: color 0.2s ease;
   padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
+  border-radius: 9999px;
 }
 
 .show-all-button:hover {
@@ -134,9 +134,32 @@
 
 /* Контент контейнера */
 .container-content {
-  padding: 0.75rem;
+  padding: 0.55rem;
   position: relative;
   z-index: 2;
+}
+
+/* Инпуты/кнопки внутри немодальных контейнеров под большие скругления */
+.recent-operations-container input,
+.recent-operations-container textarea,
+.recent-operations-container select,
+.budgets-container input,
+.budgets-container textarea,
+.budgets-container select,
+.savings-container input,
+.savings-container textarea,
+.savings-container select,
+.styled-container input,
+.styled-container textarea,
+.styled-container select {
+  border-radius: 40px;
+}
+
+.recent-operations-container button,
+.budgets-container button,
+.savings-container button,
+.styled-container button {
+  border-radius: 40px;
 }
 
 /* Оверлей для свечения */
@@ -190,7 +213,7 @@
   }
   
   .container-content {
-    padding: 0.6rem;
+    padding: 0.5rem;
   }
 }
 
@@ -204,7 +227,7 @@
   }
   
   .container-content {
-    padding: 0.45rem;
+    padding: 0.4rem;
   }
 }
 

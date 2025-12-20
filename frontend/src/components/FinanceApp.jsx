@@ -410,7 +410,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
   return (
     <div className="mb-2">
-      <div className="relative overflow-hidden rounded-[32px]">
+      <div className="relative overflow-hidden rounded-[40px]">
         <div
           onClick={() => {
             if (swipeX === -80) {
@@ -418,7 +418,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               setSwipeX(0)
             }
           }}
-          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-[32px] transition-opacity ${
+          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-[40px] transition-opacity ${
             theme === "dark" ? "bg-red-600" : "bg-red-500"
           }`}
           style={{ opacity: showDeleteAction ? 1 : 0, pointerEvents: showDeleteAction ? 'auto' : 'none' }}
@@ -3468,7 +3468,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         }}
       >
         <div
-          className="px-4 pb-4"
+          className="px-3 pb-4"
           style={{
             minHeight: "calc(100% + 1px)",
             touchAction: "pan-y",
