@@ -170,9 +170,22 @@ const WalletMemberRow = ({ member, theme, isSelf, onOpen }) => {
   const statusLabel = member.status === 'blocked' ? 'Заблокирован' : 'Активен'
   const roleLabel = member.role === 'owner' ? 'Владелец' : null
 
+  const handleOpen = (e) => {
+    try {
+      e?.preventDefault?.()
+      e?.stopPropagation?.()
+    } catch (err) {
+      // ignore
+    }
+    onOpen && onOpen(member)
+  }
+
   return (
     <button
-      onClick={() => onOpen(member)}
+      type="button"
+      onClick={handleOpen}
+      onPointerUp={handleOpen}
+      onTouchEnd={handleOpen}
       className={`w-full p-3 rounded-2xl border text-left transition-all active:scale-[0.99] ${
         theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-white border-gray-200"
       }`}
@@ -4296,7 +4309,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </div>
                       )}
 
-                      {isWalletOwner && walletMembers.length > 0 && (
+                      {walletMembers.length > 0 && (
                         <div className="mb-3">
                           <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                             Участники кошелька

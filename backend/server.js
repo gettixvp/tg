@@ -169,44 +169,93 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
       return m ? m[1] : null
     })()
 
-    const r = await pool.query(
-      `WITH members AS (
-         SELECT wm.owner_email,
-                wm.member_telegram_id,
-                COALESCE(ta.telegram_name, '') AS telegram_name,
-                COALESCE(ta.photo_url, '') AS photo_url,
-                ta.last_seen_at,
-                ta.last_ip,
-                ta.last_user_agent,
-                wm.status,
-                wm.created_at,
-                wm.updated_at,
-                'member'::text AS role
-         FROM wallet_members wm
-         LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
-         WHERE wm.owner_email = $1
-       ), owner_row AS (
-         SELECT $1::text AS owner_email,
-                $2::bigint AS member_telegram_id,
-                COALESCE(ta.telegram_name, '') AS telegram_name,
-                COALESCE(ta.photo_url, '') AS photo_url,
-                ta.last_seen_at,
-                ta.last_ip,
-                ta.last_user_agent,
-                'active'::text AS status,
-                NOW() AS created_at,
-                NOW() AS updated_at,
-                'owner'::text AS role
-         FROM telegram_accounts ta
-         WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
-       )
-       SELECT * FROM owner_row
-       UNION ALL
-       SELECT * FROM members
-       ORDER BY CASE WHEN role='owner' THEN 0 ELSE 1 END, created_at`,
-      [ownerEmail, ownerTgId],
-    )
-    res.json({ success: true, members: r.rows })
+    try {
+      const r = await pool.query(
+        `WITH members AS (
+           SELECT wm.owner_email,
+                  wm.member_telegram_id,
+                  COALESCE(ta.telegram_name, '') AS telegram_name,
+                  COALESCE(ta.photo_url, '') AS photo_url,
+                  ta.last_seen_at,
+                  ta.last_ip,
+                  ta.last_user_agent,
+                  wm.status,
+                  wm.created_at,
+                  wm.updated_at,
+                  'member'::text AS role
+           FROM wallet_members wm
+           LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
+           WHERE wm.owner_email = $1
+         ), owner_row AS (
+           SELECT $1::text AS owner_email,
+                  $2::bigint AS member_telegram_id,
+                  COALESCE(ta.telegram_name, '') AS telegram_name,
+                  COALESCE(ta.photo_url, '') AS photo_url,
+                  ta.last_seen_at,
+                  ta.last_ip,
+                  ta.last_user_agent,
+                  'active'::text AS status,
+                  NOW() AS created_at,
+                  NOW() AS updated_at,
+                  'owner'::text AS role
+           FROM telegram_accounts ta
+           WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
+         )
+         SELECT * FROM owner_row
+         UNION ALL
+         SELECT * FROM members
+         ORDER BY CASE WHEN role='owner' THEN 0 ELSE 1 END, created_at`,
+        [ownerEmail, ownerTgId],
+      )
+      res.json({ success: true, members: r.rows })
+    } catch (e) {
+      // Fallback for older DBs where new columns might not exist yet
+      const msg = String(e && e.message ? e.message : '')
+      const needsFallback =
+        msg.includes('column') &&
+        (msg.includes('photo_url') || msg.includes('last_seen_at') || msg.includes('last_ip') || msg.includes('last_user_agent'))
+
+      if (!needsFallback) throw e
+
+      const r2 = await pool.query(
+        `WITH members AS (
+           SELECT wm.owner_email,
+                  wm.member_telegram_id,
+                  COALESCE(ta.telegram_name, '') AS telegram_name,
+                  ''::text AS photo_url,
+                  NULL::timestamp AS last_seen_at,
+                  NULL::text AS last_ip,
+                  NULL::text AS last_user_agent,
+                  wm.status,
+                  wm.created_at,
+                  wm.updated_at,
+                  'member'::text AS role
+           FROM wallet_members wm
+           LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
+           WHERE wm.owner_email = $1
+         ), owner_row AS (
+           SELECT $1::text AS owner_email,
+                  $2::bigint AS member_telegram_id,
+                  COALESCE(ta.telegram_name, '') AS telegram_name,
+                  ''::text AS photo_url,
+                  NULL::timestamp AS last_seen_at,
+                  NULL::text AS last_ip,
+                  NULL::text AS last_user_agent,
+                  'active'::text AS status,
+                  NOW() AS created_at,
+                  NOW() AS updated_at,
+                  'owner'::text AS role
+           FROM telegram_accounts ta
+           WHERE $2::bigint IS NOT NULL AND ta.telegram_id = $2::bigint
+         )
+         SELECT * FROM owner_row
+         UNION ALL
+         SELECT * FROM members
+         ORDER BY CASE WHEN role='owner' THEN 0 ELSE 1 END, created_at`,
+        [ownerEmail, ownerTgId],
+      )
+      res.json({ success: true, members: r2.rows })
+    }
   } catch (e) {
     console.error("Wallet members get error:", e)
     res.status(500).json({ error: "Ошибка получения участников: " + e.message })
