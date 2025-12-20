@@ -1007,28 +1007,6 @@ app.post("/api/link", async (req, res) => {
   }
 
   try {
-    // Проверяем, существует ли связь по Telegram ID
-    const existingTg = await pool.query(
-      `SELECT * FROM telegram_links WHERE telegram_id = $1 AND linked_telegram_id = $2`,
-      [currentTelegramId, referrerTelegramId]
-    )
-
-    if (existingTg.rows.length > 0) {
-      return res.json({ success: true, message: "Пользователи уже связаны" })
-    }
-
-    // Создаем двустороннюю связь по Telegram ID
-    await pool.query(
-      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name, linked_email) VALUES ($1, $2, $3, $4)`,
-      [currentTelegramId, referrerTelegramId, currentUserName, referrerEmail]
-    )
-    await pool.query(
-      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name, linked_email) VALUES ($1, $2, $3, $4)`,
-      [referrerTelegramId, currentTelegramId, referrerName, currentEmail]
-    )
-
-    console.log(`✅ Linked users: TG ${currentTelegramId} (${currentEmail || 'no email'}) <-> TG ${referrerTelegramId} (${referrerEmail || 'no email'})`)
-
     // Owner wallet is always the inviter's Telegram wallet_email
     let resolvedReferrerEmail = null
     const inviterAcc = await pool.query(
@@ -1047,6 +1025,12 @@ app.post("/api/link", async (req, res) => {
       resolvedReferrerEmail = `tg_${String(referrerTelegramId)}@telegram.user`
     }
 
+    // Проверяем, существует ли связь по Telegram ID
+    const existingTg = await pool.query(
+      `SELECT * FROM telegram_links WHERE telegram_id = $1 AND linked_telegram_id = $2`,
+      [currentTelegramId, referrerTelegramId]
+    )
+
     // If we know the owner's email - enforce wallet membership status (blocked users cannot join)
     if (resolvedReferrerEmail) {
       const statusCheck = await pool.query(
@@ -1058,7 +1042,7 @@ app.post("/api/link", async (req, res) => {
       }
     }
 
-    // Persist membership + active wallet for invited user
+    // Persist membership + active wallet for invited user (idempotent)
     if (resolvedReferrerEmail) {
       // Ensure telegram_accounts row exists so active_wallet_email update always works
       await pool.query(
@@ -1088,6 +1072,22 @@ app.post("/api/link", async (req, res) => {
         [resolvedReferrerEmail, String(currentTelegramId)],
       )
     }
+
+    if (existingTg.rows.length > 0) {
+      return res.json({ success: true, message: "Пользователи уже связаны", walletEmail: resolvedReferrerEmail })
+    }
+
+    // Создаем двустороннюю связь по Telegram ID
+    await pool.query(
+      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name, linked_email) VALUES ($1, $2, $3, $4)`,
+      [currentTelegramId, referrerTelegramId, currentUserName, referrerEmail]
+    )
+    await pool.query(
+      `INSERT INTO telegram_links (telegram_id, linked_telegram_id, user_name, linked_email) VALUES ($1, $2, $3, $4)`,
+      [referrerTelegramId, currentTelegramId, referrerName, currentEmail]
+    )
+
+    console.log(`✅ Linked users: TG ${currentTelegramId} (${currentEmail || 'no email'}) <-> TG ${referrerTelegramId} (${referrerEmail || 'no email'})`)
 
     // Если оба пользователя имеют email, создаем также связь по email
     if (currentEmail && resolvedReferrerEmail) {
