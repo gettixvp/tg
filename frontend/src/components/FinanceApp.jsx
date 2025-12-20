@@ -605,7 +605,10 @@ const BudgetsContainer = ({ children, theme, onSetup }) => {
       className={`budgets-container ${theme}`}
     >
       <div className="container-header">
-        <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+        <h3
+          className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+          style={{ minWidth: 0 }}
+        >
           Бюджеты
         </h3>
         <button
@@ -648,14 +651,17 @@ const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
     <div 
       ref={containerRef}
       className={`recent-operations-container ${theme}`}
+      onMouseMove={handleMouseMove}
     >
       <div className="container-header">
-        <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+        <h3
+          className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+          style={{ minWidth: 0 }}
+        >
           Последние операции
         </h3>
         <button
           onClick={(e) => {
-            e.preventDefault()
             e.stopPropagation()
             onShowAll && onShowAll()
           }}
@@ -731,6 +737,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
     <div 
       ref={containerRef}
       className={`recent-operations-container ${theme}`}
+      onMouseMove={handleMouseMove}
     >
       <div className="container-header">
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -3764,7 +3771,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  <h3
+                    className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                    style={{ minWidth: 0 }}
+                  >
                     История операций
                   </h3>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -4020,7 +4030,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  <h3
+                    className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                    style={{ minWidth: 0 }}
+                  >
                     История пополнений
                   </h3>
                 </div>
@@ -4493,7 +4506,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  <h3
+                    className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                    style={{ minWidth: 0 }}
+                  >
                     Настройки
                   </h3>
                 </div>
@@ -4590,7 +4606,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  <h3
+                    className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                    style={{ minWidth: 0 }}
+                  >
                     Бюджеты и лимиты
                   </h3>
                 </div>
@@ -4636,7 +4655,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  <h3
+                    className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                    style={{ minWidth: 0 }}
+                  >
                     Системные настройки
                   </h3>
                 </div>

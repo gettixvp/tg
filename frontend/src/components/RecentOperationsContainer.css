@@ -134,6 +134,12 @@
   padding: 0.25rem 0.5rem;
   border-radius: 9999px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  line-height: 1;
 }
 
 .show-all-button:hover {
@@ -143,7 +149,7 @@
 
 /* Контент контейнера */
 .container-content {
-  padding: 0.55rem;
+  padding: 0.7rem;
   position: relative;
   z-index: 2;
 }
@@ -204,7 +210,7 @@
   }
   
   .container-content {
-    padding: 0.5rem;
+    padding: 0.6rem;
   }
 }
 
@@ -220,7 +226,7 @@
   }
   
   .container-content {
-    padding: 0.4rem;
+    padding: 0.5rem;
   }
 }
 
