@@ -1784,7 +1784,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           
           try {
             // Отправляем запрос на связывание аккаунтов
-            const response = await fetch(`${API_BASE}/api/link`, {
+            const response = await fetch(`${API_URL}/api/link`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
@@ -1824,7 +1824,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               // Переключаемся на кошелек владельца (без полной перезагрузки)
               if (walletEmail) {
-                await loadWalletView(walletEmail)
+                const ok = await loadWalletView(walletEmail)
+                if (!ok) {
+                  alert(
+                    `Подключение создано, но кошелек владельца не удалось загрузить.\n\n` +
+                      `walletEmail: ${walletEmail}\n` +
+                      `API_URL: ${API_URL}`,
+                  )
+                }
               }
             } else {
               const error = await response.json()
@@ -1956,9 +1963,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!walletEmail) return
     try {
       const userResp = await fetch(`${API_URL}/api/user/${encodeURIComponent(walletEmail)}`)
-      if (!userResp.ok) return
+      if (!userResp.ok) return false
       const walletJson = await userResp.json().catch(() => null)
-      if (!walletJson) return
+      if (!walletJson) return false
 
       const walletUser = walletJson.user ? walletJson.user : walletJson
 
@@ -2000,8 +2007,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       setTransactions(Array.isArray(walletTxs) ? walletTxs : [])
       await loadLinkedUsers(walletEmail)
       await loadDebts(walletEmail)
+      return true
     } catch (e) {
       console.warn('Failed to load wallet view', e)
+      return false
     }
   }
 
