@@ -471,7 +471,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
             {/* Основная информация */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
                 <div className="flex-1 min-w-0">
                   {tx.description && (
                     <p className={`font-semibold text-[15px] leading-tight mb-0.5 truncate ${
@@ -480,14 +480,14 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                       {tx.description}
                     </p>
                   )}
-                  <p className={`text-[12px] ${theme === "dark" ? "text-gray-300/70" : "text-gray-600"}`}>
+                  <p className={`text-[12px] truncate ${theme === "dark" ? "text-gray-300/70" : "text-gray-600"}`}>
                     {tx.category}
                   </p>
                 </div>
                 
                 {/* Сумма */}
                 <p
-                  className={`font-bold text-[17px] whitespace-nowrap ${
+                  className={`font-bold text-[17px] whitespace-nowrap flex-shrink-0 ${
                     tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"
                   }`}
                 >
@@ -497,31 +497,24 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               </div>
 
               {/* Нижняя строка: автор и время */}
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 min-w-0">
                 {showCreator && tx.created_by_name ? (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 min-w-0">
                     {tx.telegram_photo_url ? (
-                      <img
-                        src={tx.telegram_photo_url}
-                        alt="Avatar"
-                        className="w-[18px] h-[18px] rounded-full object-cover"
-                      />
+                      <img src={tx.telegram_photo_url} alt="Avatar" className="w-[18px] h-[18px] rounded-full object-cover" />
                     ) : (
-                      <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${
-                        theme === "dark" ? "bg-blue-700" : "bg-blue-200"
-                      }`}>
+                      <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${theme === "dark" ? "bg-blue-700" : "bg-blue-200"}`}>
                         <User className="w-3 h-3 text-white" />
                       </div>
                     )}
-                    <span className={`text-[12px] ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
+                    <span className={`text-[12px] truncate ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
                       {tx.created_by_name}
                     </span>
                   </div>
                 ) : (
                   <div />
                 )}
-
-                <span className={`text-[12px] ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
+                <span className={`text-[12px] flex-shrink-0 ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
                   {formatDate(tx.date)}
                 </span>
               </div>
@@ -4262,8 +4255,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <div className="flex items-center justify-between w-full">
-                    <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <h3
+                      className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                      style={{ minWidth: 0 }}
+                    >
                       Аккаунт
                     </h3>
                     {!isSharedWalletView && (
@@ -4331,13 +4327,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               setShowLinkedUsersDropdown(!showLinkedUsersDropdown)
                               vibrate()
                             }}
-                            className={`w-full flex items-center justify-between p-3 rounded-[40px] border transition-all ${
+                            className={`w-full flex items-center justify-between gap-2 min-w-0 p-3 rounded-[40px] border transition-all ${
                               theme === "dark" 
                                 ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700" 
                                 : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                             }`}
                           >
-                            <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                            <span className={`text-sm font-medium truncate ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
                               Пользователи ({linkedUsers.length})
                             </span>
                             {showLinkedUsersDropdown ? (
@@ -4373,13 +4369,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               setShowWalletMembersDropdown(!showWalletMembersDropdown)
                               vibrate()
                             }}
-                            className={`w-full flex items-center justify-between p-3 rounded-[40px] border transition-all ${
+                            className={`w-full flex items-center justify-between gap-2 min-w-0 p-3 rounded-[40px] border transition-all ${
                               theme === "dark"
                                 ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700"
                                 : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                             }`}
                           >
-                            <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                            <span className={`text-sm font-medium truncate ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
                               Участники кошелька ({walletMembers.filter((m) => String(m.member_telegram_id) !== String(tgUserId)).length})
                             </span>
                             {showWalletMembersDropdown ? (
@@ -4657,7 +4653,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                     }`}
                   >
-                    <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                    <span className={`text-sm font-medium truncate ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
                       ⚙️ Системные настройки
                     </span>
                     {showSystemSettings ? (
