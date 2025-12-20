@@ -25,7 +25,7 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronRight,
-  MessageCircle,
+  Sparkles,
   Send,
   RefreshCw,
   PieChart,
@@ -861,6 +861,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
     // Lock background scroll and prevent layout shift
     const body = document.body
+    const html = document.documentElement
     const prevOverflow = body.style.overflow
     const prevPaddingRight = body.style.paddingRight
     const prevPosition = body.style.position
@@ -868,6 +869,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     const prevWidth = body.style.width
     const prevLeft = body.style.left
     const prevRight = body.style.right
+    const prevHtmlOverscroll = html.style.overscrollBehavior
+    const prevBodyOverscrollY = body.style.overscrollBehaviorY
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
 
     const scrollY = window.scrollY || window.pageYOffset || 0
@@ -878,9 +881,23 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     body.style.left = '0'
     body.style.right = '0'
     body.style.width = '100%'
+    html.style.overscrollBehavior = 'none'
+    body.style.overscrollBehaviorY = 'none'
     if (scrollbarWidth > 0) {
       body.style.paddingRight = `${scrollbarWidth}px`
     }
+
+    const preventBackgroundTouchMove = (e) => {
+      try {
+        const t = e.target
+        if (t && sheetRef.current && sheetRef.current.contains(t)) return
+        e.preventDefault()
+      } catch (err) {
+        e.preventDefault()
+      }
+    }
+
+    window.addEventListener('touchmove', preventBackgroundTouchMove, { passive: false })
 
     return () => {
       const restoredTop = body.style.top
@@ -891,6 +908,9 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       body.style.width = prevWidth
       body.style.left = prevLeft
       body.style.right = prevRight
+      html.style.overscrollBehavior = prevHtmlOverscroll
+      body.style.overscrollBehaviorY = prevBodyOverscrollY
+      window.removeEventListener('touchmove', preventBackgroundTouchMove)
       const y = Number.parseInt((restoredTop || '0').replace('-', ''), 10)
       if (Number.isFinite(y) && y > 0) {
         window.scrollTo(0, y)
@@ -3418,7 +3438,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       className="show-all-button"
                       title="ИИ-анализ"
                     >
-                      <MessageCircle className="w-4 h-4" />
+                      <span className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold">ИИ</span>
+                        <Sparkles className="w-4 h-4" />
+                      </span>
                     </button>
                     <button
                       onClick={() => setBalanceVisible(!balanceVisible)}
@@ -4824,95 +4847,147 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
           theme={theme}
           zIndex={80}
-          position="top"
-          topOffset={(isFullscreen ? (safeAreaInset.top || 0) : 0) + 48}
         >
-          <div className="flex flex-col min-h-[70vh]">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
-                ИИ-анализатор
-              </h3>
+          <div style={{ height: '75vh' }} className="flex flex-col">
+            <div className="px-2">
+              <div className="flex items-center justify-between px-3 py-2 rounded-2xl border"
+                style={{
+                  borderColor: theme === 'dark' ? 'rgba(55,65,81,0.45)' : 'rgba(229,231,235,0.9)',
+                  background: theme === 'dark' ? 'rgba(17,24,39,0.75)' : 'rgba(255,255,255,0.85)',
+                  backdropFilter: 'blur(18px)',
+                  WebkitBackdropFilter: 'blur(18px)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full"
+                      style={{
+                        background: 'linear-gradient(90deg, rgba(168,85,247,0.85), rgba(236,72,153,0.85))',
+                        filter: 'blur(10px)',
+                        opacity: 0.6,
+                      }}
+                    />
+                    <div className="relative rounded-full p-2"
+                      style={{ background: 'linear-gradient(90deg, rgb(168,85,247), rgb(236,72,153))' }}
+                    >
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                      AI Ассистент
+                    </div>
+                    <div className={`text-[11px] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Всегда на связи
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAiModal(false)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                    theme === 'dark' ? 'bg-gray-700/70 hover:bg-gray-600/70 text-gray-200' : 'bg-gray-200/80 hover:bg-gray-300/80 text-gray-700'
+                  }`}
+                >
+                  ×
+                </button>
+              </div>
             </div>
 
             <div
-              className={`rounded-xl p-3 border flex-1 ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'}`}
-              style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+              className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+              style={{ WebkitOverflowScrolling: 'touch' }}
             >
-              <div className="space-y-3">
-                {aiMessages.map((m, idx) => (
-                  <div key={idx} className={`text-sm leading-relaxed ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
+              {aiMessages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center">
+                  <Sparkles className={`w-12 h-12 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-500'}`} />
+                  <div className={`mt-3 text-base font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                    Привет! Я здесь, чтобы помочь
+                  </div>
+                  <div className={`mt-1 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Задайте вопрос или начните разговор
+                  </div>
+                </div>
+              ) : (
+                aiMessages.map((m, idx) => (
+                  <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`inline-block rounded-xl px-3 py-2 max-w-[90%] ${
+                      className={`max-w-[80%] px-4 py-3 text-sm leading-relaxed ${
                         m.role === 'user'
-                          ? theme === 'dark'
-                            ? 'bg-blue-700 text-white'
-                            : 'bg-blue-600 text-white'
+                          ? 'text-white rounded-3xl rounded-br-md'
                           : theme === 'dark'
-                            ? 'bg-gray-700/60 text-gray-100'
-                            : 'bg-gray-100 text-gray-900'
+                            ? 'bg-gray-800/70 text-gray-100 rounded-3xl rounded-bl-md'
+                            : 'bg-gray-100 text-gray-800 rounded-3xl rounded-bl-md'
                       }`}
-                      style={{ whiteSpace: 'pre-wrap' }}
+                      style={
+                        m.role === 'user'
+                          ? { background: 'linear-gradient(90deg, rgb(168,85,247), rgb(236,72,153))' }
+                          : undefined
+                      }
                     >
                       {m.content}
                     </div>
                   </div>
-                ))}
-                {aiLoading && (
-                  <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Анализирую…</div>
-                )}
-              </div>
+                ))
+              )}
+              {aiLoading && (
+                <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Анализирую…</div>
+              )}
             </div>
 
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => sendAiMessage('Проанализируй мои финансы и дай рекомендации по экономии и бюджету')}
-                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
-                  theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-                }`}
-                disabled={aiLoading}
-              >
-                Проанализировать
-              </button>
-            </div>
-
-            <div
-              className="flex gap-2 mt-3"
+            <div className="px-4 pb-4 pt-3"
               style={{
-                position: 'sticky',
-                bottom: 0,
-                paddingTop: 8,
-                paddingBottom: 8,
-                background: theme === 'dark' ? 'rgba(17,24,39,0.95)' : 'rgba(255,255,255,0.95)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
+                background: theme === 'dark' ? 'rgba(17,24,39,0.92)' : 'rgba(255,255,255,0.92)',
+                backdropFilter: 'blur(18px)',
+                WebkitBackdropFilter: 'blur(18px)',
+                borderTop: theme === 'dark' ? '1px solid rgba(55,65,81,0.4)' : '1px solid rgba(229,231,235,0.8)',
               }}
             >
-              <input
-                ref={aiInputRef}
-                value={aiInput}
-                onChange={(e) => setAiInput(e.target.value)}
-                placeholder="Например: где я трачу больше всего и как сократить?"
-                className={`flex-1 p-3 border rounded-xl transition-all text-sm ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
-                    : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                }`}
-              />
-              <button
-                onClick={() => sendAiMessage(aiInput)}
-                disabled={aiLoading || !aiInput.trim()}
-                className={`px-4 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  aiLoading || !aiInput.trim()
-                    ? theme === 'dark'
-                      ? 'bg-gray-700 text-gray-500'
-                      : 'bg-gray-200 text-gray-400'
-                    : theme === 'dark'
-                      ? 'bg-blue-700 hover:bg-blue-600 text-white'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                Отправить
-              </button>
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={() => sendAiMessage('Проанализируй мои финансы и дай рекомендации по экономии и бюджету')}
+                  className={`px-4 py-2 rounded-2xl text-xs font-medium transition-all ${
+                    theme === 'dark'
+                      ? 'bg-gray-700/70 hover:bg-gray-600/70 text-gray-100'
+                      : 'bg-gray-200/80 hover:bg-gray-300/80 text-gray-900'
+                  }`}
+                  disabled={aiLoading}
+                >
+                  Проанализировать
+                </button>
+              </div>
+
+              <div className="flex items-end gap-2">
+                <div className={`flex-1 rounded-3xl px-4 py-2 flex items-center gap-2 ${
+                  theme === 'dark' ? 'bg-gray-800/70' : 'bg-gray-100/80'
+                }`}>
+                  <input
+                    ref={aiInputRef}
+                    type="text"
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                    placeholder="Сообщение..."
+                    className={`flex-1 bg-transparent outline-none text-base ${theme === 'dark' ? 'text-gray-100 placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'}`}
+                  />
+                </div>
+                <button
+                  onClick={() => sendAiMessage(aiInput)}
+                  disabled={aiLoading || !aiInput.trim()}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-all touch-none active:scale-95 ${
+                    aiLoading || !aiInput.trim()
+                      ? theme === 'dark'
+                        ? 'bg-gray-700 text-gray-500'
+                        : 'bg-gray-200 text-gray-400'
+                      : ''
+                  }`}
+                  style={
+                    aiLoading || !aiInput.trim()
+                      ? undefined
+                      : { background: 'linear-gradient(90deg, rgb(168,85,247), rgb(236,72,153))' }
+                  }
+                >
+                  <Send className="w-5 h-5 text-white" />
+                </button>
+              </div>
             </div>
           </div>
         </BottomSheetModal>
@@ -6095,17 +6170,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
           theme={theme}
           zIndex={55}
-          position="top"
-          topOffset={(isFullscreen ? (safeAreaInset.top || 0) : 0) + 48}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              {selectedBudgetCategory ? 'Редактирование бюджета' : 'Бюджеты'}
-            </h3>
-          </div>
+          <div style={{ height: '70vh' }} className="flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                {selectedBudgetCategory ? 'Редактирование бюджета' : 'Бюджеты'}
+              </h3>
+            </div>
 
-          {!selectedBudgetCategory ? (
-            <div className="space-y-2">
+            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {!selectedBudgetCategory ? (
+              <div className="space-y-2">
               {Object.keys(categoriesMeta)
                 .filter((c) => c !== 'Все')
                 .map((category) => (
@@ -6132,9 +6207,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </button>
                 ))}
-            </div>
-          ) : (
-            <div>
+              </div>
+            ) : (
+              <div>
               <p className={`text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 Категория: {selectedBudgetCategory}
               </p>
@@ -6227,8 +6302,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   Сохранить
                 </button>
               </div>
+              </div>
+            )}
             </div>
-          )}
+          </div>
         </BottomSheetModal>
       )}
 
@@ -6317,7 +6394,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Описание (необязательно)"
+              placeholder=""
               className={`w-full p-3 border rounded-xl transition-all text-sm ${
                 theme === "dark"
                   ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
