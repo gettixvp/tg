@@ -1222,6 +1222,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [authMode, setAuthMode] = useState("login")
   const [showChart, setShowChart] = useState(false)
   const [chartType, setChartType] = useState("expense") // Тип транзакции для диаграммы
+  const [linkingLoading, setLinkingLoading] = useState(false)
   const [transactionType, setTransactionType] = useState("expense")
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
@@ -1558,18 +1559,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   useEffect(() => {
     try {
-      const ls = localStorage.getItem(LS_KEY)
-      if (ls) {
-        const data = JSON.parse(ls)
-        if (data) {
-          if (data.currency) setCurrency(data.currency)
-          if (data.theme) setTheme(data.theme)
-          if (data.goalSavings) {
-            setGoalSavings(data.goalSavings)
-            setGoalInput(String(data.goalSavings))
+      const saved = localStorage.getItem(LS_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed) {
+          if (parsed.currency) setCurrency(parsed.currency)
+          if (parsed.theme) setTheme(parsed.theme)
+          if (parsed.goalSavings) {
+            setGoalSavings(parsed.goalSavings)
+            setGoalInput(String(parsed.goalSavings))
           }
-          if (data.balanceVisible !== undefined) setBalanceVisible(data.balanceVisible)
-          if (data.fullscreenEnabled !== undefined) setFullscreenEnabled(data.fullscreenEnabled)
+          if (parsed.balanceVisible !== undefined) setBalanceVisible(parsed.balanceVisible)
+          if (parsed.fullscreenEnabled !== undefined) setFullscreenEnabled(parsed.fullscreenEnabled)
         }
       }
 
@@ -1589,18 +1590,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
 
       const session = localStorage.getItem(SESSION_KEY)
+      // Telegram-only: email session is ignored
       if (session) {
-        const sessionData = JSON.parse(session)
-        if (sessionData?.email && sessionData?.token) {
-          autoAuth(sessionData.email, sessionData.token)
-        } else {
-          // Сессия есть, но данные невалидны
-          setIsLoading(false)
-        }
-      } else if (tgUserId) {
+        // keep storage for possible legacy users, but do not auto-login by email
+      }
+
+      if (tgUserId) {
         autoAuthTelegram(tgUserId)
       } else {
-        // Нет сессии и нет Telegram ID - завершаем загрузку
         setIsLoading(false)
       }
     } catch (e) {
@@ -1824,12 +1821,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               // Переключаемся на кошелек владельца (без полной перезагрузки)
               if (walletEmail) {
-                const ok = await loadWalletView(walletEmail)
+                setLinkingLoading(true)
+                let ok = false
+                // Даем backend время зафиксировать active_wallet_email и создать/обновить записи
+                for (let attempt = 0; attempt < 8; attempt += 1) {
+                  ok = await loadWalletView(walletEmail)
+                  if (ok) break
+                  await new Promise((r) => setTimeout(r, 600))
+                }
+                setLinkingLoading(false)
+
                 if (!ok) {
                   alert(
                     `Подключение создано, но кошелек владельца не удалось загрузить.\n\n` +
                       `walletEmail: ${walletEmail}\n` +
-                      `API_URL: ${API_URL}`,
+                      `API_URL: ${API_URL}\n\n` +
+                      `Проверь, что backend перезапущен и что API_URL указывает на тот же сервер, где был /api/link.`,
                   )
                 }
               }
@@ -1855,7 +1862,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const keepAlive = async () => {
       try {
         // Пингуем backend чтобы не засыпал
-        await fetch(`${API_BASE}/api/health`).catch(() => {})
+        await fetch(`${API_URL}/api/health`).catch(() => {})
         console.log('[KeepAlive] Backend pinged at', new Date().toLocaleTimeString())
       } catch (e) {
         console.warn('[KeepAlive] Failed to ping backend', e)
@@ -1948,7 +1955,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const loadLinkedUsers = async (email) => {
     if (!email) return
     try {
-      const resp = await fetch(`${API_BASE}/api/linked-users/${email}`)
+      const resp = await fetch(`${API_URL}/api/linked-users/${email}`)
       if (resp.ok) {
         const data = await resp.json()
         setLinkedUsers(data.linkedUsers || [])
@@ -2018,7 +2025,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!user || !user.email) return
 
     try {
-      const resp = await fetch(`${API_BASE}/api/linked-users/${user.email}/${telegramId}`, {
+      const resp = await fetch(`${API_URL}/api/linked-users/${user.email}/${telegramId}`, {
         method: "DELETE",
       })
 
@@ -3366,6 +3373,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         paddingRight: safeAreaInset.right || 0,
       }}
     >
+      {linkingLoading && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className={`rounded-2xl px-5 py-4 shadow-xl ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'}`}>
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full border-2 border-blue-200 border-t-blue-600 animate-spin"></div>
+              <div className="text-sm font-medium">Подключаю кошелёк…</div>
+            </div>
+            <div className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Это может занять пару секунд.
+            </div>
+          </div>
+        </div>
+      )}
       <main
         ref={mainContentRef}
         className="flex-1 overflow-y-scroll overflow-x-hidden"
