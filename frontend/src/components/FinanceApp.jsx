@@ -790,6 +790,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
   const sheetRef = useRef(null)
+  const burstRef = useRef(() => {})
+  const startFastFollowRef = useRef(() => {})
 
   const hapticImpact = () => {}
 
@@ -870,6 +872,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         requestAnimationFrame(computeInset)
       })
     }
+    burstRef.current = burst
 
     const startFastFollow = () => {
       if (followRaf) cancelAnimationFrame(followRaf)
@@ -896,6 +899,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
       followRaf = requestAnimationFrame(tick)
     }
+    startFastFollowRef.current = startFastFollow
 
     burst()
 
@@ -921,6 +925,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     return () => {
       if (raf) cancelAnimationFrame(raf)
       if (followRaf) cancelAnimationFrame(followRaf)
+      burstRef.current = () => {}
+      startFastFollowRef.current = () => {}
       if (vv && vv.removeEventListener) {
         vv.removeEventListener('resize', burst)
         vv.removeEventListener('scroll', burst)
@@ -1044,6 +1050,21 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     height: overlayHeight,
   }
 
+  const preAdaptOnTap = (e) => {
+    try {
+      const t = e?.target
+      if (!t) return
+
+      const el = t.closest ? t.closest('input, textarea, select, [contenteditable="true"]') : null
+      if (!el) return
+
+      burstRef.current && burstRef.current()
+      startFastFollowRef.current && startFastFollowRef.current()
+    } catch (err) {
+      // ignore
+    }
+  }
+
   return (
     <div
       className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
@@ -1079,6 +1100,9 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           e.stopPropagation()
         }}
         ref={sheetRef}
+        onPointerDownCapture={preAdaptOnTap}
+        onTouchStartCapture={preAdaptOnTap}
+        onMouseDownCapture={preAdaptOnTap}
         className={`w-full max-w-md shadow-2xl overflow-hidden flex flex-col ${
           theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
         }`}
