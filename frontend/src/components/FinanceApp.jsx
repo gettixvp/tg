@@ -795,6 +795,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const burstRef = useRef(() => {})
   const startFastFollowRef = useRef(() => {})
   const lastKeyboardInsetRef = useRef(0)
+  const preLiftTimeoutRef = useRef(0)
 
   const isKeyboardRelevantTarget = (el) => {
     try {
@@ -1102,9 +1103,15 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           const guessed = Math.round(Math.min(320, Math.max(180, (window.innerHeight || 0) * 0.26)))
           const guess = Math.max(cachedSoft, guessed)
           if (guess > 0) {
-            setPreLiftInset(guess)
+            // Important for iOS: do not trigger layout changes synchronously on touchstart/pointerdown,
+            // otherwise focus (and keyboard) can be cancelled.
+            requestAnimationFrame(() => {
+              setPreLiftInset(guess)
+            })
+
+            if (preLiftTimeoutRef.current) clearTimeout(preLiftTimeoutRef.current)
             // If keyboard didn't open (no inset detected), drop the pre-lift after a short time.
-            setTimeout(() => setPreLiftInset(0), 700)
+            preLiftTimeoutRef.current = setTimeout(() => setPreLiftInset(0), 700)
           }
         }
       }
