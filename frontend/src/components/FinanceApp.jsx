@@ -718,12 +718,11 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   )
 }
 
-const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
+const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [keyboardInset, setKeyboardInset] = useState(0)
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
@@ -742,19 +741,25 @@ const BottomSheetModal = ({ open, onClose, theme, children, zIndex = 50 }) => {
   }
 
   useEffect(() => {
-    if (open) {
-      setMounted(true)
-      setDragY(0)
-      const t = window.setTimeout(() => setVisible(true), 10)
-      return () => window.clearTimeout(t)
+    if (!open) {
+      setVisible(false)
+      const t = setTimeout(() => setMounted(false), 180)
+      return () => clearTimeout(t)
     }
 
-    if (mounted) {
-      setVisible(false)
-      const t = window.setTimeout(() => setMounted(false), 260)
-      return () => window.clearTimeout(t)
+    setMounted(true)
+    const t = setTimeout(() => setVisible(true), 0)
+
+    // Reset inner scroll on open to prevent "auto-scroll to bottom" glitches
+    const r = setTimeout(() => {
+      const scrollEl = sheetRef.current?.querySelector?.('[data-bsm-scroll]')
+      if (scrollEl) scrollEl.scrollTop = 0
+    }, 0)
+    return () => {
+      clearTimeout(t)
+      clearTimeout(r)
     }
-  }, [open, mounted])
+  }, [open])
 
   useEffect(() => {
     if (!mounted) return
@@ -1180,6 +1185,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   ])
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiKeyboardInset, setAiKeyboardInset] = useState(0)
+  const aiInputRef = useRef(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!window.visualViewport) return
+
+    const vv = window.visualViewport
+    const recalc = () => {
+      // Use inset only when AI input is focused to avoid layout jumps
+      const focused = document.activeElement && aiInputRef.current && document.activeElement === aiInputRef.current
+      if (!focused) {
+        setAiKeyboardInset(0)
+        return
+      }
+
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      setAiKeyboardInset(inset)
+    }
+
+    const onFocusIn = () => recalc()
+    const onFocusOut = () => setAiKeyboardInset(0)
+
+    vv.addEventListener('resize', recalc)
+    vv.addEventListener('scroll', recalc)
+    window.addEventListener('focusin', onFocusIn)
+    window.addEventListener('focusout', onFocusOut)
+
+    return () => {
+      vv.removeEventListener('resize', recalc)
+      vv.removeEventListener('scroll', recalc)
+      window.removeEventListener('focusin', onFocusIn)
+      window.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
 
   const sendAiMessage = async (text) => {
     if (!user || !user.email) {
@@ -3356,11 +3396,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </button>
                 </div>
 
-                <div className="container-content">
-                  <div className="space-y-3">
+                <div className="container-content" style={{ paddingBottom: aiKeyboardInset }}>
+                  <div className="space-y-3" style={{ minHeight: '70vh' }}>
                     <div
                       className={`rounded-xl p-3 border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'}`}
-                      style={{ maxHeight: '42vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+                      style={{ maxHeight: '60vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
                     >
                       <div className="space-y-3">
                         {aiMessages.map((m, idx) => (
@@ -3406,8 +3446,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </button>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div
+                      className="flex gap-2"
+                      style={{
+                        position: 'sticky',
+                        bottom: 0,
+                        paddingTop: 8,
+                        paddingBottom: 8,
+                        background: theme === 'dark' ? 'rgba(17,24,39,0.95)' : 'rgba(255,255,255,0.95)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                      }}
+                    >
                       <input
+                        ref={aiInputRef}
                         value={aiInput}
                         onChange={(e) => setAiInput(e.target.value)}
                         placeholder="Например: где я трачу больше всего и как сократить?"
@@ -5418,6 +5470,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
       {showBudgetModal && (
         <BottomSheetModal
+          key={`budget-${selectedBudgetCategory || 'list'}`}
           open={showBudgetModal}
           onClose={() => {
             setShowBudgetModal(false)
