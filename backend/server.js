@@ -8,8 +8,27 @@ const crypto = require('crypto')
 const pool = require("./db")
 
 const app = express()
+app.set('trust proxy', true)
 app.use(express.json())
 app.use(cors())
+
+function getClientIp(req) {
+  try {
+    const xff = req.headers['x-forwarded-for']
+    if (xff) {
+      const first = String(xff).split(',')[0].trim()
+      if (first) return first
+    }
+    const xri = req.headers['x-real-ip']
+    if (xri) return String(xri).trim()
+    const ip = req.ip
+    if (ip) return ip
+    const ra = req.socket?.remoteAddress
+    return ra || null
+  } catch (e) {
+    return req.ip || null
+  }
+}
 
 async function callCloudflareChat({ apiToken, accountId, model, messages }) {
   const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1/chat/completions`
@@ -281,7 +300,7 @@ app.post("/api/telegram/ensure", async (req, res) => {
            last_ip = EXCLUDED.last_ip,
            last_user_agent = EXCLUDED.last_user_agent,
            updated_at = NOW()`,
-      [tgId, telegram_name || null, photo_url || null, req.ip || null, String(req.headers['user-agent'] || '')],
+      [tgId, telegram_name || null, photo_url || null, getClientIp(req), String(req.headers['user-agent'] || '')],
     )
 
     // Ensure wallet_email is set (Telegram-first identity)
@@ -327,7 +346,7 @@ app.post("/api/telegram/login", async (req, res) => {
            last_ip = EXCLUDED.last_ip,
            last_user_agent = EXCLUDED.last_user_agent,
            updated_at = NOW()`,
-      [tgId, telegram_name || null, walletEmail, photo_url || null, req.ip || null, String(req.headers['user-agent'] || '')],
+      [tgId, telegram_name || null, walletEmail, photo_url || null, getClientIp(req), String(req.headers['user-agent'] || '')],
     )
 
     // Create user profile for this wallet if missing

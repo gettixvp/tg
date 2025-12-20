@@ -426,7 +426,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
   return (
     <div
-      className={`pb-2 ${theme === "dark" ? "border-white/10" : "border-gray-200"} border-b last:border-b-0`}
+      className="py-2"
     >
       <div className="relative overflow-hidden rounded-[40px]">
         <div
@@ -457,7 +457,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
         >
           {/* Лайк в правом верхнем углу */}
           {tx.liked && (
-            <div className="absolute top-1.5 right-1.5 z-10">
+            <div className="absolute top-1.5 right-5 z-10">
               <Heart className="w-4 h-4 text-red-500 fill-red-500 drop-shadow-lg" />
             </div>
           )}
@@ -3342,10 +3342,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     ;(async () => {
       try {
-        const walletEmail = activeWalletEmail || currentUserEmail || user?.email
+        const walletEmail = ownerWalletEmail || activeWalletEmail || currentUserEmail || user?.email
         const likerKey = getLikerKey()
         if (!walletEmail || !likerKey) return
-        await fetch(`${API_URL}/api/likes/toggle`, {
+        const resp = await fetch(`${API_URL}/api/likes/toggle`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3354,6 +3354,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             liker_key: likerKey,
           }),
         })
+
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '')
+          console.warn('Failed to persist like', resp.status, text)
+          return
+        }
+
+        const data = await resp.json().catch(() => null)
+        if (data && typeof data.liked === 'boolean') {
+          setLikedTransactions((prev) => {
+            const next = new Set(prev)
+            if (data.liked) next.add(txId)
+            else next.delete(txId)
+            return next
+          })
+        }
       } catch (e) {
         console.warn('Failed to persist like', e)
       }
@@ -3776,7 +3792,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-0">
+                  <div className={`${theme === "dark" ? "divide-white/10" : "divide-gray-200"} divide-y`}>
                     {transactions.slice(0, 10).map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
@@ -3850,7 +3866,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Нет операций</p>
                   </div>
                 ) : (
-                  <div>
+                  <div className={`${theme === "dark" ? "divide-white/10" : "divide-gray-200"} divide-y`}>
                     {transactions.map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
@@ -5250,7 +5266,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           </div>
 
           {isWalletOwner && String(selectedWalletMember.member_telegram_id) !== String(tgUserId) && (
-            <div className="space-y-2">
+            <div className="flex gap-2">
               {selectedWalletMember.status !== 'blocked' ? (
                 <button
                   onClick={async () => {
@@ -5258,7 +5274,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowWalletMemberModal(false)
                     setSelectedWalletMember(null)
                   }}
-                  className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
                     theme === 'dark' ? 'bg-amber-700 hover:bg-amber-600 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'
                   }`}
                 >
@@ -5271,7 +5287,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowWalletMemberModal(false)
                     setSelectedWalletMember(null)
                   }}
-                  className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
                     theme === 'dark' ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
                   }`}
                 >
@@ -5286,7 +5302,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setShowWalletMemberModal(false)
                   setSelectedWalletMember(null)
                 }}
-                className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                className={`flex-1 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
                   theme === 'dark' ? 'bg-rose-700 hover:bg-rose-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'
                 }`}
               >
