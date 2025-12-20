@@ -257,6 +257,36 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
       res.json({ success: true, members: r2.rows })
     }
   } catch (e) {
+    // Safety net: on partially migrated DBs, tables might be missing.
+    // Don't crash the whole mini-app; return at least an owner row.
+    const msg = String(e && e.message ? e.message : '')
+    if (msg.includes('relation') && (msg.includes('telegram_accounts') || msg.includes('wallet_members'))) {
+      const ownerTgId = (() => {
+        const m = String(ownerEmail || '').match(/^tg_(\d+)@telegram\.user$/)
+        return m ? m[1] : null
+      })()
+      return res.json({
+        success: true,
+        members: ownerTgId
+          ? [
+              {
+                owner_email: ownerEmail,
+                member_telegram_id: Number(ownerTgId),
+                telegram_name: '',
+                photo_url: '',
+                last_seen_at: null,
+                last_ip: null,
+                last_user_agent: null,
+                status: 'active',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                role: 'owner',
+              },
+            ]
+          : [],
+      })
+    }
+
     console.error("Wallet members get error:", e)
     res.status(500).json({ error: "Ошибка получения участников: " + e.message })
   }
