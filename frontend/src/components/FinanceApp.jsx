@@ -1317,7 +1317,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!ownerEmail) return
     try {
       const resp = await fetch(`${API_URL}/api/wallet/${encodeURIComponent(ownerEmail)}/members`)
-      if (!resp.ok) return
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '')
+        console.warn('[WalletMembers] Failed:', resp.status, ownerEmail, text)
+        return
+      }
       const data = await resp.json().catch(() => null)
       setWalletMembers(data?.members || [])
     } catch (e) {

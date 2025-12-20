@@ -350,7 +350,11 @@ app.put("/api/wallet/:ownerEmail/members/:telegramId/status", async (req, res) =
 
 // --- Health check ---
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() })
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    build_id: (process.env.BUILD_ID || process.env.RENDER_GIT_COMMIT || "").toString(),
+  })
 })
 
 // --- ПИНГ ДЛЯ RENDER (чтобы не засыпал) ---
