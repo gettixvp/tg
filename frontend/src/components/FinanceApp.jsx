@@ -993,8 +993,9 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   if (!mounted) return null
 
   const isTop = position === 'top'
-  const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 180ms ease-out'
+  const lift = isTop ? 0 : keyboardInset
+  const translate = visible ? `translateY(${dragY - lift}px)` : 'translateY(100%)'
+  const transition = isDragging ? 'none' : 'transform 160ms ease-out'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = viewport.top + safeTopOffset
@@ -1053,7 +1054,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           borderTopRightRadius: isTop ? 24 : 24,
           borderBottomLeftRadius: isTop ? 24 : 0,
           borderBottomRightRadius: isTop ? 24 : 0,
-          paddingBottom: isTop ? 0 : keyboardInset,
+          willChange: 'transform',
           touchAction: 'none',
         }}
         onMouseDown={(e) => e.stopPropagation()}
