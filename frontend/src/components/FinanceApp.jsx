@@ -3506,7 +3506,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     borderBottomColor: theme === 'dark' ? 'rgba(55,65,81,1)' : 'rgba(229,231,235,1)',
                   }}
                 >
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                  <h3
+                    className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                    style={{ minWidth: 0 }}
+                  >
                     Общий баланс
                   </h3>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -4093,7 +4096,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }}
                 >
                   <div className="container-header">
-                    <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    <h3
+                      className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                      style={{ minWidth: 0 }}
+                    >
                       Долги
                     </h3>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -4218,7 +4224,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   }}
                 >
                   <div className="container-header">
-                    <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    <h3
+                      className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                      style={{ minWidth: 0 }}
+                    >
                       Приветствие
                     </h3>
                   </div>
