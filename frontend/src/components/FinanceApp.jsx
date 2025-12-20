@@ -187,7 +187,7 @@ const WalletMemberRow = ({ member, theme, isSelf, onOpen }) => {
       onClick={handleOpen}
       onPointerUp={handleOpen}
       onTouchEnd={handleOpen}
-      className={`w-full p-3 rounded-2xl border text-left transition-all active:scale-[0.99] ${
+      className={`w-full p-3 rounded-[40px] border text-left transition-all active:scale-[0.99] ${
         theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-white border-gray-200"
       }`}
     >
@@ -426,7 +426,11 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
   return (
     <div className="mb-2">
-      <div className="relative overflow-hidden rounded-[40px]">
+      <div
+        className={`relative overflow-hidden rounded-[40px] border ${
+          theme === "dark" ? "border-white/15" : "border-gray-300"
+        }`}
+      >
         <div
           onClick={() => {
             if (swipeX === -80) {
@@ -451,9 +455,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative pl-5 pr-4 py-5 cursor-pointer backdrop-blur-lg ${
-            theme === "dark" ? "bg-white/5 border border-white/15" : "bg-white border border-gray-300 shadow-sm"
-          }`}
+          className={`relative pl-5 pr-4 py-5 cursor-pointer backdrop-blur-lg ${theme === "dark" ? "bg-white/5" : "bg-white shadow-sm"}`}
         >
           {/* Лайк в правом верхнем углу */}
           {tx.liked && (
@@ -705,22 +707,38 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
     blue: {
       iconBg: theme === "dark" ? "bg-blue-900/40" : "bg-blue-100",
       iconText: theme === "dark" ? "text-blue-400" : "text-blue-600",
-      progressStroke: theme === "dark" ? "#3b82f6" : "#2563eb"
+      progressStroke: theme === "dark" ? "#3b82f6" : "#2563eb",
+      gradient: theme === "dark" ? "linear-gradient(135deg, rgba(59,130,246,0.22), rgba(99,102,241,0.10))" : "linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.08))",
+      titleText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      percentText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      border: theme === "dark" ? "rgba(59,130,246,0.20)" : "rgba(59,130,246,0.28)",
     },
     purple: {
       iconBg: theme === "dark" ? "bg-purple-900/40" : "bg-purple-100",
       iconText: theme === "dark" ? "text-purple-400" : "text-purple-600",
-      progressStroke: theme === "dark" ? "#a855f7" : "#7c3aed"
+      progressStroke: theme === "dark" ? "#a855f7" : "#7c3aed",
+      gradient: theme === "dark" ? "linear-gradient(135deg, rgba(168,85,247,0.22), rgba(236,72,153,0.10))" : "linear-gradient(135deg, rgba(168,85,247,0.18), rgba(236,72,153,0.08))",
+      titleText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      percentText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      border: theme === "dark" ? "rgba(168,85,247,0.20)" : "rgba(168,85,247,0.28)",
     },
     green: {
       iconBg: theme === "dark" ? "bg-green-900/40" : "bg-green-100",
       iconText: theme === "dark" ? "text-green-400" : "text-green-600",
-      progressStroke: theme === "dark" ? "#22c55e" : "#16a34a"
+      progressStroke: theme === "dark" ? "#22c55e" : "#16a34a",
+      gradient: theme === "dark" ? "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(16,185,129,0.10))" : "linear-gradient(135deg, rgba(34,197,94,0.16), rgba(16,185,129,0.08))",
+      titleText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      percentText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      border: theme === "dark" ? "rgba(34,197,94,0.20)" : "rgba(34,197,94,0.26)",
     },
     orange: {
       iconBg: theme === "dark" ? "bg-orange-900/40" : "bg-orange-100",
       iconText: theme === "dark" ? "text-orange-400" : "text-orange-600",
-      progressStroke: theme === "dark" ? "#f97316" : "#ea580c"
+      progressStroke: theme === "dark" ? "#f97316" : "#ea580c",
+      gradient: theme === "dark" ? "linear-gradient(135deg, rgba(249,115,22,0.20), rgba(245,158,11,0.10))" : "linear-gradient(135deg, rgba(249,115,22,0.16), rgba(245,158,11,0.08))",
+      titleText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      percentText: theme === "dark" ? "text-gray-100" : "text-gray-900",
+      border: theme === "dark" ? "rgba(249,115,22,0.20)" : "rgba(249,115,22,0.26)",
     }
   }
   
@@ -737,8 +755,12 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   return (
     <div 
       ref={containerRef}
-      className={`recent-operations-container ${theme}`}
+      className={`savings-container ${theme}`}
       onMouseMove={handleMouseMove}
+      style={{
+        backgroundImage: currentColor.gradient,
+        borderColor: currentColor.border,
+      }}
     >
       <div className="container-header">
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -746,8 +768,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
             {icon}
           </div>
           <h3
-            className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
-            style={{ paddingLeft: 0 }}
+            className={`flex-1 min-w-0 truncate text-sm font-normal ${currentColor.titleText}`}
           >
             {title}
           </h3>
@@ -778,7 +799,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-[11px] font-semibold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              <span className={`text-[11px] font-semibold ${currentColor.percentText}`}>
                 {Math.round(clampedProgress)}%
               </span>
             </div>
@@ -3553,9 +3574,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                   <div className="grid grid-cols-2 gap-2.5">
                     <div
-                      className={`rounded-[40px] p-2.5 border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+                      className={`rounded-[40px] p-2.5 border text-center ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
                     >
-                      <div className="flex items-center gap-1 mb-0.5">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
                         <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Доходы</span>
                       </div>
@@ -3565,9 +3586,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
 
                     <div
-                      className={`rounded-[40px] p-2.5 border ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+                      className={`rounded-[40px] p-2.5 border text-center ${theme === "dark" ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
                     >
-                      <div className="flex items-center gap-1 mb-0.5">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
                         <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Расходы</span>
                       </div>
@@ -4288,7 +4309,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     {!isSharedWalletView && (
                       <button
                         onClick={inviteUser}
-                        className={`h-8 px-2.5 rounded-[40px] flex items-center justify-center gap-1.5 transition-all touch-none active:scale-95 ${
+                        className={`h-8 px-2.5 rounded-[40px] flex items-center justify-center gap-1.5 transition-all touch-none active:scale-95 mr-1.5 ${
                           theme === "dark"
                             ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
                             : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
@@ -4701,10 +4722,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       {user && user.email && (
                         <div
                           className={`rounded-[40px] p-3 border ${
-                            theme === "dark" ? "bg-blue-900/30 border-blue-700/30" : "bg-blue-50 border-blue-200"
+                            theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
                           }`}
                         >
-                          <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-blue-300" : "text-blue-900"}`}>
+                          <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
                             Безопасность
                           </h4>
                           <button
@@ -4712,16 +4733,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               setShowChangePasswordModal(true)
                               vibrateSelect()
                             }}
-                            className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${
-                              theme === "dark"
-                                ? "bg-blue-700 hover:bg-blue-600 text-white"
-                                : "bg-blue-500 hover:bg-blue-600 text-white"
-                            }`}
+                            className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${theme === "dark" ? "bg-gray-700 hover:bg-gray-600 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
                           >
                             <Settings className="w-3 h-3" />
                             Сменить пароль
                           </button>
-                          <p className={`text-xs mt-2 ${theme === "dark" ? "text-blue-400" : "text-blue-700"}`}>
+                          <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                             Измените пароль для входа в аккаунт через email.
                           </p>
                         </div>
@@ -4730,24 +4747,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       {/* Исправление данных */}
                       <div
                         className={`rounded-[40px] p-3 border ${
-                          theme === "dark" ? "bg-orange-900/30 border-orange-700/30" : "bg-orange-50 border-orange-200"
+                          theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
                         }`}
                       >
-                        <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-orange-300" : "text-orange-900"}`}>
+                        <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
                           Исправление данных
                         </h4>
                         <button
                           onClick={recalculateBalance}
-                          className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${
-                            theme === "dark"
-                              ? "bg-orange-700 hover:bg-orange-600 text-white"
-                              : "bg-orange-500 hover:bg-orange-600 text-white"
-                          }`}
+                          className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${theme === "dark" ? "bg-gray-700 hover:bg-gray-600 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
                         >
                           <RefreshCw className="w-3 h-3" />
                           Пересчитать баланс
                         </button>
-                        <p className={`text-xs mt-2 ${theme === "dark" ? "text-orange-400" : "text-orange-700"}`}>
+                        <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                           Пересчитывает баланс на основе всех транзакций. Используйте, если баланс некорректен.
                         </p>
                       </div>
@@ -4755,10 +4768,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       {/* Опасная зона */}
                       <div
                         className={`rounded-[40px] p-3 border ${
-                          theme === "dark" ? "bg-red-900/30 border-red-700/30" : "bg-red-50 border-red-200"
+                          theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
                         }`}
                       >
-                        <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-red-300" : "text-red-900"}`}>
+                        <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
                           Опасная зона
                         </h4>
                         <button
@@ -4771,7 +4784,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         >
                           Сбросить все данные
                         </button>
-                        <p className={`text-xs mt-2 ${theme === "dark" ? "text-red-400" : "text-red-700"}`}>
+                        <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                           Удалит все транзакции, бюджеты и настройки. Это действие необратимо!
                         </p>
                       </div>
@@ -4790,7 +4803,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               await loadBlockedWalletMembers(ownerWalletEmail)
                               setShowBlockedUsersModal(true)
                             }}
-                            className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs active:scale-95 ${
+                            className={`w-full py-2 rounded-[40px] font-medium transition-all shadow text-xs active:scale-95 flex items-center justify-center gap-2 ${
                               theme === "dark"
                                 ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
                                 : "bg-gray-200 hover:bg-gray-300 text-gray-800"
@@ -6847,7 +6860,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       >
         <div className="flex items-center justify-center p-2">
           <div
-            className={`w-full max-w-md rounded-full p-1.5 border shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}
+            className={`w-full max-w-md rounded-full p-1.5 shadow-2xl flex items-center justify-around pointer-events-auto px-0 flex-row gap-px py-3.5 backdrop-blur-md ${
+              theme === "dark" ? "bg-gray-900/70" : "bg-white/70"
+            }`}
           >
             <NavButton
               active={activeTab === "overview"}
