@@ -785,35 +785,11 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
-  const [preLiftInset, setPreLiftInset] = useState(0)
-  const [viewport, setViewport] = useState({ top: 0, height: typeof window !== 'undefined' ? window.innerHeight : 0 })
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
   const sheetRef = useRef(null)
-  const burstRef = useRef(() => {})
-  const startFastFollowRef = useRef(() => {})
-  const lastKeyboardInsetRef = useRef(0)
-  const preLiftTimeoutRef = useRef(0)
-  const insideTapRef = useRef(false)
-  const expectingKeyboardUntilRef = useRef(0)
-
-  const isKeyboardRelevantTarget = (el) => {
-    try {
-      if (!el) return false
-      const tag = String(el.tagName || '').toLowerCase()
-      if (tag === 'textarea') return true
-      if (tag === 'input') {
-        const type = String(el.getAttribute('type') || 'text').toLowerCase()
-        return !['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'range', 'color'].includes(type)
-      }
-      if (el.isContentEditable) return true
-      return false
-    } catch (e) {
-      return false
-    }
-  }
 
   const hapticImpact = () => {}
 
@@ -846,128 +822,37 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   useEffect(() => {
     if (!mounted) return
 
-    let raf = 0
-    let followRaf = 0
-
-    const computeInset = () => {
+    const vv = window.visualViewport
+    const handleResize = () => {
       try {
-        const vv = window.visualViewport
-        if (vv) {
-          setViewport({
-            top: Math.max(0, Math.round(vv.offsetTop || 0)),
-            height: Math.max(0, Math.round(vv.height || window.innerHeight)),
-          })
-        } else {
-          setViewport({ top: 0, height: window.innerHeight })
-        }
-
         setWindowHeight(window.innerHeight)
-
-        if (!sheetRef.current) {
-          setKeyboardInset(0)
-          return
-        }
-
         if (!vv) {
           setKeyboardInset(0)
           return
         }
-
-        const active = document.activeElement
-        const focusedInside = Boolean(active && sheetRef.current.contains(active) && isKeyboardRelevantTarget(active))
-        const expecting = expectingKeyboardUntilRef.current && Date.now() < expectingKeyboardUntilRef.current
-        if (!focusedInside && !expecting) {
-          setKeyboardInset(0)
-          return
-        }
-
-        // When keyboard opens, visualViewport height shrinks.
-        // We lift the sheet by the missing height so inputs are not covered.
-        const inset = Math.max(0, Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0)))
+        const viewportHeight = vv.height
+        const windowH = window.innerHeight
+        const inset = Math.max(0, Math.round(windowH - viewportHeight - (vv.offsetTop || 0)))
         setKeyboardInset(inset)
-        if (inset > 0) {
-          lastKeyboardInsetRef.current = inset
-          setPreLiftInset(0)
-          expectingKeyboardUntilRef.current = 0
-        }
       } catch (e) {
         setKeyboardInset(0)
       }
     }
 
-    const burst = () => {
-      if (raf) cancelAnimationFrame(raf)
-      computeInset()
-      raf = requestAnimationFrame(() => {
-        computeInset()
-        requestAnimationFrame(computeInset)
-      })
-    }
-    burstRef.current = burst
+    handleResize()
 
-    const startFastFollow = () => {
-      if (followRaf) cancelAnimationFrame(followRaf)
-
-      const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
-      const tick = () => {
-        computeInset()
-
-        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
-        if (now - start > 1200) return
-
-        const vv = window.visualViewport
-        const active = document.activeElement
-        const inside = Boolean(sheetRef.current && active && sheetRef.current.contains(active) && isKeyboardRelevantTarget(active))
-        if (!inside) return
-
-        if (vv) {
-          const inset = Math.max(0, Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0)))
-          if (inset > 0) return
-        }
-
-        followRaf = requestAnimationFrame(tick)
-      }
-
-      followRaf = requestAnimationFrame(tick)
-    }
-    startFastFollowRef.current = startFastFollow
-
-    burst()
-
-    const vv = window.visualViewport
     if (vv && vv.addEventListener) {
-      vv.addEventListener('resize', burst)
-      vv.addEventListener('scroll', burst)
+      vv.addEventListener('resize', handleResize)
+      vv.addEventListener('scroll', handleResize)
     }
-    window.addEventListener('resize', burst)
-
-    const onFocusIn = () => {
-      burst()
-      startFastFollow()
-    }
-    const onFocusOut = () => {
-      if (followRaf) cancelAnimationFrame(followRaf)
-      setPreLiftInset(0)
-      expectingKeyboardUntilRef.current = 0
-      burst()
-    }
-
-    document.addEventListener('focusin', onFocusIn)
-    document.addEventListener('focusout', onFocusOut)
+    window.addEventListener('resize', handleResize)
 
     return () => {
-      if (raf) cancelAnimationFrame(raf)
-      if (followRaf) cancelAnimationFrame(followRaf)
-      burstRef.current = () => {}
-      startFastFollowRef.current = () => {}
       if (vv && vv.removeEventListener) {
-        vv.removeEventListener('resize', burst)
-        vv.removeEventListener('scroll', burst)
+        vv.removeEventListener('resize', handleResize)
+        vv.removeEventListener('scroll', handleResize)
       }
-      window.removeEventListener('resize', burst)
-
-      document.removeEventListener('focusin', onFocusIn)
-      document.removeEventListener('focusout', onFocusOut)
+      window.removeEventListener('resize', handleResize)
     }
   }, [mounted])
 
@@ -1069,12 +954,10 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   if (!mounted) return null
 
   const isTop = position === 'top'
-  const lift = isTop ? 0 : Math.max(keyboardInset, preLiftInset)
-  const translate = visible ? `translateY(${dragY - lift}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 240ms cubic-bezier(0.2, 0, 0, 1)'
+  const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
+  const transition = isDragging ? 'none' : 'transform 180ms ease-out, bottom 180ms ease-out'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
-  // Keep overlay position stable to avoid flashes/jumps when iOS updates visualViewport.offsetTop late.
   const overlayTop = safeTopOffset
   const overlayHeight = Math.max(0, windowHeight - safeTopOffset)
 
@@ -1084,52 +967,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     height: overlayHeight,
   }
 
-  const preAdaptOnTap = (e) => {
-    try {
-      insideTapRef.current = true
-      setTimeout(() => {
-        insideTapRef.current = false
-      }, 0)
-
-      const t = e?.target
-      if (!t) return
-
-      const el = t.closest ? t.closest('input, textarea, [contenteditable="true"]') : null
-      if (!el) return
-
-      if (!isKeyboardRelevantTarget(el)) return
-
-      // Mark that we're expecting the keyboard soon (iOS may update visualViewport with a delay)
-      expectingKeyboardUntilRef.current = Date.now() + 1400
-
-      // Pre-lift immediately using last known keyboard inset (iOS WebView often updates visualViewport late)
-      if (!isTop) {
-        if (keyboardInset <= 0) {
-          const cached = lastKeyboardInsetRef.current
-          const cachedSoft = cached > 0 ? Math.round(cached * 0.72) : 0
-          const guessed = Math.round(Math.min(320, Math.max(180, (window.innerHeight || 0) * 0.26)))
-          const guess = Math.max(cachedSoft, guessed)
-          if (guess > 0) {
-            // Important for iOS: do not trigger layout changes synchronously on touchstart/pointerdown,
-            // otherwise focus (and keyboard) can be cancelled.
-            requestAnimationFrame(() => {
-              setPreLiftInset(guess)
-            })
-
-            if (preLiftTimeoutRef.current) clearTimeout(preLiftTimeoutRef.current)
-            // If keyboard didn't open (no inset detected), drop the pre-lift after a short time.
-            preLiftTimeoutRef.current = setTimeout(() => setPreLiftInset(0), 700)
-          }
-        }
-      }
-
-      burstRef.current && burstRef.current()
-      startFastFollowRef.current && startFastFollowRef.current()
-    } catch (err) {
-      // ignore
-    }
-  }
-
   return (
     <div
       className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
@@ -1137,7 +974,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
-          if (insideTapRef.current) return
           requestClose()
         }
       }}
@@ -1150,14 +986,12 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
-          if (insideTapRef.current) return
           requestClose()
         }
       }}
       onTouchEnd={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
-          if (insideTapRef.current) return
           requestClose()
         }
       }}
@@ -1168,22 +1002,20 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           e.stopPropagation()
         }}
         ref={sheetRef}
-        onPointerDownCapture={preAdaptOnTap}
-        onTouchStartCapture={preAdaptOnTap}
-        onMouseDownCapture={preAdaptOnTap}
         className={`w-full max-w-md shadow-2xl overflow-hidden flex flex-col ${
           theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
         }`}
         style={{
           transform: translate,
           transition,
+          bottom: isTop ? 0 : keyboardInset,
           maxHeight: Math.max(0, overlayHeight - 12),
           marginTop: isTop ? 12 : 0,
           borderTopLeftRadius: isTop ? 24 : 24,
           borderTopRightRadius: isTop ? 24 : 24,
           borderBottomLeftRadius: isTop ? 24 : 0,
           borderBottomRightRadius: isTop ? 24 : 0,
-          willChange: 'transform',
+          willChange: 'transform, bottom',
           touchAction: 'none',
           overscrollBehavior: 'contain',
         }}
