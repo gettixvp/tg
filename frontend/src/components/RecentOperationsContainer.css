@@ -101,11 +101,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1rem 1rem 2.5rem;
+  padding: 1rem;
   background: var(--header-bg);
   border-bottom: 1px solid var(--header-border);
   position: relative;
   z-index: 2;
+}
+
+/* Смещаем вправо только текст заголовка в шапке окна (не кнопки справа) */
+.container-header > .container-title {
+  margin-left: 1.5rem;
 }
 
 .container-title {
@@ -181,7 +186,11 @@
 /* Адаптивность */
 @media (max-width: 768px) {
   .container-header {
-    padding: 0.75rem 0.75rem 0.75rem 2.25rem;
+    padding: 0.75rem;
+  }
+
+  .container-header > .container-title {
+    margin-left: 1.25rem;
   }
   
   .container-title {
@@ -199,7 +208,11 @@
 
 @media (max-width: 480px) {
   .container-header {
-    padding: 0.5rem 0.5rem 0.5rem 2rem;
+    padding: 0.5rem;
+  }
+
+  .container-header > .container-title {
+    margin-left: 1rem;
   }
   
   .container-title {
