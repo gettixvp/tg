@@ -96,17 +96,17 @@ app.post("/api/telegram/login", async (req, res) => {
 
     // Ensure telegram account exists and wallet_email is set
     await pool.query(
-      `INSERT INTO telegram_accounts (telegram_id, telegram_name, wallet_email)
-       VALUES ($1::bigint, $2, $3)
+      `INSERT INTO telegram_accounts (telegram_id, telegram_name, wallet_email, photo_url, last_seen_at, last_ip, last_user_agent)
+       VALUES ($1::bigint, $2, $3, $4, NOW(), $5, $6)
        ON CONFLICT (telegram_id) DO UPDATE
        SET telegram_name = COALESCE(EXCLUDED.telegram_name, telegram_accounts.telegram_name),
            wallet_email = COALESCE(telegram_accounts.wallet_email, EXCLUDED.wallet_email),
            photo_url = COALESCE(EXCLUDED.photo_url, telegram_accounts.photo_url),
            last_seen_at = NOW(),
-           last_ip = $4,
-           last_user_agent = $5,
+           last_ip = EXCLUDED.last_ip,
+           last_user_agent = EXCLUDED.last_user_agent,
            updated_at = NOW()`,
-      [tgId, telegram_name || null, walletEmail, req.ip || null, String(req.headers['user-agent'] || '')],
+      [tgId, telegram_name || null, walletEmail, photo_url || null, req.ip || null, String(req.headers['user-agent'] || '')],
     )
 
     // Create user profile for this wallet if missing

@@ -1292,7 +1292,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const tgPhotoUrl = tgUser && tgUser.photo_url
 
   const isSharedWalletView = Boolean(activeWalletEmail && currentUserEmail && activeWalletEmail !== currentUserEmail)
-  const ownerWalletEmail = activeWalletEmail || currentUserEmail
+  const ownerWalletEmail = isSharedWalletView ? activeWalletEmail : (currentUserEmail || activeWalletEmail)
   const isWalletOwner = Boolean(ownerWalletEmail && !isSharedWalletView)
   const isTelegramNativeUser = Boolean(currentUserEmail && String(currentUserEmail).startsWith('tg_') && String(currentUserEmail).endsWith('@telegram.user'))
 
@@ -1557,6 +1557,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }, [tgUserId, displayName, tgPhotoUrl])
 
   useEffect(() => {
+    if (isSharedWalletView && !activeWalletEmail) return
     if (!ownerWalletEmail) return
     loadWalletMembers(ownerWalletEmail)
 
@@ -1743,12 +1744,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 } catch (e) {
                   // ignore
                 }
-              }
-              
-              alert(`✅ Вы успешно подключились к совместному кошельку!\n\nТеперь вы можете видеть общие расходы и доходы.`)
-              vibrateSuccess()
 
-              // Переключаемся на кошелек владельца (без полной перезагрузки)
+                // Switch UI immediately to the owner's wallet
+                setActiveWalletEmail(String(walletEmail))
+              }
+              vibrateSuccess()
               if (walletEmail) {
                 setLinkingLoading(true)
                 let ok = false
