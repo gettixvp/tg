@@ -723,6 +723,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [keyboardInset, setKeyboardInset] = useState(0)
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
@@ -1087,8 +1088,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
 
+  const ACTIVE_WALLET_KEY = 'active_wallet_email_v1'
+
   // UseState hooks should be at the top level of the component
   const [user, setUser] = useState(null)
+  const [currentUserEmail, setCurrentUserEmail] = useState(null)
+  const [activeWalletEmail, setActiveWalletEmail] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
@@ -1513,7 +1518,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           let referrerTelegramId = null
           
           // Парсим параметр в зависимости от формата
-          if (startParam.startsWith('tg_')) {
+          if (startParam && startParam.startsWith('tg_') && tgUserId && user) {
             // Формат: tg_123456789
             referrerTelegramId = startParam.replace('tg_', '')
           }
@@ -1561,12 +1566,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             if (response.ok) {
               // Сохраняем, что уже связались
               sessionStorage.setItem(linkKey, 'true')
+
+              const data = await response.json().catch(() => ({}))
+              const walletEmail = data.walletEmail
+              if (walletEmail) {
+                try {
+                  localStorage.setItem(ACTIVE_WALLET_KEY, String(walletEmail))
+                } catch (e) {
+                  // ignore
+                }
+              }
               
               alert(`✅ Вы успешно подключились к совместному кошельку!\n\nТеперь вы можете видеть общие расходы и доходы.`)
               vibrateSuccess()
-              
-              // Перезагружаем данные
-              window.location.reload()
+
+              // Переключаемся на кошелек владельца (без полной перезагрузки)
+              if (walletEmail) {
+                await loadWalletView(walletEmail)
+              }
             } else {
               const error = await response.json()
               console.error('Link error:', error)
@@ -1693,6 +1710,52 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  const loadWalletView = async (walletEmail) => {
+    if (!walletEmail) return
+    try {
+      const userResp = await fetch(`${API_URL}/api/user/${encodeURIComponent(walletEmail)}`)
+      if (!userResp.ok) return
+      const walletUser = await userResp.json().catch(() => null)
+      if (!walletUser) return
+
+      const txResp = await fetch(`${API_URL}/api/transactions?user_email=${encodeURIComponent(walletEmail)}`)
+      const walletTxs = txResp.ok ? await txResp.json().catch(() => []) : []
+
+      setActiveWalletEmail(walletEmail)
+      setUser(walletUser)
+      setBalance(Number(walletUser.balance || 0))
+      setIncome(Number(walletUser.income || 0))
+      setExpenses(Number(walletUser.expenses || 0))
+      setSavings(Number(walletUser.savings_usd || 0))
+      setGoalSavings(Number(walletUser.goal_savings || 50000))
+      setGoalInput(String(Number(walletUser.goal_savings || 50000)))
+
+      if (walletUser.goal_name) setGoalName(walletUser.goal_name)
+      if (walletUser.initial_savings_amount !== undefined) setInitialSavingsAmount(Number(walletUser.initial_savings_amount || 0))
+      if (walletUser.second_goal_name) setSecondGoalName(walletUser.second_goal_name)
+      if (walletUser.second_goal_amount !== undefined) setSecondGoalAmount(Number(walletUser.second_goal_amount || 0))
+      if (walletUser.second_goal_savings !== undefined) setSecondGoalSavings(Number(walletUser.second_goal_savings || 0))
+      if (walletUser.second_goal_initial_amount !== undefined) setSecondGoalInitialAmount(Number(walletUser.second_goal_initial_amount || 0))
+
+      if (walletUser.budgets) {
+        try {
+          const parsedBudgets = typeof walletUser.budgets === 'string' ? JSON.parse(walletUser.budgets) : walletUser.budgets
+          setBudgets(parsedBudgets || {})
+        } catch (e) {
+          setBudgets({})
+        }
+      } else {
+        setBudgets({})
+      }
+
+      setTransactions(Array.isArray(walletTxs) ? walletTxs : [])
+      await loadLinkedUsers(walletEmail)
+      await loadDebts(walletEmail)
+    } catch (e) {
+      console.warn('Failed to load wallet view', e)
+    }
+  }
+
   const removeLinkedUser = async (telegramId) => {
     if (!user || !user.email) return
 
@@ -1716,6 +1779,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   async function applyUser(u, txs = [], isEmailAuth = false) {
+    setCurrentUserEmail(u?.email || null)
     setUser(u)
     setIsAuthenticated(isEmailAuth)
     setBalance(Number(u.balance || 0))
@@ -1749,6 +1813,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
       loadDebts(u.email)
+    }
+
+    // Restore wallet view if previously linked
+    try {
+      const stored = localStorage.getItem(ACTIVE_WALLET_KEY)
+      const walletEmail = stored ? String(stored) : null
+      if (walletEmail && walletEmail !== u.email) {
+        await loadWalletView(walletEmail)
+      } else {
+        setActiveWalletEmail(null)
+      }
+    } catch (e) {
+      // ignore
     }
 
     // Отложенная загрузка комментариев (не блокирует UI)

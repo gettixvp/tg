@@ -148,6 +148,24 @@ app.post('/api/ai/analyze', async (req, res) => {
   }
 })
 
+// --- Получить пользователя ---
+app.get("/api/user/:email", async (req, res) => {
+  const { email } = req.params
+
+  if (!email) return res.status(400).json({ error: "Email обязателен" })
+
+  try {
+    const r = await pool.query("SELECT * FROM users WHERE email = $1", [email])
+    if (r.rowCount === 0) {
+      return res.status(404).json({ error: "Пользователь не найден" })
+    }
+    res.json(convertUser(r.rows[0]))
+  } catch (e) {
+    console.error("User get error:", e)
+    res.status(500).json({ error: "Ошибка получения: " + e.message })
+  }
+})
+
 // --- Регистрация / Вход ---
 app.post("/api/auth", async (req, res) => {
   const { email, password, first_name, telegram_id, telegram_name, mode } = req.body
@@ -780,27 +798,42 @@ app.post("/api/link", async (req, res) => {
 
     console.log(`✅ Linked users: TG ${currentTelegramId} (${currentEmail || 'no email'}) <-> TG ${referrerTelegramId} (${referrerEmail || 'no email'})`)
 
+    // Resolve wallet email of referrer from linked_telegram_users (filled during /api/auth)
+    // This allows invited user to load the owner's wallet data after linking.
+    let resolvedReferrerEmail = referrerEmail || null
+    if (!resolvedReferrerEmail) {
+      const refEmailRes = await pool.query(
+        `SELECT user_email FROM linked_telegram_users WHERE telegram_id = $1 ORDER BY linked_at DESC LIMIT 1`,
+        [referrerTelegramId],
+      )
+      resolvedReferrerEmail = refEmailRes.rows?.[0]?.user_email || null
+    }
+
     // Если оба пользователя имеют email, создаем также связь по email
-    if (currentEmail && referrerEmail) {
+    if (currentEmail && resolvedReferrerEmail) {
       const existingEmail = await pool.query(
         `SELECT * FROM linked_users WHERE user_email = $1 AND linked_email = $2`,
-        [currentEmail, referrerEmail]
+        [currentEmail, resolvedReferrerEmail]
       )
 
       if (existingEmail.rows.length === 0) {
         await pool.query(
           `INSERT INTO linked_users (user_email, linked_email) VALUES ($1, $2)`,
-          [currentEmail, referrerEmail]
+          [currentEmail, resolvedReferrerEmail]
         )
         await pool.query(
           `INSERT INTO linked_users (user_email, linked_email) VALUES ($1, $2)`,
-          [referrerEmail, currentEmail]
+          [resolvedReferrerEmail, currentEmail]
         )
-        console.log(`✅ Also linked by email: ${currentEmail} <-> ${referrerEmail}`)
+        console.log(`✅ Also linked by email: ${currentEmail} <-> ${resolvedReferrerEmail}`)
       }
     }
 
-    res.json({ success: true, message: "Пользователи успешно связаны" })
+    res.json({
+      success: true,
+      message: "Пользователи успешно связаны",
+      walletEmail: resolvedReferrerEmail,
+    })
   } catch (e) {
     console.error("Link users error:", e)
     res.status(500).json({ error: "Не удалось связать пользователей: " + e.message })
