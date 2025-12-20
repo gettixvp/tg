@@ -787,6 +787,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [preLiftInset, setPreLiftInset] = useState(0)
   const [viewport, setViewport] = useState({ top: 0, height: typeof window !== 'undefined' ? window.innerHeight : 0 })
+  const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
@@ -794,6 +795,22 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const burstRef = useRef(() => {})
   const startFastFollowRef = useRef(() => {})
   const lastKeyboardInsetRef = useRef(0)
+
+  const isKeyboardRelevantTarget = (el) => {
+    try {
+      if (!el) return false
+      const tag = String(el.tagName || '').toLowerCase()
+      if (tag === 'textarea') return true
+      if (tag === 'input') {
+        const type = String(el.getAttribute('type') || 'text').toLowerCase()
+        return !['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'range', 'color'].includes(type)
+      }
+      if (el.isContentEditable) return true
+      return false
+    } catch (e) {
+      return false
+    }
+  }
 
   const hapticImpact = () => {}
 
@@ -841,6 +858,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           setViewport({ top: 0, height: window.innerHeight })
         }
 
+        setWindowHeight(window.innerHeight)
+
         if (!sheetRef.current) {
           setKeyboardInset(0)
           return
@@ -848,6 +867,13 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
         const active = document.activeElement
         if (!active || !sheetRef.current.contains(active)) {
+          setKeyboardInset(0)
+          return
+        }
+
+        // Only adapt for text inputs / textarea / contenteditable.
+        // Do not react to <select> (iOS opens a picker and visualViewport changes can break layout).
+        if (!isKeyboardRelevantTarget(active)) {
           setKeyboardInset(0)
           return
         }
@@ -892,7 +918,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
         const vv = window.visualViewport
         const active = document.activeElement
-        const inside = Boolean(sheetRef.current && active && sheetRef.current.contains(active))
+        const inside = Boolean(sheetRef.current && active && sheetRef.current.contains(active) && isKeyboardRelevantTarget(active))
         if (!inside) return
 
         if (vv) {
@@ -1045,11 +1071,12 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const isTop = position === 'top'
   const lift = isTop ? 0 : Math.max(keyboardInset, preLiftInset)
   const translate = visible ? `translateY(${dragY - lift}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 160ms ease-out'
+  const transition = isDragging ? 'none' : 'transform 240ms cubic-bezier(0.2, 0, 0, 1)'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = viewport.top + safeTopOffset
-  const overlayHeight = Math.max(0, viewport.height - safeTopOffset)
+  // Keep overlay height stable (windowHeight) to avoid jumps when iOS updates visualViewport late.
+  const overlayHeight = Math.max(0, windowHeight - overlayTop)
 
   const overlayStyle = {
     zIndex,
@@ -1062,8 +1089,10 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       const t = e?.target
       if (!t) return
 
-      const el = t.closest ? t.closest('input, textarea, select, [contenteditable="true"]') : null
+      const el = t.closest ? t.closest('input, textarea, [contenteditable="true"]') : null
       if (!el) return
+
+      if (!isKeyboardRelevantTarget(el)) return
 
       // Pre-lift immediately using last known keyboard inset (iOS WebView often updates visualViewport late)
       if (!isTop && lastKeyboardInsetRef.current > 0) {
