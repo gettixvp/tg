@@ -797,6 +797,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const lastKeyboardInsetRef = useRef(0)
   const preLiftTimeoutRef = useRef(0)
   const insideTapRef = useRef(false)
+  const expectingKeyboardUntilRef = useRef(0)
 
   const isKeyboardRelevantTarget = (el) => {
     try {
@@ -867,20 +868,15 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           return
         }
 
-        const active = document.activeElement
-        if (!active || !sheetRef.current.contains(active)) {
-          setKeyboardInset(0)
-          return
-        }
-
-        // Only adapt for text inputs / textarea / contenteditable.
-        // Do not react to <select> (iOS opens a picker and visualViewport changes can break layout).
-        if (!isKeyboardRelevantTarget(active)) {
-          setKeyboardInset(0)
-          return
-        }
-
         if (!vv) {
+          setKeyboardInset(0)
+          return
+        }
+
+        const active = document.activeElement
+        const focusedInside = Boolean(active && sheetRef.current.contains(active) && isKeyboardRelevantTarget(active))
+        const expecting = expectingKeyboardUntilRef.current && Date.now() < expectingKeyboardUntilRef.current
+        if (!focusedInside && !expecting) {
           setKeyboardInset(0)
           return
         }
@@ -892,6 +888,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         if (inset > 0) {
           lastKeyboardInsetRef.current = inset
           setPreLiftInset(0)
+          expectingKeyboardUntilRef.current = 0
         }
       } catch (e) {
         setKeyboardInset(0)
@@ -951,6 +948,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     const onFocusOut = () => {
       if (followRaf) cancelAnimationFrame(followRaf)
       setPreLiftInset(0)
+      expectingKeyboardUntilRef.current = 0
       burst()
     }
 
@@ -1100,6 +1098,9 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       if (!el) return
 
       if (!isKeyboardRelevantTarget(el)) return
+
+      // Mark that we're expecting the keyboard soon (iOS may update visualViewport with a delay)
+      expectingKeyboardUntilRef.current = Date.now() + 1400
 
       // Pre-lift immediately using last known keyboard inset (iOS WebView often updates visualViewport late)
       if (!isTop) {
