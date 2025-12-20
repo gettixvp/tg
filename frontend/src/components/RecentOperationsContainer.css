@@ -5,7 +5,7 @@
 .savings-container,
 .styled-container {
   position: relative;
-  border-radius: 40px;
+  border-radius: 33px;
   border: 1px solid;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -140,27 +140,7 @@
 }
 
 /* Инпуты/кнопки внутри немодальных контейнеров под большие скругления */
-.recent-operations-container input,
-.recent-operations-container textarea,
-.recent-operations-container select,
-.budgets-container input,
-.budgets-container textarea,
-.budgets-container select,
-.savings-container input,
-.savings-container textarea,
-.savings-container select,
-.styled-container input,
-.styled-container textarea,
-.styled-container select {
-  border-radius: 40px;
-}
-
-.recent-operations-container button,
-.budgets-container button,
-.savings-container button,
-.styled-container button {
-  border-radius: 40px;
-}
+/* Инпуты/кнопки внутри контейнеров не переопределяем глобально */
 
 /* Оверлей для свечения */
 .glow-overlay {
