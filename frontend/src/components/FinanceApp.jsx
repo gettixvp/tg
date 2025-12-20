@@ -803,13 +803,18 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50 }) => {
     const t = setTimeout(() => setVisible(true), 0)
 
     // Reset inner scroll on open to prevent "auto-scroll to bottom" glitches
-    const r = setTimeout(() => {
+    const r1 = setTimeout(() => {
       const scrollEl = sheetRef.current?.querySelector?.('[data-bsm-scroll]')
       if (scrollEl) scrollEl.scrollTop = 0
     }, 0)
+    const r2 = setTimeout(() => {
+      const scrollEl = sheetRef.current?.querySelector?.('[data-bsm-scroll]')
+      if (scrollEl) scrollEl.scrollTop = 0
+    }, 80)
     return () => {
       clearTimeout(t)
-      clearTimeout(r)
+      clearTimeout(r1)
+      clearTimeout(r2)
     }
   }, [open])
 
@@ -1112,6 +1117,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showChart, setShowChart] = useState(false)
   const [chartType, setChartType] = useState("expense") // Тип транзакции для диаграммы
   const [linkingLoading, setLinkingLoading] = useState(false)
+  const [showAiModal, setShowAiModal] = useState(false)
   const [selectedWalletMember, setSelectedWalletMember] = useState(null)
   const [showWalletMemberModal, setShowWalletMemberModal] = useState(false)
   const [showBlockedUsersModal, setShowBlockedUsersModal] = useState(false)
@@ -3446,7 +3452,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
-                        setActiveTab('ai')
+                        setShowAiModal(true)
                         vibrateSelect()
                       }}
                       className="show-all-button"
@@ -3547,6 +3553,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <BudgetsContainer 
                   theme={theme}
                   onSetup={() => {
+                    blurAll()
                     setShowBudgetModal(true)
                     setSelectedBudgetCategory('')
                     setBudgetLimitInput('')
@@ -3763,118 +3770,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </div>
           )}
 
-          {activeTab === "ai" && (
-            <div className="space-y-3" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <div className={`styled-container ${theme}`}>
-                <div className="container-header">
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    ИИ-анализатор
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setActiveTab('overview')
-                      vibrateSelect()
-                    }}
-                    className="show-all-button"
-                    title="Назад"
-                  >
-                    <ChevronRight className="w-4 h-4" style={{ transform: 'rotate(180deg)' }} />
-                  </button>
-                </div>
-
-                <div className="container-content" style={{ paddingBottom: aiKeyboardInset }}>
-                  <div className="space-y-3" style={{ minHeight: '70vh' }}>
-                    <div
-                      className={`rounded-xl p-3 border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'}`}
-                      style={{ maxHeight: '60vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
-                    >
-                      <div className="space-y-3">
-                        {aiMessages.map((m, idx) => (
-                          <div
-                            key={idx}
-                            className={`text-sm leading-relaxed ${m.role === 'user' ? 'text-right' : 'text-left'}`}
-                          >
-                            <div
-                              className={`inline-block rounded-xl px-3 py-2 max-w-[90%] ${
-                                m.role === 'user'
-                                  ? theme === 'dark'
-                                    ? 'bg-blue-700 text-white'
-                                    : 'bg-blue-600 text-white'
-                                  : theme === 'dark'
-                                    ? 'bg-gray-700/60 text-gray-100'
-                                    : 'bg-gray-100 text-gray-900'
-                              }`}
-                              style={{ whiteSpace: 'pre-wrap' }}
-                            >
-                              {m.content}
-                            </div>
-                          </div>
-                        ))}
-                        {aiLoading && (
-                          <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Анализирую…
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => sendAiMessage('Проанализируй мои финансы и дай рекомендации по экономии и бюджету')}
-                        className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
-                          theme === 'dark'
-                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-100'
-                            : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-                        }`}
-                        disabled={aiLoading}
-                      >
-                        Проанализировать
-                      </button>
-                    </div>
-
-                    <div
-                      className="flex gap-2"
-                      style={{
-                        position: 'sticky',
-                        bottom: 0,
-                        paddingTop: 8,
-                        paddingBottom: 8,
-                        background: theme === 'dark' ? 'rgba(17,24,39,0.95)' : 'rgba(255,255,255,0.95)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
-                      }}
-                    >
-                      <input
-                        ref={aiInputRef}
-                        value={aiInput}
-                        onChange={(e) => setAiInput(e.target.value)}
-                        placeholder="Например: где я трачу больше всего и как сократить?"
-                        className={`flex-1 p-3 border rounded-xl transition-all text-sm ${
-                          theme === 'dark'
-                            ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
-                            : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                        }`}
-                      />
-                      <button
-                        onClick={() => sendAiMessage(aiInput)}
-                        className={`px-4 rounded-xl transition-all active:scale-95 ${
-                          theme === 'dark'
-                            ? 'bg-blue-700 hover:bg-blue-600 text-white'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
-                        disabled={aiLoading}
-                        title="Отправить"
-                      >
-                        <Send className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="glow-overlay" />
-              </div>
-            </div>
-          )}
+          {activeTab === "ai" && null}
 
           {activeTab === "savings" && (
             <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
@@ -4298,9 +4194,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Аккаунт
-                  </h3>
+                  <div className="flex items-center justify-between w-full">
+                    <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      Аккаунт
+                    </h3>
+                    {!isSharedWalletView && (
+                      <button
+                        onClick={inviteUser}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all touch-none active:scale-95 ${
+                          theme === "dark"
+                            ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
+                            : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                        }`}
+                        title="Пригласить пользователя"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="container-content">
@@ -4427,20 +4338,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </div>
                       )}
 
-                      {!isSharedWalletView && (
-                        <button
-                          onClick={inviteUser}
-                          className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                            theme === "dark"
-                              ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
-                              : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                          }`}
-                        >
-                          <UserPlus className="w-4 h-4" />
-                          Пригласить пользователя
-                        </button>
-                      )}
-
                       {isSharedWalletView && (
                         <button
                           onClick={leaveSharedWallet}
@@ -4499,18 +4396,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </div>
                       </div>
                       
-                      {/* Кнопка приглашения (доступна без email) */}
-                      <button
-                        onClick={inviteUser}
-                        className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                          theme === "dark"
-                            ? "bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white"
-                            : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                        }`}
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        Пригласить пользователя
-                      </button>
+                      {/* Кнопка приглашения перенесена в шапку блока "Аккаунт" */}
                       
                       <button
                         onClick={() => {
@@ -4647,6 +4533,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <div className="container-content">
                   <button
                     onClick={() => {
+                      blurAll()
                       setShowBudgetModal(true)
                       setSelectedBudgetCategory('')
                       setBudgetLimitInput('')
@@ -4965,6 +4852,107 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 Сохранить
               </button>
             </div>
+        </BottomSheetModal>
+      )}
+
+      {showAiModal && (
+        <BottomSheetModal
+          open={showAiModal}
+          onClose={() => {
+            setShowAiModal(false)
+            setAiKeyboardInset(0)
+          }}
+          theme={theme}
+          zIndex={80}
+        >
+          <div className="max-h-[82vh] overflow-auto pr-1">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                ИИ-анализатор
+              </h3>
+            </div>
+
+            <div
+              className={`rounded-xl p-3 border ${theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'}`}
+              style={{ maxHeight: '58vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+            >
+              <div className="space-y-3">
+                {aiMessages.map((m, idx) => (
+                  <div key={idx} className={`text-sm leading-relaxed ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
+                    <div
+                      className={`inline-block rounded-xl px-3 py-2 max-w-[90%] ${
+                        m.role === 'user'
+                          ? theme === 'dark'
+                            ? 'bg-blue-700 text-white'
+                            : 'bg-blue-600 text-white'
+                          : theme === 'dark'
+                            ? 'bg-gray-700/60 text-gray-100'
+                            : 'bg-gray-100 text-gray-900'
+                      }`}
+                      style={{ whiteSpace: 'pre-wrap' }}
+                    >
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {aiLoading && (
+                  <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Анализирую…</div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => sendAiMessage('Проанализируй мои финансы и дай рекомендации по экономии и бюджету')}
+                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                  theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                }`}
+                disabled={aiLoading}
+              >
+                Проанализировать
+              </button>
+            </div>
+
+            <div
+              className="flex gap-2 mt-3"
+              style={{
+                position: 'sticky',
+                bottom: 0,
+                paddingTop: 8,
+                paddingBottom: Math.max(8, aiKeyboardInset + 8),
+                background: theme === 'dark' ? 'rgba(17,24,39,0.95)' : 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+              }}
+            >
+              <input
+                ref={aiInputRef}
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                placeholder="Например: где я трачу больше всего и как сократить?"
+                className={`flex-1 p-3 border rounded-xl transition-all text-sm ${
+                  theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
+                    : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                }`}
+              />
+              <button
+                onClick={() => sendAiMessage(aiInput)}
+                disabled={aiLoading || !aiInput.trim()}
+                className={`px-4 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  aiLoading || !aiInput.trim()
+                    ? theme === 'dark'
+                      ? 'bg-gray-700 text-gray-500'
+                      : 'bg-gray-200 text-gray-400'
+                    : theme === 'dark'
+                      ? 'bg-blue-700 hover:bg-blue-600 text-white'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                Отправить
+              </button>
+            </div>
+          </div>
         </BottomSheetModal>
       )}
 
