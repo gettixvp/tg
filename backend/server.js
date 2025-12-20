@@ -156,14 +156,48 @@ app.get("/api/wallet/:ownerEmail/members", async (req, res) => {
 
   try {
     const r = await pool.query(
-      `SELECT owner_email, member_telegram_id, status, created_at, updated_at
-       FROM wallet_members WHERE owner_email = $1 ORDER BY created_at`,
+      `SELECT wm.owner_email,
+              wm.member_telegram_id,
+              COALESCE(ta.telegram_name, '') AS telegram_name,
+              wm.status,
+              wm.created_at,
+              wm.updated_at
+       FROM wallet_members wm
+       LEFT JOIN telegram_accounts ta ON ta.telegram_id = wm.member_telegram_id
+       WHERE wm.owner_email = $1
+       ORDER BY wm.created_at`,
       [ownerEmail],
     )
     res.json({ success: true, members: r.rows })
   } catch (e) {
     console.error("Wallet members get error:", e)
     res.status(500).json({ error: "Ошибка получения участников: " + e.message })
+  }
+})
+
+// --- Удалить участника кошелька ---
+app.delete("/api/wallet/:ownerEmail/members/:telegramId", async (req, res) => {
+  const { ownerEmail, telegramId } = req.params
+  if (!ownerEmail || !telegramId) return res.status(400).json({ error: "ownerEmail и telegramId обязательны" })
+
+  try {
+    const del = await pool.query(
+      `DELETE FROM wallet_members WHERE owner_email=$1 AND member_telegram_id=$2::bigint RETURNING *`,
+      [ownerEmail, String(telegramId)],
+    )
+    if (del.rowCount === 0) return res.status(404).json({ error: "Участник не найден" })
+
+    // Force exit from this wallet
+    await pool.query(
+      `UPDATE telegram_accounts SET active_wallet_email = NULL, updated_at = NOW()
+       WHERE telegram_id = $1::bigint AND active_wallet_email = $2`,
+      [String(telegramId), ownerEmail],
+    )
+
+    res.json({ success: true })
+  } catch (e) {
+    console.error("Wallet member delete error:", e)
+    res.status(500).json({ error: "Ошибка удаления: " + e.message })
   }
 })
 

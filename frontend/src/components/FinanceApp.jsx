@@ -166,6 +166,117 @@ const categoriesMeta = {
   },
 }
 
+const WalletMemberRow = ({ member, ownerEmail, currentTelegramId, theme, vibrate, onDelete, onSetStatus }) => {
+  const [swipeX, setSwipeX] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const startX = useRef(0)
+
+  const isSelf = String(member.member_telegram_id) === String(currentTelegramId)
+
+  const handleTouchStart = (e) => {
+    if (isSelf) return
+    startX.current = e.touches[0].clientX
+    setIsSwiping(true)
+  }
+
+  const handleTouchMove = (e) => {
+    if (!isSwiping || isSelf) return
+    const diff = e.touches[0].clientX - startX.current
+    if (diff < 0) {
+      setSwipeX(Math.max(diff, -140))
+    } else if (swipeX < 0) {
+      setSwipeX(Math.min(0, swipeX + diff / 2))
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (!isSwiping) return
+    setIsSwiping(false)
+    if (swipeX < -70) setSwipeX(-140)
+    else setSwipeX(0)
+  }
+
+  const statusLabel = member.status === 'blocked' ? 'Заблокирован' : 'Активен'
+
+  return (
+    <div className="relative overflow-hidden">
+      {!isSelf && (
+        <div className="absolute inset-y-0 right-0 flex items-center">
+          <div className="flex gap-2 px-2">
+            {member.status !== 'blocked' ? (
+              <button
+                onClick={() => {
+                  onSetStatus(ownerEmail, member.member_telegram_id, 'blocked')
+                  setSwipeX(0)
+                  vibrate()
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  theme === "dark"
+                    ? "bg-amber-700 hover:bg-amber-600 text-white"
+                    : "bg-amber-500 hover:bg-amber-600 text-white"
+                }`}
+              >
+                Блок
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  onSetStatus(ownerEmail, member.member_telegram_id, 'active')
+                  setSwipeX(0)
+                  vibrate()
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  theme === "dark"
+                    ? "bg-green-700 hover:bg-green-600 text-white"
+                    : "bg-green-500 hover:bg-green-600 text-white"
+                }`}
+              >
+                Разблок
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                onDelete(ownerEmail, member.member_telegram_id)
+                setSwipeX(0)
+                vibrate()
+              }}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                theme === "dark"
+                  ? "bg-rose-700 hover:bg-rose-600 text-white"
+                  : "bg-rose-500 hover:bg-rose-600 text-white"
+              }`}
+            >
+              Удалить
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div
+        style={{ transform: `translateX(${swipeX}px)` }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`p-3 rounded-2xl relative z-10 border ${
+          theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-white border-gray-200"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className={`text-sm font-semibold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              {member.telegram_name || `TG ${member.member_telegram_id}`}
+            </p>
+            <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+              {statusLabel}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const categoriesList = {
   expense: ["Еда", "Транспорт", "Развлечения", "Счета", "Покупки", "Здоровье", "Другое"],
   income: ["Зарплата", "Фриланс", "Подарки", "Инвестиции", "Другое"],
@@ -1094,6 +1205,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [user, setUser] = useState(null)
   const [currentUserEmail, setCurrentUserEmail] = useState(null)
   const [activeWalletEmail, setActiveWalletEmail] = useState(null)
+  const [walletMembers, setWalletMembers] = useState([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
@@ -1275,6 +1387,62 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const tgPhotoUrl = tgUser && tgUser.photo_url
 
   const isSharedWalletView = Boolean(activeWalletEmail && currentUserEmail && activeWalletEmail !== currentUserEmail)
+  const ownerWalletEmail = activeWalletEmail || currentUserEmail
+  const isWalletOwner = Boolean(ownerWalletEmail && !isSharedWalletView)
+
+  const loadWalletMembers = async (ownerEmail) => {
+    if (!ownerEmail) return
+    try {
+      const resp = await fetch(`${API_URL}/api/wallet/${encodeURIComponent(ownerEmail)}/members`)
+      if (!resp.ok) return
+      const data = await resp.json().catch(() => null)
+      setWalletMembers(data?.members || [])
+    } catch (e) {
+      console.warn('Failed to load wallet members', e)
+    }
+  }
+
+  const updateMemberStatus = async (ownerEmail, telegramId, status) => {
+    if (!ownerEmail || !telegramId) return
+    try {
+      const resp = await fetch(
+        `${API_URL}/api/wallet/${encodeURIComponent(ownerEmail)}/members/${encodeURIComponent(String(telegramId))}/status`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        },
+      )
+      if (resp.ok) {
+        await loadWalletMembers(ownerEmail)
+        vibrateSuccess()
+      } else {
+        vibrateError()
+      }
+    } catch (e) {
+      console.warn('Failed to update member status', e)
+      vibrateError()
+    }
+  }
+
+  const deleteMember = async (ownerEmail, telegramId) => {
+    if (!ownerEmail || !telegramId) return
+    try {
+      const resp = await fetch(
+        `${API_URL}/api/wallet/${encodeURIComponent(ownerEmail)}/members/${encodeURIComponent(String(telegramId))}`,
+        { method: 'DELETE' },
+      )
+      if (resp.ok) {
+        await loadWalletMembers(ownerEmail)
+        vibrateSuccess()
+      } else {
+        vibrateError()
+      }
+    } catch (e) {
+      console.warn('Failed to delete member', e)
+      vibrateError()
+    }
+  }
 
   useEffect(() => {
     const fetchRate = async () => {
@@ -1468,6 +1636,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     ensureTelegramAccount()
   }, [tgUserId, displayName])
+
+  useEffect(() => {
+    if (!ownerWalletEmail) return
+    if (!isWalletOwner) return
+    loadWalletMembers(ownerWalletEmail)
+  }, [ownerWalletEmail, isWalletOwner])
 
   const leaveSharedWallet = async () => {
     if (!tgUserId) return
@@ -1846,7 +2020,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   async function applyUser(u, txs = [], isEmailAuth = false) {
     setCurrentUserEmail(u?.email || null)
     setUser(u)
-    setIsAuthenticated(isEmailAuth)
+    // Telegram-first login is also an authenticated state (no email required)
+    setIsAuthenticated(Boolean(u))
     setBalance(Number(u.balance || 0))
     setIncome(Number(u.income || 0))
     setExpenses(Number(u.expenses || 0))
@@ -4037,6 +4212,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           <User className={`w-7 h-7 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
                         </div>
                       )}
+
                       <div>
                         <h2 className={`text-xl font-bold mb-0.5 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                           Привет, {displayName}! 👋
@@ -4147,6 +4323,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               ))}
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {isWalletOwner && walletMembers.length > 0 && (
+                        <div className="mb-3">
+                          <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Участники кошелька
+                          </p>
+                          <div className="space-y-2">
+                            {walletMembers.map((m) => (
+                              <WalletMemberRow
+                                key={`${m.owner_email}-${m.member_telegram_id}`}
+                                member={m}
+                                ownerEmail={ownerWalletEmail}
+                                currentTelegramId={tgUserId}
+                                theme={theme}
+                                vibrate={vibrate}
+                                onDelete={deleteMember}
+                                onSetStatus={updateMemberStatus}
+                              />
+                            ))}
+                          </div>
                         </div>
                       )}
 
