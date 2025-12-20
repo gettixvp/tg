@@ -740,11 +740,14 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
       className={`recent-operations-container ${theme}`}
     >
       <div className="container-header">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className={`p-1.5 rounded-lg ${currentColor.iconBg}`}>
             {icon}
           </div>
-          <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+          <h3
+            className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+            style={{ paddingLeft: 0 }}
+          >
             {title}
           </h3>
         </div>
@@ -3506,7 +3509,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     Общий баланс
                   </h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
                         setShowAiModal(true)
@@ -3771,7 +3774,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                     История операций
                   </h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={exportToPDF}
                       className="show-all-button"
@@ -3885,12 +3888,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }}
               >
                 <div className="container-header">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className={`p-1.5 rounded-lg ${theme === "dark" ? "bg-blue-900/40" : "bg-blue-100"}`}>
                       <PiggyBank className={`w-5 h-5 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} />
                     </div>
                     <div>
-                      <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                      <h3
+                        className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                        style={{ paddingLeft: 0 }}
+                      >
                         Копилка (USD)
                       </h3>
                       <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -3898,7 +3904,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
                         setShowSecondGoalModal(true)
@@ -4084,15 +4090,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <h3 className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                       Долги
                     </h3>
-                    <button
-                      onClick={() => {
-                        setShowAddDebtModal(true)
-                        vibrate()
-                      }}
-                      className="show-all-button"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setShowAddDebtModal(true)
+                          vibrate()
+                        }}
+                        className="show-all-button"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="container-content">
@@ -4111,7 +4119,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       {debts.map((debt) => (
                         <div
                           key={debt.id}
-                          className={`rounded-xl p-4 border ${
+                          className={`rounded-[40px] p-4 border ${
                             debt.type === 'owe'
                               ? theme === "dark"
                                 ? "bg-red-900/20 border-red-700/30"
@@ -4126,8 +4134,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               <span className="text-2xl">
                                 {debt.type === 'owe' ? '📤' : '📥'}
                               </span>
-                              <div>
-                                <h4 className={`font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                              <div className="min-w-0">
+                                <h4 className={`font-bold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                                   {debt.person}
                                 </h4>
                                 <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -4146,14 +4154,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             </div>
                           </div>
                           {debt.description && (
-                            <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            <p className={`text-sm break-words ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                               {debt.description}
                             </p>
                           )}
                           <div className="flex gap-2 mt-3">
                             <button
                               onClick={() => repayDebt(debt)}
-                              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                              className={`flex-1 py-2 rounded-[40px] text-xs font-medium transition-all ${
                                 theme === "dark"
                                   ? "bg-green-700 hover:bg-green-600 text-white"
                                   : "bg-green-500 hover:bg-green-600 text-white"
@@ -4167,7 +4175,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                   deleteDebt(debt.id)
                                 }
                               }}
-                              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                              className={`px-4 py-2 rounded-[40px] text-xs font-medium transition-all ${
                                 theme === "dark"
                                   ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
                                   : "bg-gray-200 hover:bg-gray-300 text-gray-700"
