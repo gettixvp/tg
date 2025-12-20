@@ -1718,36 +1718,30 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       try {
         if (!tgUserId) return
 
-        const urlRef = (() => {
+        const readStartParam = () => {
           try {
-            const direct = new URLSearchParams(window.location.search).get('ref')
-            if (direct) return String(direct).trim()
-
-            const hash = String(window.location.hash || '')
-            const qIndex = hash.indexOf('?')
-            if (qIndex >= 0) {
-              const hashQuery = hash.slice(qIndex + 1)
-              const fromHash = new URLSearchParams(hashQuery).get('ref')
-              if (fromHash) return String(fromHash).trim()
+            const params = new URLSearchParams(window.location.search)
+            const candidates = [
+              params.get('tgWebAppStartParam'),
+              params.get('start_param'),
+              params.get('startapp'),
+              params.get('start'),
+              params.get('ref'),
+            ]
+            for (const c of candidates) {
+              if (c && String(c).trim()) return String(c).trim()
             }
-
-            const href = String(window.location.href || '')
-            const hrefIndex = href.indexOf('?')
-            if (hrefIndex >= 0) {
-              const query = href.slice(hrefIndex + 1)
-              const fromHref = new URLSearchParams(query).get('ref')
-              if (fromHref) return String(fromHref).trim()
-            }
-
-            return ''
           } catch (e) {
-            return ''
+            // ignore
           }
-        })()
+          return ''
+        }
 
-        const startParam = (tg && tg.initDataUnsafe && (tg.initDataUnsafe.start_param || '').trim()) || urlRef
+        const urlStart = readStartParam()
+        const tgStart = (tg && tg.initDataUnsafe && (tg.initDataUnsafe.start_param || '').trim()) || ''
+        const startParam = tgStart || urlStart
 
-        console.log('[InviteLink] tgUserId=', tgUserId, 'startParam=', startParam, 'urlRef=', urlRef)
+        console.log('[InviteLink] tgUserId=', tgUserId, 'startParam=', startParam, 'urlStart=', urlStart, 'tgStart=', tgStart)
 
         if (startParam) {
           
@@ -1757,7 +1751,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           let referrerTelegramId = null
           
           // Парсим параметр в зависимости от формата
-          if (startParam && startParam.startsWith('tg_') && tgUserId && user) {
+          if (startParam && startParam.startsWith('tg_') && tgUserId) {
             // Формат: tg_123456789
             referrerTelegramId = startParam.replace('tg_', '')
           }
@@ -1801,7 +1795,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 referrerName: tgUser?.first_name || 'Пользователь'
               })
             })
-            
+
+            if (response.status === 403) {
+              sessionStorage.setItem(linkKey, 'true')
+              const err = await response.json().catch(() => ({}))
+              alert(err.error || 'Вас заблокировали в этом кошельке')
+              vibrateError()
+              return
+            }
+
             if (response.ok) {
               // Сохраняем, что уже связались
               sessionStorage.setItem(linkKey, 'true')
