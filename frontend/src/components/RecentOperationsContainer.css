@@ -134,7 +134,7 @@
 
 /* Контент контейнера */
 .container-content {
-  padding: 1rem;
+  padding: 0.75rem;
   position: relative;
   z-index: 2;
 }
@@ -190,7 +190,7 @@
   }
   
   .container-content {
-    padding: 0.75rem;
+    padding: 0.6rem;
   }
 }
 
@@ -204,7 +204,7 @@
   }
   
   .container-content {
-    padding: 0.5rem;
+    padding: 0.45rem;
   }
 }
 

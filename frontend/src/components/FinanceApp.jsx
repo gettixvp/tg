@@ -406,10 +406,11 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   }
 
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
+  const showDeleteAction = swipeX < 0 || isSwiping
 
   return (
-    <div className="mb-1.5">
-      <div className="relative overflow-hidden rounded-3xl">
+    <div className="mb-2">
+      <div className="relative overflow-hidden rounded-[32px]">
         <div
           onClick={() => {
             if (swipeX === -80) {
@@ -417,9 +418,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               setSwipeX(0)
             }
           }}
-          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-3xl ${
+          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-[32px] transition-opacity ${
             theme === "dark" ? "bg-red-600" : "bg-red-500"
           }`}
+          style={{ opacity: showDeleteAction ? 1 : 0, pointerEvents: showDeleteAction ? 'auto' : 'none' }}
         >
           <Trash2 className="w-5 h-5 text-white" />
         </div>
@@ -433,10 +435,8 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-4 cursor-pointer backdrop-blur-lg ${
-            theme === "dark"
-              ? "bg-white/5 border border-white/10"
-              : "bg-white border border-gray-100 shadow-sm"
+          className={`relative px-4 py-4 cursor-pointer backdrop-blur-lg ${
+            theme === "dark" ? "bg-white/5 border border-white/10" : "bg-white border border-gray-100 shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -446,10 +446,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
             </div>
           )}
 
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-3">
             {/* Иконка категории */}
             <div
-              className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0 text-2xl`}
+              className={`flex items-center justify-center w-[52px] h-[52px] rounded-[22px] bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0 text-2xl`}
             >
               <span>{categoryInfo.icon}</span>
             </div>
@@ -459,20 +459,20 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="flex-1 min-w-0">
                   {tx.description && (
-                    <p className={`font-semibold text-sm mb-0.5 truncate ${
+                    <p className={`font-semibold text-[15px] leading-tight mb-0.5 truncate ${
                       theme === "dark" ? "text-gray-100" : "text-gray-900"
                     }`}>
                       {tx.description}
                     </p>
                   )}
-                  <p className={`text-xs ${theme === "dark" ? "text-gray-300/70" : "text-gray-600"}`}>
+                  <p className={`text-[12px] ${theme === "dark" ? "text-gray-300/70" : "text-gray-600"}`}>
                     {tx.category}
                   </p>
                 </div>
                 
                 {/* Сумма */}
                 <p
-                  className={`font-bold text-base whitespace-nowrap ${
+                  className={`font-bold text-[17px] whitespace-nowrap ${
                     tx.type === "income" ? "text-emerald-500" : tx.type === "expense" ? "text-rose-500" : "text-blue-500"
                   }`}
                 >
@@ -489,16 +489,16 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                       <img
                         src={tx.telegram_photo_url}
                         alt="Avatar"
-                        className="w-4 h-4 rounded-full object-cover"
+                        className="w-[18px] h-[18px] rounded-full object-cover"
                       />
                     ) : (
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${
                         theme === "dark" ? "bg-blue-700" : "bg-blue-200"
                       }`}>
-                        <User className="w-2.5 h-2.5 text-white" />
+                        <User className="w-3 h-3 text-white" />
                       </div>
                     )}
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
+                    <span className={`text-[12px] ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
                       {tx.created_by_name}
                     </span>
                   </div>
@@ -506,7 +506,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   <div />
                 )}
 
-                <span className={`text-xs ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
+                <span className={`text-[12px] ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
                   {formatDate(tx.date)}
                 </span>
               </div>
@@ -3720,7 +3720,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {transactions.slice(0, 4).map((tx) => (
+                    {transactions.slice(0, 10).map((tx) => (
                       <TxRow
                         tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
