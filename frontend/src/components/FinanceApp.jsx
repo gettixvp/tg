@@ -343,6 +343,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   const startX = useRef(0)
   const startY = useRef(0)
   const isHorizontalSwipe = useRef(false)
+  const didMove = useRef(false)
 
   const handleTouchStart = (e) => {
     const now = Date.now()
@@ -360,6 +361,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
     startX.current = e.touches[0].clientX
     startY.current = e.touches[0].clientY
     isHorizontalSwipe.current = false
+    didMove.current = false
     setIsSwiping(true)
   }
 
@@ -379,6 +381,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
     if (!isHorizontalSwipe.current && (Math.abs(diffX) > 5 || Math.abs(diffY) > 5)) {
       isHorizontalSwipe.current = Math.abs(diffX) > Math.abs(diffY)
     }
+
+    if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+      didMove.current = true
+    }
     
     // Если свайп вертикальный - не обрабатываем
     if (!isHorizontalSwipe.current) {
@@ -397,6 +403,15 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
   const handleTouchEnd = () => {
     setIsSwiping(false)
+
+    // Если это был обычный тап (не горизонтальный свайп и палец почти не двигался)
+    // то открываем детали здесь, т.к. после preventDefault в touchmove onClick может не срабатывать.
+    if (!isHorizontalSwipe.current && !didMove.current && swipeX === 0) {
+      onOpenDetails && onOpenDetails(tx)
+      isHorizontalSwipe.current = false
+      return
+    }
+
     isHorizontalSwipe.current = false
     if (swipeX < -40) {
       setSwipeX(-80)
@@ -435,7 +450,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative px-4 py-4 cursor-pointer backdrop-blur-lg ${
+          className={`relative pl-5 pr-4 py-5 cursor-pointer backdrop-blur-lg ${
             theme === "dark" ? "bg-white/5 border border-white/10" : "bg-white border border-gray-100 shadow-sm"
           }`}
         >
@@ -446,7 +461,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
             </div>
           )}
 
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3.5">
             {/* Иконка категории */}
             <div
               className={`flex items-center justify-center w-[52px] h-[52px] rounded-[22px] bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0 text-2xl`}
@@ -3965,10 +3980,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setShowGoalModal(true)
                         vibrate()
                       }}
-                      className={`flex-1 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                      className={`flex-1 py-3 px-4 rounded-[40px] font-semibold transition-all text-sm touch-none active:scale-95 ${
                         theme === "dark"
-                          ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          ? "bg-gray-800/80 text-gray-100 hover:bg-gray-700/80 border border-white/10"
+                          : "bg-white text-gray-900 hover:bg-gray-50 border border-gray-200"
                       }`}
                     >
                       Изменить цель
@@ -3979,10 +3994,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         setShowAddModal(true)
                         vibrate()
                       }}
-                      className={`flex items-center gap-1 px-4 py-2.5 rounded-lg font-medium transition-all text-sm ${
+                      className={`flex items-center justify-center gap-2 px-5 py-3 rounded-[40px] font-semibold transition-all text-sm touch-none active:scale-95 ${
                         theme === "dark"
-                          ? "bg-blue-600 text-white hover:bg-blue-500"
-                          : "bg-blue-600 text-white hover:bg-blue-700"
+                          ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/20"
+                          : "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-lg shadow-blue-500/15"
                       }`}
                     >
                       <Plus className="w-4 h-4" />
