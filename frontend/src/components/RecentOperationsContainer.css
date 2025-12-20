@@ -5,7 +5,7 @@
 .savings-container,
 .styled-container {
   position: relative;
-  border-radius: 1rem;
+  border-radius: 40px;
   border: 1px solid;
   overflow: hidden;
   transition: all 0.3s ease;

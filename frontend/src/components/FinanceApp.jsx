@@ -1050,8 +1050,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           bottom: isTop ? 0 : keyboardInset,
           maxHeight: Math.max(0, overlayHeight - 12),
           marginTop: isTop ? 12 : 0,
-          borderTopLeftRadius: isTop ? 24 : 24,
-          borderTopRightRadius: isTop ? 24 : 24,
+          borderTopLeftRadius: isTop ? 40 : 40,
+          borderTopRightRadius: isTop ? 40 : 40,
           borderBottomLeftRadius: isTop ? 24 : 0,
           borderBottomRightRadius: isTop ? 24 : 0,
           willChange: 'transform, bottom',
@@ -1193,6 +1193,36 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [transactionComments, setTransactionComments] = useState({})
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
+
+  const getLikerKey = () => {
+    if (tgUserId) return `tg:${String(tgUserId)}`
+    if (currentUserEmail) return `email:${String(currentUserEmail)}`
+    if (user?.email) return `email:${String(user.email)}`
+    return null
+  }
+
+  const loadLikesForWallet = async (walletEmail) => {
+    if (!walletEmail) return
+    const likerKey = getLikerKey()
+    if (!likerKey) return
+
+    try {
+      const resp = await fetch(`${API_URL}/api/likes?wallet_email=${encodeURIComponent(String(walletEmail))}`)
+      if (!resp.ok) return
+      const data = await resp.json().catch(() => null)
+      const likesByTx = data?.likesByTx || {}
+
+      const likedSet = new Set()
+      for (const [txId, likers] of Object.entries(likesByTx)) {
+        if (Array.isArray(likers) && likers.includes(likerKey)) {
+          likedSet.add(Number(txId))
+        }
+      }
+      setLikedTransactions(likedSet)
+    } catch (e) {
+      console.warn('Failed to load likes', e)
+    }
+  }
   const [detailsCommentText, setDetailsCommentText] = useState('')
   
   const [secondGoalName, setSecondGoalName] = useState('')
@@ -1573,18 +1603,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     ensureTelegramAccount()
   }, [tgUserId, displayName, tgPhotoUrl])
-
-  const loadBlockedWalletMembers = async (ownerEmail) => {
-    if (!ownerEmail) return
-    try {
-      const resp = await fetch(`${API_URL}/api/wallet/${encodeURIComponent(ownerEmail)}/blocked`)
-      if (!resp.ok) return
-      const data = await resp.json().catch(() => null)
-      setBlockedWalletMembers(data?.members || [])
-    } catch (e) {
-      console.warn('Failed to load blocked wallet members', e)
-    }
-  }
 
   useEffect(() => {
     if (isSharedWalletView && !activeWalletEmail) return
@@ -2021,6 +2039,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
 
       setTransactions(Array.isArray(walletTxs) ? walletTxs : [])
+      await loadLikesForWallet(walletEmail)
       await loadLinkedUsers(walletEmail)
       await loadDebts(walletEmail)
       return true
@@ -2064,6 +2083,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setGoalSavings(Number(u.goal_savings || 50000)) // Set goal savings from user data
     setGoalInput(String(Number(u.goal_savings || 50000)))
     setTransactions(txs || [])
+    await loadLikesForWallet(u?.email || null)
     setIsLoading(false) // Завершена основная загрузка
     
     // Загрузка данных копилки
@@ -3260,6 +3280,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
       return newSet
     })
+
+    ;(async () => {
+      try {
+        const walletEmail = activeWalletEmail || currentUserEmail || user?.email
+        const likerKey = getLikerKey()
+        if (!walletEmail || !likerKey) return
+        await fetch(`${API_URL}/api/likes/toggle`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet_email: walletEmail,
+            transaction_id: txId,
+            liker_key: likerKey,
+          }),
+        })
+      } catch (e) {
+        console.warn('Failed to persist like', e)
+      }
+    })()
   }
 
   const openTransactionDetails = async (tx) => {
@@ -4000,7 +4039,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           formatDate={formatDate}
                           theme={theme}
                           onDelete={deleteTransaction}
-                          showCreator={showLinkedUsers}
+                          showCreator={(walletMembers?.length || 0) > 1}
                           onToggleLike={toggleLike}
                           onOpenDetails={openTransactionDetails}
                         />
@@ -5531,9 +5570,83 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Диаграмма расходов
+              {chartType === 'income' ? 'Диаграмма доходов' : 'Диаграмма расходов'}
             </h3>
           </div>
+
+          <div className="mb-4">
+            <div className={`p-1.5 rounded-full ${theme === 'dark' ? 'bg-gray-800/80' : 'bg-gray-200/80'} backdrop-blur-sm`}> 
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setChartType('expense')}
+                  className={`flex-1 py-2.5 rounded-full font-bold transition-all text-sm touch-none active:scale-95 ${
+                    chartType === 'expense'
+                      ? 'bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 text-white shadow-xl'
+                      : theme === 'dark'
+                        ? 'text-gray-400 hover:text-gray-200'
+                        : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Расходы
+                </button>
+                <button
+                  onClick={() => setChartType('income')}
+                  className={`flex-1 py-2.5 rounded-full font-bold transition-all text-sm touch-none active:scale-95 ${
+                    chartType === 'income'
+                      ? 'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white shadow-xl'
+                      : theme === 'dark'
+                        ? 'text-gray-400 hover:text-gray-200'
+                        : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Доходы
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={() => setChartView('pie')}
+                className={`flex-1 py-2 rounded-xl font-semibold transition-all text-sm touch-none active:scale-95 ${
+                  chartView === 'pie'
+                    ? theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-900 text-white'
+                    : theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-1">
+                  <PieChart className="w-4 h-4" />
+                  Pie
+                </span>
+              </button>
+              <button
+                onClick={() => setChartView('bar')}
+                className={`flex-1 py-2 rounded-xl font-semibold transition-all text-sm touch-none active:scale-95 ${
+                  chartView === 'bar'
+                    ? theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-900 text-white'
+                    : theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-1">
+                  <BarChart2 className="w-4 h-4" />
+                  Bar
+                </span>
+              </button>
+              <button
+                onClick={() => setChartView('line')}
+                className={`flex-1 py-2 rounded-xl font-semibold transition-all text-sm touch-none active:scale-95 ${
+                  chartView === 'line'
+                    ? theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-900 text-white'
+                    : theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-1">
+                  <TrendingUpIcon className="w-4 h-4" />
+                  Line
+                </span>
+              </button>
+            </div>
+          </div>
+
             {transactions.filter((t) => t.type === chartType).length > 0 ? (
               <div className="w-full aspect-square">
                 {chartView === 'pie' && (

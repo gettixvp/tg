@@ -171,6 +171,15 @@ async function initDB() {
       telegram_id BIGINT
     );`)
 
+    await pool.query(`CREATE TABLE IF NOT EXISTS transaction_likes (
+      id BIGSERIAL PRIMARY KEY,
+      wallet_email TEXT NOT NULL,
+      transaction_id BIGINT NOT NULL,
+      liker_key TEXT NOT NULL,
+      liked_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(wallet_email, transaction_id, liker_key)
+    );`)
+
     // Добавляем telegram_photo_url в linked_telegram_users
     await pool.query(`ALTER TABLE linked_telegram_users ADD COLUMN IF NOT EXISTS telegram_photo_url TEXT;`)
 
@@ -179,6 +188,10 @@ async function initDB() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date DESC);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_transaction_comments_transaction_id ON transaction_comments(transaction_id);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_linked_users_email ON linked_telegram_users(user_email);`)
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transaction_likes_wallet_email ON transaction_likes(wallet_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transaction_likes_tx_id ON transaction_likes(transaction_id);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transaction_likes_liker_key ON transaction_likes(liker_key);`)
 
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_telegram_accounts_email ON telegram_accounts(email);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_telegram_accounts_wallet_email ON telegram_accounts(wallet_email);`)

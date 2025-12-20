@@ -41,6 +41,68 @@ async function callCloudflareChat({ apiToken, accountId, model, messages }) {
   return json.result || json
 }
 
+// --- Получить лайки для кошелька ---
+app.get('/api/likes', async (req, res) => {
+  const { wallet_email } = req.query
+  if (!wallet_email) return res.status(400).json({ error: 'wallet_email обязателен' })
+
+  try {
+    const r = await pool.query(
+      `SELECT transaction_id, liker_key
+       FROM transaction_likes
+       WHERE wallet_email = $1`,
+      [wallet_email],
+    )
+
+    const likesByTx = {}
+
+    for (const row of r.rows) {
+      const txId = String(row.transaction_id)
+      const liker = String(row.liker_key)
+      if (!likesByTx[txId]) likesByTx[txId] = []
+      likesByTx[txId].push(liker)
+    }
+
+    res.json({ success: true, likesByTx })
+  } catch (e) {
+    console.error('Likes get error:', e)
+    res.status(500).json({ error: 'Ошибка получения лайков: ' + e.message })
+  }
+})
+
+// --- Toggle лайк ---
+app.post('/api/likes/toggle', async (req, res) => {
+  const { wallet_email, transaction_id, liker_key } = req.body || {}
+  if (!wallet_email || !transaction_id || !liker_key) {
+    return res.status(400).json({ error: 'wallet_email, transaction_id, liker_key обязательны' })
+  }
+
+  try {
+    const del = await pool.query(
+      `DELETE FROM transaction_likes
+       WHERE wallet_email=$1 AND transaction_id=$2::bigint AND liker_key=$3
+       RETURNING id`,
+      [wallet_email, String(transaction_id), String(liker_key)],
+    )
+
+    if (del.rowCount > 0) {
+      return res.json({ success: true, liked: false })
+    }
+
+    await pool.query(
+      `INSERT INTO transaction_likes (wallet_email, transaction_id, liker_key)
+       VALUES ($1, $2::bigint, $3)
+       ON CONFLICT (wallet_email, transaction_id, liker_key) DO NOTHING`,
+      [wallet_email, String(transaction_id), String(liker_key)],
+    )
+
+    res.json({ success: true, liked: true })
+  } catch (e) {
+    console.error('Likes toggle error:', e)
+    res.status(500).json({ error: 'Ошибка лайка: ' + e.message })
+  }
+})
+
 // --- Список заблокированных участников ---
 app.get("/api/wallet/:ownerEmail/blocked", async (req, res) => {
   const { ownerEmail } = req.params
@@ -911,6 +973,8 @@ app.delete("/api/transactions/:id", async (req, res) => {
   try {
     // Сначала удаляем все комментарии к этой транзакции
     await pool.query("DELETE FROM transaction_comments WHERE transaction_id = $1", [id])
+    // И лайки
+    await pool.query("DELETE FROM transaction_likes WHERE transaction_id = $1", [id])
     
     // Затем удаляем саму транзакцию
     const result = await pool.query("DELETE FROM transactions WHERE id = $1 RETURNING *", [id])
