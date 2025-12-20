@@ -796,6 +796,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const startFastFollowRef = useRef(() => {})
   const lastKeyboardInsetRef = useRef(0)
   const preLiftTimeoutRef = useRef(0)
+  const insideTapRef = useRef(false)
 
   const isKeyboardRelevantTarget = (el) => {
     try {
@@ -1087,6 +1088,11 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const preAdaptOnTap = (e) => {
     try {
+      insideTapRef.current = true
+      setTimeout(() => {
+        insideTapRef.current = false
+      }, 0)
+
       const t = e?.target
       if (!t) return
 
@@ -1126,10 +1132,11 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   return (
     <div
       className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
-      style={{ ...overlayStyle, overscrollBehavior: 'none', touchAction: 'none' }}
+      style={{ ...overlayStyle, overscrollBehavior: 'none', touchAction: 'auto' }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
+          if (insideTapRef.current) return
           requestClose()
         }
       }}
@@ -1142,12 +1149,14 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
+          if (insideTapRef.current) return
           requestClose()
         }
       }}
       onTouchEnd={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
+          if (insideTapRef.current) return
           requestClose()
         }
       }}
