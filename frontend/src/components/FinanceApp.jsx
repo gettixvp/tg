@@ -409,7 +409,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
 
   return (
     <div className="mb-1.5">
-      <div className="relative overflow-hidden rounded-xl">
+      <div className="relative overflow-hidden rounded-3xl">
         <div
           onClick={() => {
             if (swipeX === -80) {
@@ -417,7 +417,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               setSwipeX(0)
             }
           }}
-          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-xl ${
+          className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center cursor-pointer rounded-r-3xl ${
             theme === "dark" ? "bg-red-600" : "bg-red-500"
           }`}
         >
@@ -433,10 +433,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative p-3 cursor-pointer ${
+          className={`relative p-4 cursor-pointer backdrop-blur-lg ${
             theme === "dark"
-              ? "bg-gray-800"
-              : "bg-white shadow-sm"
+              ? "bg-white/5 border border-white/10"
+              : "bg-white border border-gray-100 shadow-sm"
           }`}
         >
           {/* Лайк в правом верхнем углу */}
@@ -449,14 +449,14 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
           <div className="flex items-start gap-2.5">
             {/* Иконка категории */}
             <div
-              className={`flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0`}
+              className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br ${categoryInfo.color} shadow-md flex-shrink-0 text-2xl`}
             >
-              <span className="text-xl">{categoryInfo.icon}</span>
+              <span>{categoryInfo.icon}</span>
             </div>
 
             {/* Основная информация */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-0.5">
+              <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="flex-1 min-w-0">
                   {tx.description && (
                     <p className={`font-semibold text-sm mb-0.5 truncate ${
@@ -465,7 +465,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                       {tx.description}
                     </p>
                   )}
-                  <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  <p className={`text-xs ${theme === "dark" ? "text-gray-300/70" : "text-gray-600"}`}>
                     {tx.category}
                   </p>
                 </div>
@@ -498,15 +498,15 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                         <User className="w-2.5 h-2.5 text-white" />
                       </div>
                     )}
-                    <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+                    <span className={`text-xs ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
                       {tx.created_by_name}
                     </span>
                   </div>
                 ) : (
                   <div />
                 )}
-                
-                <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+
+                <span className={`text-xs ${theme === "dark" ? "text-gray-300/70" : "text-gray-500"}`}>
                   {formatDate(tx.date)}
                 </span>
               </div>
@@ -779,7 +779,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   )
 }
 
-const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, position = 'bottom', topOffset = 0, maxWidthClass = 'max-w-md' }) => {
+const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, position = 'bottom', topOffset = 0 }) => {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
@@ -1041,7 +1041,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           e.stopPropagation()
         }}
         ref={sheetRef}
-        className={`w-full ${maxWidthClass} shadow-2xl overflow-hidden flex flex-col ${
+        className={`w-full max-w-none shadow-2xl overflow-hidden flex flex-col ${
           theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
         }`}
         style={{
@@ -3690,7 +3690,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         formatDate={formatDate}
                         theme={theme}
                         onDelete={deleteTransaction}
-                        showCreator={showLinkedUsers}
+                        showCreator={(walletMembers?.length || 0) > 1}
                         onToggleLike={toggleLike}
                         onOpenDetails={openTransactionDetails}
                       />
@@ -3761,7 +3761,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         formatDate={formatDate}
                         theme={theme}
                         onDelete={deleteTransaction}
-                        showCreator={showLinkedUsers}
+                        showCreator={(walletMembers?.length || 0) > 1}
                         onToggleLike={toggleLike}
                         onOpenDetails={openTransactionDetails}
                       />
@@ -5962,111 +5962,189 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           theme={theme}
           zIndex={55}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-              Детали операции
-            </h3>
-          </div>
+          {(() => {
+            const tx = selectedTransaction
+            const categoryInfo = categoriesMeta[tx.category] || categoriesMeta['Другое']
+            const isLiked = likedTransactions.has(tx.id)
+            const comments = transactionComments[tx.id] || []
+            const txColor =
+              tx.type === 'income' ? '#34C759' : tx.type === 'expense' ? '#FF3B30' : '#007AFF'
 
-          <div className={`rounded-xl p-3 border ${theme === "dark" ? "bg-gray-700/40 border-gray-600" : "bg-gray-50 border-gray-200"}`}>
-            <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className={`text-sm font-semibold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                  <span className="mr-2">{(categoriesMeta[selectedTransaction.category]?.icon || categoriesMeta["Другое"]?.icon || "")}</span>
-                  {selectedTransaction.description || selectedTransaction.category || "Операция"}
-                </p>
-                <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  {formatDate(selectedTransaction.date)}
-                </p>
-              </div>
-              <p
-                className={`text-base font-bold whitespace-nowrap ${
-                  selectedTransaction.type === 'income'
-                    ? theme === "dark" ? "text-emerald-300" : "text-emerald-700"
-                    : selectedTransaction.type === 'expense'
-                      ? theme === "dark" ? "text-rose-300" : "text-rose-700"
-                      : theme === "dark" ? "text-blue-300" : "text-blue-700"
-                }`}
-              >
-                {formatCurrency(selectedTransaction.amount)}
-              </p>
-            </div>
-          </div>
+            const handleClose = () => {
+              setShowTransactionDetails(false)
+              setDetailsCommentText('')
+              try {
+                blurAll()
+              } catch (e) {}
+            }
 
-          <div className="mt-4">
-            <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
-              Комментарии
-            </h4>
-            <div className="space-y-2">
-              {(transactionComments[selectedTransaction.id] || []).length === 0 ? (
-                <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                  Нет комментариев
-                </p>
-              ) : (
-                (transactionComments[selectedTransaction.id] || []).map((c) => (
-                  <div
-                    key={c.id}
-                    className={`rounded-xl p-3 border ${theme === "dark" ? "bg-gray-700/30 border-gray-600" : "bg-white border-gray-200"}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className={`text-xs font-semibold ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
-                          {c.author || 'Пользователь'}
-                        </p>
-                        <p className={`text-sm mt-1 break-words ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                          {c.text}
-                        </p>
+            return (
+              <div className="flex flex-col" style={{ maxHeight: '80vh' }}>
+                <div className="px-1">
+                  <div className={`px-3 py-3 flex items-center justify-between border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`}>
+                    <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
+                      Детали операции
+                    </h1>
+                    <button
+                      onClick={handleClose}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        theme === 'dark' ? 'bg-gray-700/70 hover:bg-gray-600/70 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      <X className="w-5 h-5" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="px-1 py-4">
+                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-4 relative`}>
+                    {isLiked && (
+                      <div className="absolute top-3 right-3">
+                        <Heart className="w-5 h-5 text-red-500 fill-red-500" />
                       </div>
-                      <button
-                        onClick={() => deleteComment(selectedTransaction.id, c.id)}
-                        className={`p-2 rounded-lg transition-all ${theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                    )}
+
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
+                        style={{ background: `linear-gradient(135deg, ${txColor}dd, ${txColor})` }}
                       >
-                        <Trash2 className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                        {categoryInfo.icon}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-lg font-bold truncate`}>
+                          {tx.description || tx.category || 'Операция'}
+                        </p>
+                        <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} text-sm truncate`}>
+                          {tx.category || 'Другое'}
+                        </p>
+                        {(walletMembers?.length || 0) > 1 && tx.created_by_name ? (
+                          <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-xs truncate`}>
+                            {tx.created_by_name}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <button
+                        onClick={() => toggleLike(tx.id)}
+                        className={`p-2 rounded-full transition-colors active:scale-95 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                      >
+                        <Heart className={`w-6 h-6 transition-colors ${isLiked ? 'text-red-500 fill-red-500' : theme === 'dark' ? 'text-gray-400' : 'text-gray-400'}`} />
                       </button>
                     </div>
+
+                    <div className={`flex items-center justify-between pt-3 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <div>
+                        <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-xs mb-1`}>Сумма</p>
+                        <p className="text-2xl font-bold" style={{ color: txColor }}>
+                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-xs mb-1`}>Дата</p>
+                        <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-sm font-medium`}>
+                          {formatDate(tx.date)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
 
-            <div className="mt-3 flex gap-2">
-              <input
-                type="text"
-                value={detailsCommentText}
-                onChange={(e) => setDetailsCommentText(e.target.value)}
-                placeholder="Добавить комментарий"
-                className={`flex-1 p-3 border rounded-xl transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-              />
-              <button
-                onClick={handleSendDetailsComment}
-                className={`px-4 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+                <div className="flex-1 overflow-y-auto px-1 pb-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div className="px-3 flex items-center justify-between mb-3">
+                    <h2 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-lg font-bold`}>Комментарии</h2>
+                    <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-sm`}>{comments.length}</span>
+                  </div>
 
-          <button
-            onClick={() => {
-              deleteTransaction(selectedTransaction.id)
-              setShowTransactionDetails(false)
-            }}
-            className={`mt-4 w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-              theme === "dark"
-                ? "bg-red-700 hover:bg-red-600 text-white"
-                : "bg-red-500 hover:bg-red-600 text-white"
-            }`}
-          >
-            Удалить операцию
-          </button>
+                  {comments.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="text-4xl mb-2">💬</div>
+                      <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-sm`}>Пока нет комментариев</p>
+                      <p className={`${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} text-xs mt-1`}>Будьте первым!</p>
+                    </div>
+                  ) : (
+                    <div className="px-3 space-y-3">
+                      {comments.map((c) => (
+                        <div key={c.id} className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-2xl p-3`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${theme === 'dark' ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>
+                              <User className="w-4 h-4 text-white" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-sm font-semibold truncate`}>
+                                  {c.author || 'Пользователь'}
+                                </p>
+                                <button
+                                  onClick={() => deleteComment(tx.id, c.id)}
+                                  className={`p-1 rounded-lg transition-colors active:scale-95 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                >
+                                  <Trash2 className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'} w-4 h-4`} />
+                                </button>
+                              </div>
+                              <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-sm break-words`}>
+                                {c.text}
+                              </p>
+                              <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'} text-xs mt-1`}>
+                                {formatDate(c.date || c.timestamp)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={`px-1 py-3 border-t ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`}>
+                  <div className="px-3 flex items-end gap-2">
+                    <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} flex-1 rounded-3xl px-4 py-3 flex items-center`}>
+                      <input
+                        type="text"
+                        value={detailsCommentText}
+                        onChange={(e) => setDetailsCommentText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && detailsCommentText.trim()) {
+                            handleSendDetailsComment()
+                          }
+                        }}
+                        placeholder="Добавить комментарий..."
+                        className={`flex-1 bg-transparent outline-none text-base ${theme === 'dark' ? 'text-gray-100 placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleSendDetailsComment}
+                      disabled={!detailsCommentText.trim()}
+                      className="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95"
+                      style={{
+                        backgroundColor: detailsCommentText.trim() ? '#007AFF' : '#E5E5EA',
+                        opacity: detailsCommentText.trim() ? 1 : 0.6,
+                      }}
+                    >
+                      <Send className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+
+                  <div className="px-3 mt-3">
+                    <button
+                      onClick={() => {
+                        deleteTransaction(tx.id)
+                        handleClose()
+                      }}
+                      className={`w-full py-3 rounded-2xl font-semibold transition-all text-sm touch-none active:scale-95 ${
+                        theme === 'dark' ? 'bg-red-700 hover:bg-red-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+                      }`}
+                    >
+                      Удалить операцию
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
         </BottomSheetModal>
       )}
 
@@ -6340,7 +6418,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
           theme={theme}
           zIndex={70}
-          maxWidthClass="max-w-sm"
         >
           {(() => {
             const typeMeta = {
@@ -6353,7 +6430,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
             return (
               <div className="px-1">
-                <div className="flex items-center justify-between pt-2 pb-4">
+                <div className="flex items-center justify-between pt-1 pb-3">
                   <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
                     Новая операция
                   </h1>
@@ -6367,7 +6444,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </button>
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-4">
                   <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex`}>
                     {['income', 'expense', 'savings'].map((t) => {
                       const isActive = transactionType === t
@@ -6392,7 +6469,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 </div>
 
-                <div className="mb-4">
+                <div className="mb-3">
                   <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl px-6 py-5`}>
                     <input
                       type="text"
