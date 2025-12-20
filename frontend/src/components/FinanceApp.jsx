@@ -1095,9 +1095,16 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       if (!isKeyboardRelevantTarget(el)) return
 
       // Pre-lift immediately using last known keyboard inset (iOS WebView often updates visualViewport late)
-      if (!isTop && lastKeyboardInsetRef.current > 0) {
-        setPreLiftInset(lastKeyboardInsetRef.current)
-        setTimeout(() => setPreLiftInset(0), 1500)
+      if (!isTop) {
+        const cached = lastKeyboardInsetRef.current
+        const guess = cached > 0
+          ? cached
+          : Math.round(Math.min(420, Math.max(260, (window.innerHeight || 0) * 0.38)))
+        if (guess > 0) {
+          setPreLiftInset(guess)
+          // If keyboard didn't open (no inset detected), drop the pre-lift after a short time.
+          setTimeout(() => setPreLiftInset(0), 900)
+        }
       }
 
       burstRef.current && burstRef.current()
