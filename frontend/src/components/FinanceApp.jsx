@@ -210,7 +210,6 @@ const WalletMemberRow = ({ member, theme, isSelf, onOpen }) => {
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-semibold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
             {member.telegram_name || `TG ${member.member_telegram_id}`}
-            {isSelf ? ' (вы)' : ''}
           </p>
           <div className="flex items-center gap-2">
             <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
@@ -1150,6 +1149,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [linkedUsers, setLinkedUsers] = useState([])
   const [showLinkedUsers, setShowLinkedUsers] = useState(false)
   const [showLinkedUsersDropdown, setShowLinkedUsersDropdown] = useState(false)
+  const [showWalletMembersDropdown, setShowWalletMembersDropdown] = useState(false)
   const [likedTransactions, setLikedTransactions] = useState(new Set())
   const [transactionComments, setTransactionComments] = useState({})
   const [selectedTransaction, setSelectedTransaction] = useState(null)
@@ -4336,10 +4336,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           <p
                             className={`font-semibold text-sm truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
                           >
-                            {(user && user.first_name) || displayName}
+                            {displayName || (user && user.first_name) || 'Пользователь'}
                           </p>
                           <p className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            {user && user.email}
+                            {currentUserEmail || (user && user.email) || ''}
                           </p>
                         </div>
                       </div>
@@ -4386,24 +4386,44 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </div>
                       )}
 
-                      {walletMembers.length > 0 && (
+                      {walletMembers.filter((m) => String(m.member_telegram_id) !== String(tgUserId)).length > 0 && (
                         <div className="mb-3">
-                          <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                            Участники кошелька
-                          </p>
-                          <div className="space-y-2">
-                            {walletMembers
-                              .filter((m) => String(m.member_telegram_id) !== String(tgUserId))
-                              .map((m) => (
-                                <WalletMemberRow
-                                  key={`${m.owner_email}-${m.member_telegram_id}`}
-                                  member={m}
-                                  theme={theme}
-                                  isSelf={false}
-                                  onOpen={openWalletMemberModal}
-                                />
-                              ))}
-                          </div>
+                          <button
+                            onClick={() => {
+                              setShowWalletMembersDropdown(!showWalletMembersDropdown)
+                              vibrate()
+                            }}
+                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                              theme === "dark"
+                                ? "bg-gray-700/50 border-gray-600 hover:bg-gray-700"
+                                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                            }`}
+                          >
+                            <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>
+                              Участники кошелька ({walletMembers.filter((m) => String(m.member_telegram_id) !== String(tgUserId)).length})
+                            </span>
+                            {showWalletMembersDropdown ? (
+                              <ChevronUp className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                            ) : (
+                              <ChevronDown className={`w-4 h-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`} />
+                            )}
+                          </button>
+
+                          {showWalletMembersDropdown && (
+                            <div className="space-y-2 mt-2">
+                              {walletMembers
+                                .filter((m) => String(m.member_telegram_id) !== String(tgUserId))
+                                .map((m) => (
+                                  <WalletMemberRow
+                                    key={`${m.owner_email}-${m.member_telegram_id}`}
+                                    member={m}
+                                    theme={theme}
+                                    isSelf={false}
+                                    onOpen={openWalletMemberModal}
+                                  />
+                                ))}
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -4418,22 +4438,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         >
                           <UserPlus className="w-4 h-4" />
                           Пригласить пользователя
-                        </button>
-                      )}
-
-                      {isWalletOwner && (
-                        <button
-                          onClick={async () => {
-                            await loadBlockedWalletMembers(ownerWalletEmail)
-                            setShowBlockedUsersModal(true)
-                          }}
-                          className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
-                            theme === "dark"
-                              ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                              : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                          }`}
-                        >
-                          Заблокированные пользователи
                         </button>
                       )}
 
@@ -4787,6 +4791,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           Удалит все транзакции, бюджеты и настройки. Это действие необратимо!
                         </p>
                       </div>
+
+                      {isWalletOwner && (
+                        <div
+                          className={`rounded-xl p-3 border ${
+                            theme === "dark" ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          <h4 className={`text-sm font-bold mb-2 ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+                            Управление доступом
+                          </h4>
+                          <button
+                            onClick={async () => {
+                              await loadBlockedWalletMembers(ownerWalletEmail)
+                              setShowBlockedUsersModal(true)
+                            }}
+                            className={`w-full py-2 rounded-lg font-medium transition-all shadow text-xs active:scale-95 ${
+                              theme === "dark"
+                                ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                                : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                            }`}
+                          >
+                            Заблокированные пользователи
+                          </button>
+                          <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                            Список пользователей, которым запрещён доступ к вашему семейному кошельку.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -4943,25 +4975,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           theme={theme}
           zIndex={70}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
-              Заблокированные
-            </h3>
-          </div>
-
-          {blockedWalletMembers.length === 0 ? (
-            <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Нет заблокированных пользователей.
+          <div className="max-h-[78vh] overflow-auto pr-1">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                Заблокированные пользователи
+              </h3>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {blockedWalletMembers.map((m) => (
-                <div
-                  key={`${m.owner_email}-${m.member_telegram_id}`}
-                  className={`p-3 rounded-2xl border flex items-center gap-3 ${
-                    theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'
-                  }`}
-                >
+
+            {blockedWalletMembers.length === 0 ? (
+              <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                Нет заблокированных пользователей.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {blockedWalletMembers.map((m) => (
+                  <div
+                    key={`${m.owner_email}-${m.member_telegram_id}`}
+                    className={`p-3 rounded-2xl border flex items-center gap-3 ${
+                      theme === 'dark' ? 'bg-gray-800/40 border-gray-700/40' : 'bg-white border-gray-200'
+                    }`}
+                  >
                   {m.photo_url ? (
                     <img src={m.photo_url} alt="Avatar" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                   ) : (
@@ -5009,10 +5042,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   >
                     Разблокировать
                   </button>
-                </div>
-              ))}
-            </div>
-          )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </BottomSheetModal>
       )}
 
