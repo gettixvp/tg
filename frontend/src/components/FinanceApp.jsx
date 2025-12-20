@@ -1201,6 +1201,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const ACTIVE_WALLET_KEY = 'active_wallet_email_v1'
 
+  const inviteInFlightRef = useRef(false)
+  const inviteDoneRef = useRef(false)
+
   // UseState hooks should be at the top level of the component
   const [user, setUser] = useState(null)
   const [currentUserEmail, setCurrentUserEmail] = useState(null)
@@ -1717,6 +1720,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         if (!tgUserId) return
         // Wait until Telegram auto-login filled our own wallet identity
         if (!currentUserEmail) return
+        if (inviteDoneRef.current || inviteInFlightRef.current) return
 
         const readStartParam = () => {
           try {
@@ -1782,6 +1786,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }
           
           try {
+            inviteInFlightRef.current = true
             // Отправляем запрос на связывание аккаунтов
             const response = await fetch(`${API_URL}/api/link`, {
               method: 'POST',
@@ -1797,7 +1802,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             })
 
             if (response.status === 403) {
-              sessionStorage.setItem(linkKey, 'true')
+              inviteDoneRef.current = true
               const err = await response.json().catch(() => ({}))
               alert(err.error || 'Вас заблокировали в этом кошельке')
               vibrateError()
@@ -1805,9 +1810,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }
 
             if (response.ok) {
-              // Сохраняем, что уже связались
-              sessionStorage.setItem(linkKey, 'true')
-
               const data = await response.json().catch(() => ({}))
               const walletEmail = data.walletEmail
               if (walletEmail) {
@@ -1834,13 +1836,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 setLinkingLoading(false)
 
                 if (!ok) {
+                  try {
+                    localStorage.removeItem(ACTIVE_WALLET_KEY)
+                  } catch (e) {
+                    // ignore
+                  }
                   alert(
                     `Подключение создано, но кошелек владельца не удалось загрузить.\n\n` +
                       `walletEmail: ${walletEmail}\n` +
                       `API_URL: ${API_URL}\n\n` +
                       `Проверь, что backend перезапущен и что API_URL указывает на тот же сервер, где был /api/link.`,
                   )
+                  return
                 }
+
+                // Mark as handled only after successful wallet load
+                sessionStorage.setItem(linkKey, 'true')
+                inviteDoneRef.current = true
               }
             } else {
               const error = await response.json()
@@ -1850,6 +1862,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           } catch (e) {
             console.error('Failed to link accounts:', e)
             alert('Не удалось подключиться к кошельку. Проверьте интернет-соединение.')
+          } finally {
+            inviteInFlightRef.current = false
           }
         }
       } catch (e) {
