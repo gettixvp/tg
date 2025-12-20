@@ -823,6 +823,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     if (!mounted) return
 
     let raf = 0
+    let followRaf = 0
 
     const computeInset = () => {
       try {
@@ -870,6 +871,32 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       })
     }
 
+    const startFastFollow = () => {
+      if (followRaf) cancelAnimationFrame(followRaf)
+
+      const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+      const tick = () => {
+        computeInset()
+
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+        if (now - start > 1200) return
+
+        const vv = window.visualViewport
+        const active = document.activeElement
+        const inside = Boolean(sheetRef.current && active && sheetRef.current.contains(active))
+        if (!inside) return
+
+        if (vv) {
+          const inset = Math.max(0, Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0)))
+          if (inset > 0) return
+        }
+
+        followRaf = requestAnimationFrame(tick)
+      }
+
+      followRaf = requestAnimationFrame(tick)
+    }
+
     burst()
 
     const vv = window.visualViewport
@@ -879,19 +906,29 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     }
     window.addEventListener('resize', burst)
 
-    document.addEventListener('focusin', burst)
-    document.addEventListener('focusout', burst)
+    const onFocusIn = () => {
+      burst()
+      startFastFollow()
+    }
+    const onFocusOut = () => {
+      if (followRaf) cancelAnimationFrame(followRaf)
+      burst()
+    }
+
+    document.addEventListener('focusin', onFocusIn)
+    document.addEventListener('focusout', onFocusOut)
 
     return () => {
       if (raf) cancelAnimationFrame(raf)
+      if (followRaf) cancelAnimationFrame(followRaf)
       if (vv && vv.removeEventListener) {
         vv.removeEventListener('resize', burst)
         vv.removeEventListener('scroll', burst)
       }
       window.removeEventListener('resize', burst)
 
-      document.removeEventListener('focusin', burst)
-      document.removeEventListener('focusout', burst)
+      document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('focusout', onFocusOut)
     }
   }, [mounted])
 
