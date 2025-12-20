@@ -1074,9 +1074,9 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const transition = isDragging ? 'none' : 'transform 240ms cubic-bezier(0.2, 0, 0, 1)'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
-  const overlayTop = viewport.top + safeTopOffset
-  // Keep overlay height stable (windowHeight) to avoid jumps when iOS updates visualViewport late.
-  const overlayHeight = Math.max(0, windowHeight - overlayTop)
+  // Keep overlay position stable to avoid flashes/jumps when iOS updates visualViewport.offsetTop late.
+  const overlayTop = safeTopOffset
+  const overlayHeight = Math.max(0, windowHeight - safeTopOffset)
 
   const overlayStyle = {
     zIndex,
@@ -1096,14 +1096,16 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
       // Pre-lift immediately using last known keyboard inset (iOS WebView often updates visualViewport late)
       if (!isTop) {
-        const cached = lastKeyboardInsetRef.current
-        const guess = cached > 0
-          ? cached
-          : Math.round(Math.min(420, Math.max(260, (window.innerHeight || 0) * 0.38)))
-        if (guess > 0) {
-          setPreLiftInset(guess)
-          // If keyboard didn't open (no inset detected), drop the pre-lift after a short time.
-          setTimeout(() => setPreLiftInset(0), 900)
+        if (keyboardInset <= 0) {
+          const cached = lastKeyboardInsetRef.current
+          const cachedSoft = cached > 0 ? Math.round(cached * 0.72) : 0
+          const guessed = Math.round(Math.min(320, Math.max(180, (window.innerHeight || 0) * 0.26)))
+          const guess = Math.max(cachedSoft, guessed)
+          if (guess > 0) {
+            setPreLiftInset(guess)
+            // If keyboard didn't open (no inset detected), drop the pre-lift after a short time.
+            setTimeout(() => setPreLiftInset(0), 700)
+          }
         }
       }
 
