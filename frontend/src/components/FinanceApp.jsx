@@ -5274,7 +5274,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowWalletMemberModal(false)
                     setSelectedWalletMember(null)
                   }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                  className={`flex-1 py-3 rounded-[40px] font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
                     theme === 'dark' ? 'bg-amber-700 hover:bg-amber-600 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'
                   }`}
                 >
@@ -5287,7 +5287,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowWalletMemberModal(false)
                     setSelectedWalletMember(null)
                   }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                  className={`flex-1 py-3 rounded-[40px] font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
                     theme === 'dark' ? 'bg-green-700 hover:bg-green-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
                   }`}
                 >
@@ -5302,7 +5302,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   setShowWalletMemberModal(false)
                   setSelectedWalletMember(null)
                 }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
+                className={`flex-1 py-3 rounded-[40px] font-medium transition-all flex items-center justify-center gap-2 shadow-lg text-sm touch-none active:scale-95 ${
                   theme === 'dark' ? 'bg-rose-700 hover:bg-rose-600 text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'
                 }`}
               >
