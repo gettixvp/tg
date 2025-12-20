@@ -2448,9 +2448,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       
       const botUsername = 'kvpoiskby_bot'
 
-      // Приглашение через deep-link на бота. Далее бот открывает приложение кнопкой web_app
-      // и передает параметр через URL ?ref=...
-      const inviteUrl = `https://t.me/${botUsername}?start=${startParam}`
+      // Приглашение через direct link к Main Mini App
+      // https://core.telegram.org/bots/webapps
+      // payload попадет в initDataUnsafe.start_param и tgWebAppStartParam
+      const inviteUrl = `https://t.me/${botUsername}?startapp=${encodeURIComponent(startParam)}`
       
       // Текст приглашения
       const inviteText = `🎉 Присоединяйся к моему кошельку!\n\n` +
