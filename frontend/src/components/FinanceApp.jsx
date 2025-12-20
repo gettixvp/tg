@@ -779,7 +779,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   )
 }
 
-const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, position = 'bottom', topOffset = 0 }) => {
+const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, position = 'bottom', topOffset = 0, maxWidthClass = 'max-w-md' }) => {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
@@ -1041,7 +1041,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           e.stopPropagation()
         }}
         ref={sheetRef}
-        className={`w-full max-w-md shadow-2xl overflow-hidden flex flex-col ${
+        className={`w-full ${maxWidthClass} shadow-2xl overflow-hidden flex flex-col ${
           theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
         }`}
         style={{
@@ -2302,6 +2302,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       vibrateError()
       alert("Введите корректную сумму")
       return
+    }
+
+    if (transactionType !== 'savings' && !String(category || '').trim()) {
+      setCategory('Другое')
     }
 
     let convertedUSD = 0
@@ -6336,6 +6340,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }}
           theme={theme}
           zIndex={70}
+          maxWidthClass="max-w-sm"
         >
           {(() => {
             const typeMeta = {
@@ -6344,12 +6349,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               savings: { label: 'Копилка', color: '#007AFF', emoji: '🏦' },
             }
             const currentType = typeMeta[transactionType] || typeMeta.expense
-            const canSubmit = Boolean(String(amount || '').trim()) && (transactionType === 'savings' ? true : Boolean(category))
+            const canSubmit = Boolean(String(amount || '').trim())
 
             return (
               <div className="px-1">
                 <div className="flex items-center justify-between pt-2 pb-4">
-                  <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-3xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
+                  <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
                     Новая операция
                   </h1>
                   <button
@@ -6388,29 +6393,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
 
                 <div className="mb-4">
-                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl px-6 py-8 text-center`}>
-                    <div className="flex items-center justify-center gap-2">
-                      <input
-                        type="text"
-                        value={amount}
-                        inputMode="decimal"
-                        onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                        onFocus={() => {
-                          requestAnimationFrame(() => {
-                            try {
-                              window.visualViewport && window.visualViewport.height
-                            } catch (e) {}
-                          })
-                        }}
-                        placeholder="0"
-                        className={`text-6xl font-bold text-center outline-none bg-transparent w-full ${theme === 'dark' ? 'text-gray-100 placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
-                        style={{
-                          color: currentType.color,
-                          caretColor: currentType.color,
-                          letterSpacing: '-2px',
-                        }}
-                      />
-                    </div>
+                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl px-6 py-5`}>
+                    <input
+                      type="text"
+                      value={amount}
+                      inputMode="decimal"
+                      onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                      onFocus={() => {
+                        requestAnimationFrame(() => {
+                          try {
+                            window.visualViewport && window.visualViewport.height
+                          } catch (e) {}
+                        })
+                      }}
+                      placeholder="Сумма"
+                      className={`w-full text-base outline-none bg-transparent ${
+                        theme === 'dark' ? 'text-gray-100 placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'
+                      }`}
+                      style={{
+                        color: currentType.color,
+                        caretColor: currentType.color,
+                      }}
+                    />
                   </div>
                 </div>
 
