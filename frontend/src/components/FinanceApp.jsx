@@ -785,6 +785,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
+  const [preLiftInset, setPreLiftInset] = useState(0)
   const [viewport, setViewport] = useState({ top: 0, height: typeof window !== 'undefined' ? window.innerHeight : 0 })
   const startY = useRef(0)
   const startX = useRef(0)
@@ -792,6 +793,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const sheetRef = useRef(null)
   const burstRef = useRef(() => {})
   const startFastFollowRef = useRef(() => {})
+  const lastKeyboardInsetRef = useRef(0)
 
   const hapticImpact = () => {}
 
@@ -859,6 +861,10 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         // We lift the sheet by the missing height so inputs are not covered.
         const inset = Math.max(0, Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0)))
         setKeyboardInset(inset)
+        if (inset > 0) {
+          lastKeyboardInsetRef.current = inset
+          setPreLiftInset(0)
+        }
       } catch (e) {
         setKeyboardInset(0)
       }
@@ -916,6 +922,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     }
     const onFocusOut = () => {
       if (followRaf) cancelAnimationFrame(followRaf)
+      setPreLiftInset(0)
       burst()
     }
 
@@ -1036,7 +1043,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   if (!mounted) return null
 
   const isTop = position === 'top'
-  const lift = isTop ? 0 : keyboardInset
+  const lift = isTop ? 0 : Math.max(keyboardInset, preLiftInset)
   const translate = visible ? `translateY(${dragY - lift}px)` : 'translateY(100%)'
   const transition = isDragging ? 'none' : 'transform 160ms ease-out'
 
@@ -1058,6 +1065,12 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       const el = t.closest ? t.closest('input, textarea, select, [contenteditable="true"]') : null
       if (!el) return
 
+      // Pre-lift immediately using last known keyboard inset (iOS WebView often updates visualViewport late)
+      if (!isTop && lastKeyboardInsetRef.current > 0) {
+        setPreLiftInset(lastKeyboardInsetRef.current)
+        setTimeout(() => setPreLiftInset(0), 1500)
+      }
+
       burstRef.current && burstRef.current()
       startFastFollowRef.current && startFastFollowRef.current()
     } catch (err) {
@@ -1068,7 +1081,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   return (
     <div
       className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
-      style={overlayStyle}
+      style={{ ...overlayStyle, overscrollBehavior: 'none', touchAction: 'none' }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
@@ -1117,6 +1130,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           borderBottomRightRadius: isTop ? 24 : 0,
           willChange: 'transform',
           touchAction: 'none',
+          overscrollBehavior: 'contain',
         }}
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => {
@@ -1134,7 +1148,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         <div
           data-bsm-scroll
           className="p-4 overflow-y-auto flex-1"
-          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y", overscrollBehavior: 'contain' }}
         >
           {children}
         </div>
