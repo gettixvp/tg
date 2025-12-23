@@ -337,7 +337,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
   )
 }
 
-const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator, onToggleLike, onOpenDetails, tgPhotoUrl, tgUserId }) {
+const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator, onToggleLike, onOpenDetails, tgPhotoUrl, tgUserId, walletMembers }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
@@ -440,6 +440,14 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   }
 
   const getCommentPhotoUrl = (comment) => {
+    const id = comment?.telegram_id
+    if (id != null && Array.isArray(walletMembers)) {
+      const found = walletMembers.find((m) => String(m?.telegram_id) === String(id))
+      if (found?.telegram_photo_url) return found.telegram_photo_url
+    }
+    if (id != null && tgUserId && String(id) === String(tgUserId) && tgPhotoUrl) {
+      return tgPhotoUrl
+    }
     return (
       comment?.telegram_photo_url ||
       comment?.photo_url ||
@@ -889,14 +897,11 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [sheetHeight, setSheetHeight] = useState(null)
-  const [isResizing, setIsResizing] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
-  const startHeight = useRef(0)
   const sheetRef = useRef(null)
 
   const hapticImpact = () => {}
@@ -910,15 +915,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
     setMounted(true)
     const t = setTimeout(() => setVisible(true), 0)
-
-    // Reset sheet height on open
-    try {
-      const h = window.innerHeight
-      const initial = Math.round(h * 0.75)
-      setSheetHeight(initial)
-    } catch (e) {
-      setSheetHeight(null)
-    }
 
     // Reset inner scroll on open to prevent "auto-scroll to bottom" glitches
     const r1 = setTimeout(() => {
@@ -1107,45 +1103,11 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     setDragY(0)
   }
 
-  const onHandleTouchStart = (e) => {
-    e.stopPropagation()
-    setIsResizing(true)
-    startY.current = e.touches[0].clientY
-    startHeight.current = sheetHeight || 0
-  }
-
-  const onHandleTouchMove = (e) => {
-    if (!isResizing) return
-    const current = e.touches[0].clientY
-    const diff = current - startY.current
-
-    const minH = 260
-    const maxH = Math.max(minH, overlayHeight - 12)
-    let next = startHeight.current - diff
-
-    // Rubber band outside bounds
-    if (next < minH) next = minH - (minH - next) * 0.35
-    if (next > maxH) next = maxH + (next - maxH) * 0.35
-
-    e.preventDefault()
-    setSheetHeight(next)
-  }
-
-  const onHandleTouchEnd = () => {
-    if (!isResizing) return
-    setIsResizing(false)
-
-    const minH = 260
-    const maxH = Math.max(minH, overlayHeight - 12)
-    const clamped = Math.min(maxH, Math.max(minH, sheetHeight || minH))
-    setSheetHeight(clamped)
-  }
-
   if (!mounted) return null
 
   const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 220ms ease-out, bottom 180ms ease-out'
+  const transition = isDragging ? 'none' : 'transform 180ms ease-out, bottom 180ms ease-out'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = safeTopOffset
@@ -1200,7 +1162,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           transition,
           bottom: isTop ? 0 : keyboardInset,
           maxHeight: Math.max(0, overlayHeight - 12),
-          height: sheetHeight ? `${sheetHeight}px` : undefined,
           marginTop: isTop ? 12 : 0,
           borderTopLeftRadius: isTop ? 40 : 40,
           borderTopRightRadius: isTop ? 40 : 40,
@@ -1220,13 +1181,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         }}
         onTouchEnd={onTouchEnd}
       >
-        <div
-          className="pt-2 pb-1 flex justify-center"
-          onTouchStart={onHandleTouchStart}
-          onTouchMove={onHandleTouchMove}
-          onTouchEnd={onHandleTouchEnd}
-          style={{ touchAction: 'none' }}
-        >
+        <div className="pt-2 pb-1 flex justify-center">
           <div className={`h-1.5 w-10 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`} />
         </div>
         <div
@@ -3926,6 +3881,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         onToggleLike={toggleLike}
                         onOpenDetails={openTransactionDetails}
                         tgUserId={tgUserId}
+                        walletMembers={walletMembers}
                       />
                     ))}
                   </div>
@@ -4001,6 +3957,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         onToggleLike={toggleLike}
                         onOpenDetails={openTransactionDetails}
                         tgUserId={tgUserId}
+                        walletMembers={walletMembers}
                       />
                     ))}
                   </div>
@@ -4247,6 +4204,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           onToggleLike={toggleLike}
                           onOpenDetails={openTransactionDetails}
                           tgUserId={tgUserId}
+                          walletMembers={walletMembers}
                         />
                       ))}
                   </div>
@@ -6735,9 +6693,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             return (
               <div className="px-1">
                 <div className="flex items-center justify-between pt-1 pb-3">
-                  <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
-                    Новая операция
-                  </h1>
+                  <div className="flex items-center gap-2">
+                    {tgPhotoUrl ? (
+                      <img src={tgPhotoUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${theme === "dark" ? "bg-blue-700" : "bg-blue-200"}`}>
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
+                      Новая операция
+                    </h1>
+                  </div>
                   <button
                     onClick={() => setShowAddModal(false)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
@@ -6760,7 +6727,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
                           style={{
                             backgroundColor: isActive ? (theme === 'dark' ? 'rgba(17,24,39,0.9)' : 'white') : 'transparent',
-                            color: isActive ? (theme === 'dark' ? '#F9FAFB' : '#000000') : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
+                            color: isActive ? meta.color : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
                             boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
                             border: isActive && theme !== 'dark' ? '1px solid #000000' : '1px solid transparent',
                             transform: isActive ? 'scale(1)' : 'scale(0.98)',
