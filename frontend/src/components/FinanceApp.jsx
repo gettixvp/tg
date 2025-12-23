@@ -1233,8 +1233,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
 
+  const tgUserIdSafe =
+    typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user?.id : null
+
   function getLikerKey() {
-    if (tgUserId) return `tg:${String(tgUserId)}`
+    if (tgUserIdSafe) return `tg:${String(tgUserIdSafe)}`
     if (currentUserEmail) return `email:${String(currentUserEmail)}`
     if (user?.email) return `email:${String(user.email)}`
     return null
@@ -1277,7 +1280,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
     }
     setLikedTransactions(likedSet)
-  }, [tgUserId, currentUserEmail, user?.email, likesByTx])
+  }, [tgUserIdSafe, currentUserEmail, user?.email, likesByTx])
   const [detailsCommentText, setDetailsCommentText] = useState('')
   
   const [secondGoalName, setSecondGoalName] = useState('')
