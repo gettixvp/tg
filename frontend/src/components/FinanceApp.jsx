@@ -337,7 +337,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
   )
 }
 
-const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator, onToggleLike, onOpenDetails, tgPhotoUrl }) {
+const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator, onToggleLike, onOpenDetails, tgPhotoUrl, tgUserId }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
@@ -424,6 +424,21 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
   const showDeleteAction = swipeX < 0 || isSwiping
 
+  const creatorPhotoUrl =
+    tx.telegram_photo_url ||
+    tx.created_by_telegram_photo_url ||
+    tx.created_by_photo_url ||
+    tx.creator_photo_url ||
+    tgPhotoUrl
+
+  const getCommentKey = (comment) => {
+    const id = comment?.telegram_id
+    if (id != null) return `tg:${String(id)}`
+    const author = comment?.author
+    if (author) return `author:${String(author)}`
+    return null
+  }
+
   return (
     <div
       className="py-2"
@@ -501,8 +516,8 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               <div className="flex items-center justify-between gap-2 min-w-0">
                 {showCreator && tx.created_by_name ? (
                   <div className="flex items-center gap-1 min-w-0">
-                    {tx.telegram_photo_url ? (
-                      <img src={tx.telegram_photo_url} alt="Avatar" className="w-[18px] h-[18px] rounded-full object-cover" />
+                    {creatorPhotoUrl ? (
+                      <img src={creatorPhotoUrl} alt="Avatar" className="w-[18px] h-[18px] rounded-full object-cover" />
                     ) : (
                       <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${theme === "dark" ? "bg-blue-700" : "bg-blue-200"}`}>
                         <User className="w-3 h-3 text-white" />
@@ -524,56 +539,96 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
         </div>
       </div>
 
-      {/* Последние 2 комментария */}
+      {/* Последние 6 комментариев */}
       {tx.comments && tx.comments.length > 0 && (
         <div className="mt-1.5 px-3 space-y-1">
-          {tx.comments.slice(-2).map((comment, idx) => (
-            <div key={comment.id || idx} className="flex items-start gap-1.5">
-              {/* Аватар автора комментария */}
-              {comment.telegram_photo_url ? (
-                <img
-                  src={comment.telegram_photo_url}
-                  alt={comment.author}
-                  className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
-                />
-              ) : (
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                  theme === "dark" ? "bg-gray-600" : "bg-gray-300"
-                }`}>
-                  <User className="w-3 h-3 text-white" />
+          {tx.comments.slice(-6).map((comment, idx) => {
+            const key = getCommentKey(comment)
+            const isMe = key && tgUserId ? key === `tg:${String(tgUserId)}` : false
+            const alignRight = isMe
+
+            return (
+              <button
+                key={comment.id || idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onOpenDetails && onOpenDetails(tx)
+                }}
+                className="w-full"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <div className={`flex items-start gap-1.5 ${alignRight ? 'justify-end' : 'justify-start'}`}>
+                  {!alignRight && (
+                    comment.telegram_photo_url ? (
+                      <img
+                        src={comment.telegram_photo_url}
+                        alt={comment.author}
+                        className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
+                      />
+                    ) : (
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        theme === "dark" ? "bg-gray-600" : "bg-gray-300"
+                      }`}>
+                        <User className="w-3 h-3 text-white" />
+                      </div>
+                    )
+                  )}
+
+                  <div className="flex-1 min-w-0" style={{ maxWidth: '85%' }}>
+                    <div
+                      className={`inline-block px-2.5 py-1.5 rounded-xl ${
+                        theme === "dark"
+                          ? alignRight
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700/80 text-gray-100'
+                          : alignRight
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-900'
+                      }`}
+                      style={{ float: alignRight ? 'right' : 'left' }}
+                    >
+                      <p className={`text-[10px] font-medium mb-0.5 ${
+                        alignRight
+                          ? 'text-white/80'
+                          : theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        {comment.author}
+                      </p>
+                      <p className="text-xs leading-snug break-words">{comment.text}</p>
+                    </div>
+                  </div>
+
+                  {alignRight && (
+                    comment.telegram_photo_url ? (
+                      <img
+                        src={comment.telegram_photo_url}
+                        alt={comment.author}
+                        className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
+                      />
+                    ) : (
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        theme === "dark" ? "bg-gray-600" : "bg-gray-300"
+                      }`}>
+                        <User className="w-3 h-3 text-white" />
+                      </div>
+                    )
+                  )}
                 </div>
-              )}
-              
-              {/* Текст комментария */}
-              <div className="flex-1 min-w-0">
-                <div
-                  className={`inline-block px-2.5 py-1.5 rounded-xl ${
-                    theme === "dark"
-                      ? "bg-gray-700/80 text-gray-100"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  <p className={`text-[10px] font-medium mb-0.5 ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    {comment.author}
-                  </p>
-                  <p className="text-xs leading-snug break-words">{comment.text}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-          {tx.comments.length > 2 && (
+              </button>
+            )
+          })}
+          {tx.comments.length > 6 && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 onOpenDetails && onOpenDetails(tx)
               }}
-              className={`text-[10px] font-medium ml-6 ${
+              className={`text-[10px] font-medium ${
                 theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"
               }`}
             >
-              Ещё {tx.comments.length - 2} {tx.comments.length - 2 === 1 ? 'комментарий' : 'комментария'}
+              Прочитать все ({tx.comments.length})
             </button>
           )}
         </div>
@@ -1032,7 +1087,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 180ms ease-out, bottom 180ms ease-out'
+  const transition = isDragging ? 'none' : 'transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1), bottom 180ms ease-out'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = safeTopOffset
@@ -3805,6 +3860,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         showCreator={(walletMembers?.length || 0) > 1}
                         onToggleLike={toggleLike}
                         onOpenDetails={openTransactionDetails}
+                        tgUserId={tgUserId}
                       />
                     ))}
                   </div>
@@ -3879,6 +3935,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         showCreator={(walletMembers?.length || 0) > 1}
                         onToggleLike={toggleLike}
                         onOpenDetails={openTransactionDetails}
+                        tgUserId={tgUserId}
                       />
                     ))}
                   </div>
@@ -4124,6 +4181,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           showCreator={(walletMembers?.length || 0) > 1}
                           onToggleLike={toggleLike}
                           onOpenDetails={openTransactionDetails}
+                          tgUserId={tgUserId}
                         />
                       ))}
                   </div>
@@ -6637,12 +6695,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
                           style={{
                             backgroundColor: isActive ? (theme === 'dark' ? 'rgba(17,24,39,0.9)' : 'white') : 'transparent',
-                            color: isActive ? meta.color : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
+                            color: isActive ? (theme === 'dark' ? '#F9FAFB' : '#000000') : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
                             boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
                             transform: isActive ? 'scale(1)' : 'scale(0.98)',
                           }}
                         >
-                          <span className="mr-1.5">{meta.emoji}</span>
                           {meta.label}
                         </button>
                       )
