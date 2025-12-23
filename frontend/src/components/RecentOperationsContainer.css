@@ -17,6 +17,10 @@
   border: none;
  }
 
+ .savings-container {
+  border: none;
+ }
+
 .recent-operations-container.dark, 
 .budgets-container.dark, 
 .savings-container.dark,
