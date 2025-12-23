@@ -427,8 +427,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   const getMemberPhotoUrl = (telegramId) => {
     if (telegramId == null) return null
     if (Array.isArray(walletMembers)) {
-      const found = walletMembers.find((m) => String(m?.telegram_id) === String(telegramId))
-      if (found?.telegram_photo_url) return found.telegram_photo_url
+      const found = walletMembers.find(
+        (m) => String(m?.telegram_id ?? m?.member_telegram_id) === String(telegramId),
+      )
+      if (found?.telegram_photo_url || found?.photo_url) return found.telegram_photo_url || found.photo_url
     }
     if (tgUserId && String(telegramId) === String(tgUserId) && tgPhotoUrl) {
       return tgPhotoUrl
@@ -457,8 +459,10 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   const getCommentPhotoUrl = (comment) => {
     const id = comment?.telegram_id ?? comment?.created_by_telegram_id ?? comment?.telegramId ?? comment?.telegramID
     if (id != null && Array.isArray(walletMembers)) {
-      const found = walletMembers.find((m) => String(m?.telegram_id) === String(id))
-      if (found?.telegram_photo_url) return found.telegram_photo_url
+      const found = walletMembers.find(
+        (m) => String(m?.telegram_id ?? m?.member_telegram_id) === String(id),
+      )
+      if (found?.telegram_photo_url || found?.photo_url) return found.telegram_photo_url || found.photo_url
     }
     if (id != null && tgUserId && String(id) === String(tgUserId) && tgPhotoUrl) {
       return tgPhotoUrl
@@ -1478,7 +1482,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         return
       }
       const data = await resp.json().catch(() => null)
-      setWalletMembers(data?.members || [])
+      const raw = data?.members || []
+      const normalized = Array.isArray(raw)
+        ? raw.map((m) => {
+            const telegramId = m?.telegram_id ?? m?.member_telegram_id ?? null
+            const photoUrl = m?.telegram_photo_url ?? m?.photo_url ?? null
+            return {
+              ...m,
+              telegram_id: telegramId,
+              telegram_photo_url: photoUrl,
+            }
+          })
+        : []
+      setWalletMembers(normalized)
     } catch (e) {
       console.warn('Failed to load wallet members', e)
     }
