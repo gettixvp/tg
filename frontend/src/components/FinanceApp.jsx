@@ -439,6 +439,17 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
     return null
   }
 
+  const getCommentPhotoUrl = (comment) => {
+    return (
+      comment?.telegram_photo_url ||
+      comment?.photo_url ||
+      comment?.author_photo_url ||
+      comment?.created_by_telegram_photo_url ||
+      comment?.created_by_photo_url ||
+      null
+    )
+  }
+
   return (
     <div
       className="py-2"
@@ -546,6 +557,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
             const key = getCommentKey(comment)
             const isMe = key && tgUserId ? key === `tg:${String(tgUserId)}` : false
             const alignRight = isMe
+            const commentPhotoUrl = getCommentPhotoUrl(comment)
 
             return (
               <button
@@ -560,9 +572,9 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
               >
                 <div className={`flex items-start gap-1.5 ${alignRight ? 'justify-end' : 'justify-start'}`}>
                   {!alignRight && (
-                    comment.telegram_photo_url ? (
+                    commentPhotoUrl ? (
                       <img
-                        src={comment.telegram_photo_url}
+                        src={commentPhotoUrl}
                         alt={comment.author}
                         className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
                       />
@@ -600,9 +612,9 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   </div>
 
                   {alignRight && (
-                    comment.telegram_photo_url ? (
+                    commentPhotoUrl ? (
                       <img
-                        src={comment.telegram_photo_url}
+                        src={commentPhotoUrl}
                         alt={comment.author}
                         className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
                       />
@@ -877,11 +889,14 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [sheetHeight, setSheetHeight] = useState(null)
+  const [isResizing, setIsResizing] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
+  const startHeight = useRef(0)
   const sheetRef = useRef(null)
 
   const hapticImpact = () => {}
@@ -895,6 +910,15 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
     setMounted(true)
     const t = setTimeout(() => setVisible(true), 0)
+
+    // Reset sheet height on open
+    try {
+      const h = window.innerHeight
+      const initial = Math.round(h * 0.75)
+      setSheetHeight(initial)
+    } catch (e) {
+      setSheetHeight(null)
+    }
 
     // Reset inner scroll on open to prevent "auto-scroll to bottom" glitches
     const r1 = setTimeout(() => {
@@ -1083,11 +1107,45 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     setDragY(0)
   }
 
+  const onHandleTouchStart = (e) => {
+    e.stopPropagation()
+    setIsResizing(true)
+    startY.current = e.touches[0].clientY
+    startHeight.current = sheetHeight || 0
+  }
+
+  const onHandleTouchMove = (e) => {
+    if (!isResizing) return
+    const current = e.touches[0].clientY
+    const diff = current - startY.current
+
+    const minH = 260
+    const maxH = Math.max(minH, overlayHeight - 12)
+    let next = startHeight.current - diff
+
+    // Rubber band outside bounds
+    if (next < minH) next = minH - (minH - next) * 0.35
+    if (next > maxH) next = maxH + (next - maxH) * 0.35
+
+    e.preventDefault()
+    setSheetHeight(next)
+  }
+
+  const onHandleTouchEnd = () => {
+    if (!isResizing) return
+    setIsResizing(false)
+
+    const minH = 260
+    const maxH = Math.max(minH, overlayHeight - 12)
+    const clamped = Math.min(maxH, Math.max(minH, sheetHeight || minH))
+    setSheetHeight(clamped)
+  }
+
   if (!mounted) return null
 
   const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1), bottom 180ms ease-out'
+  const transition = isDragging ? 'none' : 'transform 220ms ease-out, bottom 180ms ease-out'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = safeTopOffset
@@ -1142,6 +1200,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           transition,
           bottom: isTop ? 0 : keyboardInset,
           maxHeight: Math.max(0, overlayHeight - 12),
+          height: sheetHeight ? `${sheetHeight}px` : undefined,
           marginTop: isTop ? 12 : 0,
           borderTopLeftRadius: isTop ? 40 : 40,
           borderTopRightRadius: isTop ? 40 : 40,
@@ -1161,7 +1220,13 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         }}
         onTouchEnd={onTouchEnd}
       >
-        <div className="pt-2 pb-1 flex justify-center">
+        <div
+          className="pt-2 pb-1 flex justify-center"
+          onTouchStart={onHandleTouchStart}
+          onTouchMove={onHandleTouchMove}
+          onTouchEnd={onHandleTouchEnd}
+          style={{ touchAction: 'none' }}
+        >
           <div className={`h-1.5 w-10 rounded-full ${theme === "dark" ? "bg-gray-600" : "bg-gray-300"}`} />
         </div>
         <div
@@ -6697,6 +6762,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             backgroundColor: isActive ? (theme === 'dark' ? 'rgba(17,24,39,0.9)' : 'white') : 'transparent',
                             color: isActive ? (theme === 'dark' ? '#F9FAFB' : '#000000') : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
                             boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                            border: isActive && theme !== 'dark' ? '1px solid #000000' : '1px solid transparent',
                             transform: isActive ? 'scale(1)' : 'scale(0.98)',
                           }}
                         >
