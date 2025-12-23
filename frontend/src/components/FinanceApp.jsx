@@ -584,13 +584,13 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                       <img
                         src={commentPhotoUrl}
                         alt={comment.author}
-                        className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
+                        className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
                       />
                     ) : (
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
                         theme === "dark" ? "bg-gray-600" : "bg-gray-300"
                       }`}>
-                        <User className="w-3 h-3 text-white" />
+                        <User className="w-4 h-4 text-white" />
                       </div>
                     )
                   )}
@@ -624,13 +624,13 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                       <img
                         src={commentPhotoUrl}
                         alt={comment.author}
-                        className="w-5 h-5 rounded-full object-cover flex-shrink-0 mt-0.5"
+                        className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
                       />
                     ) : (
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
                         theme === "dark" ? "bg-gray-600" : "bg-gray-300"
                       }`}>
-                        <User className="w-3 h-3 text-white" />
+                        <User className="w-4 h-4 text-white" />
                       </div>
                     )
                   )}
@@ -1143,12 +1143,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         }
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          e.preventDefault()
-          requestClose()
-        }
-      }}
-      onTouchEnd={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
           requestClose()
@@ -5096,14 +5090,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowAiModal(false)}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                    theme === 'dark' ? 'bg-gray-700/70 hover:bg-gray-600/70 text-gray-200' : 'bg-gray-200/80 hover:bg-gray-300/80 text-gray-700'
-                  }`}
-                >
-                  ×
-                </button>
               </div>
             </div>
 
@@ -6281,14 +6267,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
                       Детали операции
                     </h1>
-                    <button
-                      onClick={handleClose}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                        theme === 'dark' ? 'bg-gray-700/70 hover:bg-gray-600/70 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      <X className="w-5 h-5" strokeWidth={2.5} />
-                    </button>
                   </div>
                 </div>
 
@@ -6778,14 +6756,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       Новая операция
                     </h1>
                   </div>
-                  <button
-                    onClick={() => setShowAddModal(false)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                      theme === 'dark' ? 'bg-gray-700/70 hover:bg-gray-600/70 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    ×
-                  </button>
                 </div>
 
                 <div className="mb-4">
