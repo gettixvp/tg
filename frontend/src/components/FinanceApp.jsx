@@ -1233,7 +1233,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
 
-  const getLikerKey = () => {
+  function getLikerKey() {
     if (tgUserId) return `tg:${String(tgUserId)}`
     if (currentUserEmail) return `email:${String(currentUserEmail)}`
     if (user?.email) return `email:${String(user.email)}`
@@ -2040,7 +2040,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  const formatNumber = (value, curr = currency) => {
+  function formatNumber(value, curr = currency) {
     const num = Number(value)
     if (!isFinite(num)) return '0'
     try {
