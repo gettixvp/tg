@@ -337,7 +337,7 @@ function CommentRow({ comment, theme, tgUserId, onDelete }) {
   )
 }
 
-const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDate, theme, onDelete, showCreator, onToggleLike, onOpenDetails, tgPhotoUrl }) {
+const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatNumber, formatDate, theme, onDelete, showCreator, onToggleLike, onOpenDetails, tgPhotoUrl }) {
   const [swipeX, setSwipeX] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [lastTap, setLastTap] = useState(0)
@@ -493,7 +493,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   }`}
                 >
                   {tx.type === "income" ? "+" : "-"}
-                  {formatNumber(tx.amount)}
+                  {(formatNumber || formatCurrency)(tx.amount)}
                 </p>
               </div>
 
@@ -3829,6 +3829,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         key={tx.id}
                         categoriesMeta={categoriesMeta}
                         formatCurrency={formatCurrency}
+                        formatNumber={formatNumber}
                         formatDate={formatDate}
                         theme={theme}
                         onDelete={deleteTransaction}
@@ -3903,6 +3904,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         key={tx.id}
                         categoriesMeta={categoriesMeta}
                         formatCurrency={formatCurrency}
+                        formatNumber={formatNumber}
                         formatDate={formatDate}
                         theme={theme}
                         onDelete={deleteTransaction}
@@ -4148,6 +4150,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           key={tx.id}
                           categoriesMeta={categoriesMeta}
                           formatCurrency={formatCurrency}
+                          formatNumber={formatNumber}
                           formatDate={formatDate}
                           theme={theme}
                           onDelete={deleteTransaction}
