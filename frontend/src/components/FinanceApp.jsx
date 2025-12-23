@@ -1350,7 +1350,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const likedSet = new Set()
       for (const [txId, likers] of Object.entries(likesByTx)) {
         if (Array.isArray(likers) && likers.includes(likerKey)) {
-          likedSet.add(Number(txId))
+          likedSet.add(String(txId))
         }
       }
       setLikedTransactions(likedSet)
@@ -3437,13 +3437,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const secondGoalPct = Math.round(secondGoalProgress * 100)
 
   const toggleLike = (txId) => {
+    const txKey = String(txId)
     vibrate()
     setLikedTransactions((prev) => {
       const newSet = new Set(prev)
-      if (newSet.has(txId)) {
-        newSet.delete(txId)
+      if (newSet.has(txKey)) {
+        newSet.delete(txKey)
       } else {
-        newSet.add(txId)
+        newSet.add(txKey)
       }
       return newSet
     })
@@ -3473,8 +3474,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         if (data && typeof data.liked === 'boolean') {
           setLikedTransactions((prev) => {
             const next = new Set(prev)
-            if (data.liked) next.add(txId)
-            else next.delete(txId)
+            if (data.liked) next.add(txKey)
+            else next.delete(txKey)
             return next
           })
         }
@@ -3903,7 +3904,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div className={`${theme === "dark" ? "divide-white/10" : "divide-gray-200"} divide-y`}>
                     {transactions.slice(0, 10).map((tx) => (
                       <TxRow
-                        tx={{ ...tx, liked: likedTransactions.has(tx.id), comments: transactionComments[tx.id] || [] }}
+                        tx={{ ...tx, liked: likedTransactions.has(String(tx.id)), comments: transactionComments[tx.id] || [] }}
                         key={tx.id}
                         categoriesMeta={categoriesMeta}
                         formatCurrency={formatCurrency}
@@ -6252,7 +6253,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {(() => {
             const tx = selectedTransaction
             const categoryInfo = categoriesMeta[tx.category] || categoriesMeta['Другое']
-            const isLiked = likedTransactions.has(tx.id)
+            const isLiked = likedTransactions.has(String(tx.id))
             const comments = transactionComments[tx.id] || []
             const txColor =
               tx.type === 'income' ? '#34C759' : tx.type === 'expense' ? '#FF3B30' : '#007AFF'
