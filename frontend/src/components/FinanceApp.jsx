@@ -422,9 +422,24 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   }
 
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
-  const showDeleteAction = swipeX < 0 || isSwiping
+  const showDeleteAction = swipeX < 0
+
+  const getMemberPhotoUrl = (telegramId) => {
+    if (telegramId == null) return null
+    if (Array.isArray(walletMembers)) {
+      const found = walletMembers.find((m) => String(m?.telegram_id) === String(telegramId))
+      if (found?.telegram_photo_url) return found.telegram_photo_url
+    }
+    if (tgUserId && String(telegramId) === String(tgUserId) && tgPhotoUrl) {
+      return tgPhotoUrl
+    }
+    return null
+  }
+
+  const creatorTelegramId = tx.created_by_telegram_id ?? tx.telegram_id ?? tx.createdByTelegramId ?? tx.createdByTelegramID
 
   const creatorPhotoUrl =
+    getMemberPhotoUrl(creatorTelegramId) ||
     tx.telegram_photo_url ||
     tx.created_by_telegram_photo_url ||
     tx.created_by_photo_url ||
@@ -1237,6 +1252,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const API_URL = apiUrl
   const mainContentRef = useRef(null)
 
+  const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
+
   const ACTIVE_WALLET_KEY = 'active_wallet_email_v1'
 
   const inviteInFlightRef = useRef(false)
@@ -1250,7 +1267,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
-  const [theme, setTheme] = useState("light")
+  const [theme, setTheme] = useState(() => (tg && tg.colorScheme) || "light")
   const [currency, setCurrency] = useState("BYN")
   const [goalSavings, setGoalSavings] = useState(50000)
   const [balance, setBalance] = useState(0)
@@ -1418,7 +1435,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  const tg = typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp
   const haptic = tg && tg.HapticFeedback
   const vibrate = () => haptic && haptic.impactOccurred && haptic.impactOccurred("light")
   const vibrateSuccess = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("success")
