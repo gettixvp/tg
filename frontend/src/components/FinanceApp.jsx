@@ -422,7 +422,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   }
 
   const categoryInfo = categoriesMeta[tx.category] || categoriesMeta["Другое"]
-  const showDeleteAction = swipeX < 0 || isSwiping
+  const showDeleteAction = swipeX < 0
 
   return (
     <div
@@ -493,7 +493,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
                   }`}
                 >
                   {tx.type === "income" ? "+" : "-"}
-                  {formatCurrency(tx.amount)}
+                  {formatNumber(tx.amount)}
                 </p>
               </div>
 
@@ -1228,6 +1228,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showLinkedUsersDropdown, setShowLinkedUsersDropdown] = useState(false)
   const [showWalletMembersDropdown, setShowWalletMembersDropdown] = useState(false)
   const [likedTransactions, setLikedTransactions] = useState(new Set())
+  const [likesByTx, setLikesByTx] = useState({})
   const [transactionComments, setTransactionComments] = useState({})
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [showTransactionDetails, setShowTransactionDetails] = useState(false)
@@ -1241,26 +1242,42 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const loadLikesForWallet = async (walletEmail) => {
     if (!walletEmail) return
-    const likerKey = getLikerKey()
-    if (!likerKey) return
 
     try {
       const resp = await fetch(`${API_URL}/api/likes?wallet_email=${encodeURIComponent(String(walletEmail))}`)
       if (!resp.ok) return
       const data = await resp.json().catch(() => null)
-      const likesByTx = data?.likesByTx || {}
+      const nextLikesByTx = data?.likesByTx || {}
+      setLikesByTx(nextLikesByTx)
 
-      const likedSet = new Set()
-      for (const [txId, likers] of Object.entries(likesByTx)) {
-        if (Array.isArray(likers) && likers.includes(likerKey)) {
-          likedSet.add(Number(txId))
+      const likerKey = getLikerKey()
+      if (likerKey) {
+        const likedSet = new Set()
+        for (const [txId, likers] of Object.entries(nextLikesByTx)) {
+          if (Array.isArray(likers) && likers.includes(likerKey)) {
+            likedSet.add(Number(txId))
+          }
         }
+        setLikedTransactions(likedSet)
       }
-      setLikedTransactions(likedSet)
     } catch (e) {
       console.warn('Failed to load likes', e)
     }
   }
+
+  useEffect(() => {
+    const likerKey = getLikerKey()
+    if (!likerKey) return
+    if (!likesByTx || typeof likesByTx !== 'object') return
+
+    const likedSet = new Set()
+    for (const [txId, likers] of Object.entries(likesByTx)) {
+      if (Array.isArray(likers) && likers.includes(likerKey)) {
+        likedSet.add(Number(txId))
+      }
+    }
+    setLikedTransactions(likedSet)
+  }, [tgUserId, currentUserEmail, user?.email, likesByTx])
   const [detailsCommentText, setDetailsCommentText] = useState('')
   
   const [secondGoalName, setSecondGoalName] = useState('')
@@ -2020,6 +2037,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       return formatted
     } catch {
       return `${symbol}${Math.round(num)}`
+    }
+  }
+
+  const formatNumber = (value, curr = currency) => {
+    const num = Number(value)
+    if (!isFinite(num)) return '0'
+    try {
+      return new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: curr === 'USD' ? 2 : 0,
+        maximumFractionDigits: curr === 'USD' ? 2 : 0,
+      }).format(num)
+    } catch {
+      return String(Math.round(num))
     }
   }
 
@@ -3613,7 +3643,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Доходы</span>
                       </div>
                       <p className={`text-base font-bold ${theme === "dark" ? "text-emerald-300" : "text-emerald-700"}`}>
-                        {balanceVisible ? formatCurrency(income) : "••••••"}
+                        {balanceVisible ? formatNumber(income) : "••••••"}
                       </p>
                     </div>
 
@@ -3623,7 +3653,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Расходы</span>
                       </div>
                       <p className={`text-base font-bold ${theme === "dark" ? "text-rose-300" : "text-rose-700"}`}>
-                        {balanceVisible ? formatCurrency(expenses) : "••••••"}
+                        {balanceVisible ? formatNumber(expenses) : "••••••"}
                       </p>
                     </div>
                   </div>
