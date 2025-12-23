@@ -432,7 +432,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
     tgPhotoUrl
 
   const getCommentKey = (comment) => {
-    const id = comment?.telegram_id
+    const id = comment?.telegram_id ?? comment?.created_by_telegram_id ?? comment?.telegramId ?? comment?.telegramID
     if (id != null) return `tg:${String(id)}`
     const author = comment?.author
     if (author) return `author:${String(author)}`
@@ -440,7 +440,7 @@ const TxRow = memo(function TxRow({ tx, categoriesMeta, formatCurrency, formatDa
   }
 
   const getCommentPhotoUrl = (comment) => {
-    const id = comment?.telegram_id
+    const id = comment?.telegram_id ?? comment?.created_by_telegram_id ?? comment?.telegramId ?? comment?.telegramID
     if (id != null && Array.isArray(walletMembers)) {
       const found = walletMembers.find((m) => String(m?.telegram_id) === String(id))
       if (found?.telegram_photo_url) return found.telegram_photo_url
@@ -909,7 +909,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   useEffect(() => {
     if (!open) {
       setVisible(false)
-      const t = setTimeout(() => setMounted(false), 180)
+      const t = setTimeout(() => setMounted(false), 240)
       return () => clearTimeout(t)
     }
 
@@ -1107,7 +1107,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 180ms ease-out, bottom 180ms ease-out'
+  const transition = isDragging ? 'none' : 'transform 220ms ease-out, bottom 220ms ease-out'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = safeTopOffset
@@ -1122,7 +1122,14 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   return (
     <div
       className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
-      style={{ ...overlayStyle, overscrollBehavior: 'none', touchAction: 'auto' }}
+      style={{
+        ...overlayStyle,
+        overscrollBehavior: 'none',
+        touchAction: 'auto',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 220ms ease-out',
+        pointerEvents: visible ? 'auto' : 'none',
+      }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault()
@@ -6232,6 +6239,33 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             const txColor =
               tx.type === 'income' ? '#34C759' : tx.type === 'expense' ? '#FF3B30' : '#007AFF'
 
+            const getDetailsCommentKey = (comment) => {
+              const id = comment?.telegram_id ?? comment?.created_by_telegram_id ?? comment?.telegramId ?? comment?.telegramID
+              if (id != null) return `tg:${String(id)}`
+              const author = comment?.author
+              if (author) return `author:${String(author)}`
+              return null
+            }
+
+            const getDetailsCommentPhotoUrl = (comment) => {
+              const id = comment?.telegram_id ?? comment?.created_by_telegram_id ?? comment?.telegramId ?? comment?.telegramID
+              if (id != null && Array.isArray(walletMembers)) {
+                const found = walletMembers.find((m) => String(m?.telegram_id) === String(id))
+                if (found?.telegram_photo_url) return found.telegram_photo_url
+              }
+              if (id != null && tgUserId && String(id) === String(tgUserId) && tgPhotoUrl) {
+                return tgPhotoUrl
+              }
+              return (
+                comment?.telegram_photo_url ||
+                comment?.photo_url ||
+                comment?.author_photo_url ||
+                comment?.created_by_telegram_photo_url ||
+                comment?.created_by_photo_url ||
+                null
+              )
+            }
+
             const handleClose = () => {
               setShowTransactionDetails(false)
               setDetailsCommentText('')
@@ -6327,35 +6361,74 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   ) : (
                     <div className="px-3 space-y-3">
-                      {comments.map((c) => (
-                        <div key={c.id} className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-2xl p-3`}>
-                          <div className="flex items-start gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${theme === 'dark' ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>
-                              <User className="w-4 h-4 text-white" />
-                            </div>
+                      {comments.map((c, idx) => {
+                        const key = getDetailsCommentKey(c)
+                        const isMe = key && tgUserId ? key === `tg:${String(tgUserId)}` : false
+                        const alignRight = isMe
+                        const photoUrl = getDetailsCommentPhotoUrl(c)
 
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-sm font-semibold truncate`}>
-                                  {c.author || 'Пользователь'}
-                                </p>
-                                <button
-                                  onClick={() => deleteComment(tx.id, c.id)}
-                                  className={`p-1 rounded-lg transition-colors active:scale-95 ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                        return (
+                          <div key={c.id || idx}>
+                            <div className={`flex items-start gap-1.5 ${alignRight ? 'justify-end' : 'justify-start'}`}>
+                              {!alignRight && (
+                                photoUrl ? (
+                                  <img
+                                    src={photoUrl}
+                                    alt={c.author}
+                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5"
+                                  />
+                                ) : (
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                    theme === "dark" ? "bg-gray-600" : "bg-gray-300"
+                                  }`}>
+                                    <User className="w-3.5 h-3.5 text-white" />
+                                  </div>
+                                )
+                              )}
+
+                              <div className="flex-1 min-w-0" style={{ maxWidth: '85%' }}>
+                                <div
+                                  className={`inline-block px-2.5 py-1.5 rounded-xl ${
+                                    theme === "dark"
+                                      ? alignRight
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-700/80 text-gray-100'
+                                      : alignRight
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-gray-100 text-gray-900'
+                                  }`}
+                                  style={{ float: alignRight ? 'right' : 'left' }}
                                 >
-                                  <Trash2 className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'} w-4 h-4`} />
-                                </button>
+                                  <p className={`text-[10px] font-medium mb-0.5 ${
+                                    alignRight
+                                      ? 'text-white/80'
+                                      : theme === "dark" ? "text-gray-400" : "text-gray-600"
+                                  }`}>
+                                    {c.author}
+                                  </p>
+                                  <p className="text-xs leading-snug break-words">{c.text}</p>
+                                </div>
                               </div>
-                              <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-sm break-words`}>
-                                {c.text}
-                              </p>
-                              <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-400'} text-xs mt-1`}>
-                                {formatDate(c.date || c.timestamp)}
-                              </p>
+
+                              {alignRight && (
+                                photoUrl ? (
+                                  <img
+                                    src={photoUrl}
+                                    alt={c.author}
+                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5"
+                                  />
+                                ) : (
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                    theme === "dark" ? "bg-gray-600" : "bg-gray-300"
+                                  }`}>
+                                    <User className="w-3.5 h-3.5 text-white" />
+                                  </div>
+                                )
+                              )}
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
