@@ -4905,71 +4905,49 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowBudgetPreviewModal(false)
                     setBudgetPreviewCategory('')
                   }}
+                  theme={theme}
+                  zIndex={56}
+                >
+                  {(() => {
+                    const category = budgetPreviewCategory
+                    const budget = budgets?.[category]
+                    const status = budgetStatuses?.[category]
+                    const meta = categoriesMeta[category] || {}
 
-    const hexToRgba = (hex, alpha) => {
-      const h = String(hex || '').replace('#', '')
-      if (h.length !== 6) return `rgba(100,116,139,${alpha})`
-      const r = parseInt(h.slice(0, 2), 16)
-      const g = parseInt(h.slice(2, 4), 16)
-      const b = parseInt(h.slice(4, 6), 16)
-      if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(100,116,139,${alpha})`
-      return `rgba(${r},${g},${b},${alpha})`
-    }
+                    if (!category || !budget || !status) return null
 
-    const startDate = budget?.createdAt ? new Date(budget.createdAt) : null
-    const ops = transactions
-      .filter((tx) => {
-        if (tx.type !== 'expense') return false
-        if (tx.category !== category) return false
-        const txDate = new Date(tx.date || tx.created_at)
-        if (startDate && txDate < startDate) return false
-        return true
-      })
-      .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
+                    const hexToRgba = (hex, alpha) => {
+                      const h = String(hex || '').replace('#', '')
+                      if (h.length !== 6) return `rgba(100,116,139,${alpha})`
+                      const r = parseInt(h.slice(0, 2), 16)
+                      const g = parseInt(h.slice(2, 4), 16)
+                      const b = parseInt(h.slice(4, 6), 16)
+                      if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(100,116,139,${alpha})`
+                      return `rgba(${r},${g},${b},${alpha})`
+                    }
 
-    return (
-      <div style={{ height: '75vh' }} className="flex flex-col">
-        <div className="container-header">
-          <h3
-            className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
-            style={{ minWidth: 0 }}
-          >
-            {category}
-          </h3>
-          <button
-            onClick={async () => {
-              if (!category) return
-              const ok = window.confirm('Удалить этот бюджет?')
-              if (!ok) return
-              await deleteBudget(category)
-              setShowBudgetPreviewModal(false)
-              setBudgetPreviewCategory('')
-              vibrateSuccess()
-            }}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-              theme === 'dark' ? 'bg-red-600/20 hover:bg-red-600/30' : 'bg-red-50 hover:bg-red-100'
-            }`}
-            aria-label="Удалить бюджет"
-            title="Удалить бюджет"
-          >
-            <Trash2 className="w-4 h-4 text-red-600" />
-          </button>
-        </div>
+                    const startDate = budget?.createdAt ? new Date(budget.createdAt) : null
+                    const ops = transactions
+                      .filter((tx) => {
+                        if (tx.type !== 'expense') return false
+                        if (tx.category !== category) return false
+                        const txDate = new Date(tx.date || tx.created_at)
+                        if (startDate && txDate < startDate) return false
+                        return true
+                      })
+                      .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
 
-        <div
-          className={`container-content p-4 rounded-[40px] border mb-3 overflow-hidden ${
-            theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'
-          }`}
-          style={{
-            backgroundImage: theme === 'dark'
-              ? `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.28)}, rgba(17,24,39,0.20))`
-              : `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.22)}, rgba(255,255,255,0.85))`,
-          }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Лимит</p>
-              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.limit || budget?.limit || 0)}</p>
+                    return (
+                      <div style={{ height: '75vh' }} className="flex flex-col">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                            {category}
+                          </h3>
+                          <button
+                            onClick={async () => {
+                              const ok = window.confirm('Удалить этот бюджет?')
+                              if (!ok) return
+                              await deleteBudget(category)
                               setShowBudgetPreviewModal(false)
                               setBudgetPreviewCategory('')
                               vibrateSuccess()
@@ -4997,11 +4975,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Лимит</p>
-                              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.limit || budget?.limit || 0)}</p>
+                              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                                {formatCurrency(status?.limit || budget?.limit || 0)}
+                              </p>
                             </div>
                             <div className="text-right">
                               <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Потрачено</p>
-                              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.spent || 0)}</p>
+                              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                                {formatCurrency(status?.spent || 0)}
+                              </p>
                             </div>
                           </div>
 
@@ -5020,7 +5002,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             </div>
                             <div className="flex justify-between items-center mt-1">
                               <p className={`text-xs ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Осталось</p>
-                              <p className={`text-xs font-semibold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Math.abs(status?.remaining || 0))}</p>
+                              <p className={`text-xs font-semibold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                                {formatCurrency(Math.abs(status?.remaining || 0))}
+                              </p>
                             </div>
                           </div>
                         </div>
