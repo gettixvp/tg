@@ -1133,16 +1133,41 @@ app.get("/api/transactions/:txId/comments", async (req, res) => {
 // --- Обновить настройки копилки ---
 app.put("/api/user/:email/savings-settings", async (req, res) => {
   const { email } = req.params
-  const { goalName, initialSavingsAmount, secondGoalName, secondGoalAmount, secondGoalSavings, secondGoalInitialAmount } = req.body
+  const {
+    goalName,
+    initialSavingsAmount,
+    secondGoalName,
+    secondGoalAmount,
+    secondGoalSavings,
+    secondGoalInitialAmount,
+    thirdGoalName,
+    thirdGoalAmount,
+    thirdGoalSavings,
+    thirdGoalInitialAmount,
+  } = req.body
 
   if (!email) return res.status(400).json({ error: "Email обязателен" })
 
   try {
     await pool.query(
       `UPDATE users
-       SET goal_name=$1, initial_savings_amount=$2, second_goal_name=$3, second_goal_amount=$4, second_goal_savings=$5, second_goal_initial_amount=$6
-       WHERE email=$7`,
-      [goalName, initialSavingsAmount || 0, secondGoalName, secondGoalAmount || 0, secondGoalSavings || 0, secondGoalInitialAmount || 0, email],
+       SET goal_name=$1, initial_savings_amount=$2,
+           second_goal_name=$3, second_goal_amount=$4, second_goal_savings=$5, second_goal_initial_amount=$6,
+           third_goal_name=$7, third_goal_amount=$8, third_goal_savings=$9, third_goal_initial_amount=$10
+       WHERE email=$11`,
+      [
+        goalName,
+        initialSavingsAmount || 0,
+        secondGoalName,
+        secondGoalAmount || 0,
+        secondGoalSavings || 0,
+        secondGoalInitialAmount || 0,
+        thirdGoalName || '',
+        thirdGoalAmount || 0,
+        thirdGoalSavings || 0,
+        thirdGoalInitialAmount || 0,
+        email,
+      ],
     )
     res.json({ success: true })
   } catch (e) {
@@ -1201,8 +1226,8 @@ app.post("/api/user/:email/recalculate", async (req, res) => {
         expenses += amount
       } else if (tx.type === 'savings') {
         // Для копилки используем converted_amount_usd
-        if (tx.savings_goal === 'second') {
-          // Вторая цель - не трогаем, она отдельно
+        if (tx.savings_goal === 'second' || tx.savings_goal === 'third') {
+          // Вторая/третья цель - не трогаем, они отдельно
         } else {
           savingsUSD += convertedUSD
         }
@@ -1254,6 +1279,10 @@ function convertUser(u) {
     second_goal_amount: Number(u.second_goal_amount || 0),
     second_goal_savings: Number(u.second_goal_savings || 0),
     second_goal_initial_amount: Number(u.second_goal_initial_amount || 0),
+    third_goal_name: u.third_goal_name || "",
+    third_goal_amount: Number(u.third_goal_amount || 0),
+    third_goal_savings: Number(u.third_goal_savings || 0),
+    third_goal_initial_amount: Number(u.third_goal_initial_amount || 0),
     budgets: u.budgets || {},
   }
 }

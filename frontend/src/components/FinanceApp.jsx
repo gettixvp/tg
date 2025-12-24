@@ -191,6 +191,15 @@ const SavingsSettingsModalContent = ({
   secondGoalInitialAmount,
   setSecondGoalInitialAmount,
   setSecondGoalInput,
+  thirdGoalName,
+  setThirdGoalName,
+  thirdGoalAmount,
+  setThirdGoalAmount,
+  thirdGoalSavings,
+  setThirdGoalSavings,
+  thirdGoalInitialAmount,
+  setThirdGoalInitialAmount,
+  setThirdGoalInput,
   balance,
   income,
   expenses,
@@ -201,12 +210,14 @@ const SavingsSettingsModalContent = ({
   formatCurrency,
 }) => {
   const isSecondAvailable = Boolean(secondGoalName && secondGoalAmount > 0)
+  const isThirdAvailable = Boolean(thirdGoalName && thirdGoalAmount > 0)
   const isSecond = selectedSavingsGoal === 'second' && isSecondAvailable
+  const isThird = selectedSavingsGoal === 'third' && isThirdAvailable
 
-  const currentTitle = isSecond ? secondGoalName : goalName
-  const currentTarget = isSecond ? secondGoalAmount : goalSavings
-  const currentSaved = isSecond ? secondGoalSavings : savings
-  const currentInitial = isSecond ? secondGoalInitialAmount : initialSavingsAmount
+  const currentTitle = isSecond ? secondGoalName : isThird ? thirdGoalName : goalName
+  const currentTarget = isSecond ? secondGoalAmount : isThird ? thirdGoalAmount : goalSavings
+  const currentSaved = isSecond ? secondGoalSavings : isThird ? thirdGoalSavings : savings
+  const currentInitial = isSecond ? secondGoalInitialAmount : isThird ? thirdGoalInitialAmount : initialSavingsAmount
   const currentPct = Math.round((currentSaved / (currentTarget > 0 ? currentTarget : 1)) * 100)
   const safePct = Math.max(0, Math.min(100, Number.isFinite(currentPct) ? currentPct : 0))
 
@@ -222,19 +233,22 @@ const SavingsSettingsModalContent = ({
     selectedSavingsGoal,
     secondGoalName,
     secondGoalAmount,
+    thirdGoalName,
+    thirdGoalAmount,
     goalName,
     goalSavings,
     initialSavingsAmount,
     secondGoalInitialAmount,
+    thirdGoalInitialAmount,
   ])
 
   const resetProgress = async () => {
-    const goalNameToReset = isSecond ? secondGoalName : goalName
+    const goalNameToReset = isSecond ? secondGoalName : isThird ? thirdGoalName : goalName
     if (!confirm(`Вы уверены, что хотите сбросить прогресс копилки "${goalNameToReset}"?\n\nЭто обнулит накопленную сумму, но сохранит название и цель.`)) {
       return
     }
 
-    if (!isSecond) {
+    if (!isSecond && !isThird) {
       const newSavings = 0
       const newInitialAmount = 0
       setSavings(newSavings)
@@ -262,6 +276,10 @@ const SavingsSettingsModalContent = ({
               secondGoalAmount,
               secondGoalSavings,
               secondGoalInitialAmount,
+              thirdGoalName,
+              thirdGoalAmount,
+              thirdGoalSavings,
+              thirdGoalInitialAmount,
             }),
           })
           vibrateSuccess && vibrateSuccess()
@@ -270,7 +288,7 @@ const SavingsSettingsModalContent = ({
           vibrateError && vibrateError()
         }
       }
-    } else {
+    } else if (isSecond) {
       const newSecondSavings = 0
       const newSecondInitialAmount = 0
       setSecondGoalSavings(newSecondSavings)
@@ -287,11 +305,44 @@ const SavingsSettingsModalContent = ({
               secondGoalAmount,
               secondGoalSavings: newSecondSavings,
               secondGoalInitialAmount: newSecondInitialAmount,
+              thirdGoalName,
+              thirdGoalAmount,
+              thirdGoalSavings,
+              thirdGoalInitialAmount,
             }),
           })
           vibrateSuccess && vibrateSuccess()
         } catch (e) {
           console.warn('Failed to reset second goal', e)
+          vibrateError && vibrateError()
+        }
+      }
+    } else {
+      const newThirdSavings = 0
+      const newThirdInitialAmount = 0
+      setThirdGoalSavings(newThirdSavings)
+      setThirdGoalInitialAmount(newThirdInitialAmount)
+      if (user && user.email) {
+        try {
+          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              goalName,
+              initialSavingsAmount,
+              secondGoalName,
+              secondGoalAmount,
+              secondGoalSavings,
+              secondGoalInitialAmount,
+              thirdGoalName,
+              thirdGoalAmount,
+              thirdGoalSavings: newThirdSavings,
+              thirdGoalInitialAmount: newThirdInitialAmount,
+            }),
+          })
+          vibrateSuccess && vibrateSuccess()
+        } catch (e) {
+          console.warn('Failed to reset third goal', e)
           vibrateError && vibrateError()
         }
       }
@@ -313,6 +364,10 @@ const SavingsSettingsModalContent = ({
             secondGoalAmount: 0,
             secondGoalSavings: 0,
             secondGoalInitialAmount: 0,
+            thirdGoalName,
+            thirdGoalAmount,
+            thirdGoalSavings,
+            thirdGoalInitialAmount,
           }),
         })
         await fetch(`${API_BASE}/api/user/${user.email}`, {
@@ -342,6 +397,54 @@ const SavingsSettingsModalContent = ({
     onClose && onClose()
   }
 
+  const deleteThirdGoal = async () => {
+    if (!thirdGoalName) return
+    if (!confirm(`Вы уверены, что хотите удалить копилку "${thirdGoalName}"?`)) return
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            goalName,
+            initialSavingsAmount,
+            secondGoalName,
+            secondGoalAmount,
+            secondGoalSavings,
+            secondGoalInitialAmount,
+            thirdGoalName: '',
+            thirdGoalAmount: 0,
+            thirdGoalSavings: 0,
+            thirdGoalInitialAmount: 0,
+          }),
+        })
+        await fetch(`${API_BASE}/api/user/${user.email}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            balance,
+            income,
+            expenses,
+            savings,
+            goalSavings,
+          }),
+        })
+      } catch (e) {
+        console.warn('Failed to delete third goal', e)
+        alert('Ошибка при удалении копилки')
+        return
+      }
+    }
+
+    setThirdGoalName('')
+    setThirdGoalAmount(0)
+    setThirdGoalSavings(0)
+    setThirdGoalInitialAmount(0)
+    setThirdGoalInput('0')
+    setSelectedSavingsGoal('main')
+    onClose && onClose()
+  }
+
   const saveSettings = async () => {
     const nm = String(nameInput || '').trim()
     const targetVal = Number.parseFloat(String(targetInput || '').trim())
@@ -360,7 +463,7 @@ const SavingsSettingsModalContent = ({
       return
     }
 
-    if (!isSecond) {
+    if (!isSecond && !isThird) {
       const prevInitial = Number(initialSavingsAmount || 0)
       const diffInitial = initialVal - prevInitial
 
@@ -373,7 +476,7 @@ const SavingsSettingsModalContent = ({
       setSavings(newSavings)
 
       await saveToServer(balance, income, expenses, newSavings)
-    } else {
+    } else if (isSecond) {
       const prevInitial = Number(secondGoalInitialAmount || 0)
       const diffInitial = initialVal - prevInitial
 
@@ -395,6 +498,42 @@ const SavingsSettingsModalContent = ({
               secondGoalAmount: targetVal,
               secondGoalSavings: newSecondSaved,
               secondGoalInitialAmount: initialVal,
+              thirdGoalName,
+              thirdGoalAmount,
+              thirdGoalSavings,
+              thirdGoalInitialAmount,
+            }),
+          })
+        } catch (e) {
+          console.warn('Failed to save savings settings', e)
+        }
+      }
+    } else {
+      const prevInitial = Number(thirdGoalInitialAmount || 0)
+      const diffInitial = initialVal - prevInitial
+
+      setThirdGoalName(nm)
+      setThirdGoalAmount(targetVal)
+      setThirdGoalInitialAmount(initialVal)
+      const newThirdSaved = (thirdGoalSavings || 0) + diffInitial
+      setThirdGoalSavings(newThirdSaved)
+
+      if (user && user.email) {
+        try {
+          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              goalName,
+              initialSavingsAmount,
+              secondGoalName,
+              secondGoalAmount,
+              secondGoalSavings,
+              secondGoalInitialAmount,
+              thirdGoalName: nm,
+              thirdGoalAmount: targetVal,
+              thirdGoalSavings: newThirdSaved,
+              thirdGoalInitialAmount: initialVal,
             }),
           })
         } catch (e) {
@@ -441,10 +580,24 @@ const SavingsSettingsModalContent = ({
               <Trash2 className="w-4 h-4 text-red-600" />
             </button>
           )}
+
+          {isThird && thirdGoalName && (
+            <button
+              type="button"
+              onClick={deleteThirdGoal}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all touch-none active:scale-95 ${
+                theme === 'dark' ? 'bg-red-600/20 hover:bg-red-600/30' : 'bg-red-50 hover:bg-red-100'
+              }`}
+              aria-label="Удалить копилку"
+              title="Удалить копилку"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </button>
+          )}
         </div>
       </div>
 
-      {isSecondAvailable && (
+      {(isSecondAvailable || isThirdAvailable) && (
         <div className={`mb-4 p-1.5 rounded-full ${theme === 'dark' ? 'bg-gray-800/80' : 'bg-gray-200/80'} backdrop-blur-sm`}>
           <div className="flex gap-1">
             <button
@@ -473,6 +626,22 @@ const SavingsSettingsModalContent = ({
             >
               Вторая
             </button>
+
+            {isThirdAvailable && (
+              <button
+                type="button"
+                onClick={() => setSelectedSavingsGoal('third')}
+                className={`flex-1 py-2.5 rounded-full font-bold transition-all text-sm touch-none active:scale-95 ${
+                  selectedSavingsGoal === 'third'
+                    ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-xl'
+                    : theme === 'dark'
+                      ? 'text-gray-400 hover:text-gray-200'
+                      : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Третья
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1797,6 +1966,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [secondGoalInitialAmount, setSecondGoalInitialAmount] = useState(0)
   const [showSecondGoalModal, setShowSecondGoalModal] = useState(false)
   const [secondGoalInput, setSecondGoalInput] = useState('0')
+  const [thirdGoalName, setThirdGoalName] = useState('')
+  const [thirdGoalAmount, setThirdGoalAmount] = useState(0)
+  const [thirdGoalSavings, setThirdGoalSavings] = useState(0)
+  const [thirdGoalInitialAmount, setThirdGoalInitialAmount] = useState(0)
+  const [showThirdGoalModal, setShowThirdGoalModal] = useState(false)
+  const [thirdGoalInput, setThirdGoalInput] = useState('0')
   const [selectedSavingsGoal, setSelectedSavingsGoal] = useState('main') // 'main' или 'second'
   
   // Бюджеты и лимиты
@@ -2643,6 +2818,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       if (walletUser.second_goal_amount !== undefined) setSecondGoalAmount(Number(walletUser.second_goal_amount || 0))
       if (walletUser.second_goal_savings !== undefined) setSecondGoalSavings(Number(walletUser.second_goal_savings || 0))
       if (walletUser.second_goal_initial_amount !== undefined) setSecondGoalInitialAmount(Number(walletUser.second_goal_initial_amount || 0))
+      if (walletUser.third_goal_name) setThirdGoalName(walletUser.third_goal_name)
+      if (walletUser.third_goal_amount !== undefined) setThirdGoalAmount(Number(walletUser.third_goal_amount || 0))
+      if (walletUser.third_goal_savings !== undefined) setThirdGoalSavings(Number(walletUser.third_goal_savings || 0))
+      if (walletUser.third_goal_initial_amount !== undefined) setThirdGoalInitialAmount(Number(walletUser.third_goal_initial_amount || 0))
 
       if (walletUser.budgets) {
         try {
@@ -2710,6 +2889,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (u.second_goal_amount !== undefined) setSecondGoalAmount(Number(u.second_goal_amount || 0))
     if (u.second_goal_savings !== undefined) setSecondGoalSavings(Number(u.second_goal_savings || 0))
     if (u.second_goal_initial_amount !== undefined) setSecondGoalInitialAmount(Number(u.second_goal_initial_amount || 0))
+    if (u.third_goal_name) setThirdGoalName(u.third_goal_name)
+    if (u.third_goal_amount !== undefined) setThirdGoalAmount(Number(u.third_goal_amount || 0))
+    if (u.third_goal_savings !== undefined) setThirdGoalSavings(Number(u.third_goal_savings || 0))
+    if (u.third_goal_initial_amount !== undefined) setThirdGoalInitialAmount(Number(u.third_goal_initial_amount || 0))
     
     // Загрузка бюджетов
     if (u.budgets) {
@@ -2912,7 +3095,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           }),
         })
         
-        // Сохранение настроек копилки (включая вторую цель)
+        // Сохранение настроек копилки (включая вторую и третью цели)
         await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -2923,6 +3106,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             secondGoalAmount,
             secondGoalSavings,
             secondGoalInitialAmount,
+            thirdGoalName,
+            thirdGoalAmount,
+            thirdGoalSavings,
+            thirdGoalInitialAmount,
           }),
         })
       } catch (e) {
@@ -2987,6 +3174,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       if (selectedSavingsGoal === 'main') {
         newSavings += convertedUSD
         setSavings(newSavings)
+      } else if (selectedSavingsGoal === 'third') {
+        setThirdGoalSavings(thirdGoalSavings + convertedUSD)
       } else {
         setSecondGoalSavings(secondGoalSavings + convertedUSD)
       }
@@ -3059,7 +3248,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       console.log("[v0] Deleted expense. New balance:", newBalance)
     } else {
       // Копилка - проверяем какая копилка была пополнена
-      if (tx.savings_goal === 'second') {
+      if (tx.savings_goal === 'third') {
+        const newThirdGoalSavings = thirdGoalSavings - txConvertedUSD
+        setThirdGoalSavings(newThirdGoalSavings)
+        console.log("[v0] Deleted third savings. New third goal savings:", newThirdGoalSavings)
+      } else if (tx.savings_goal === 'second') {
         // Вторая копилка
         const newSecondGoalSavings = secondGoalSavings - txConvertedUSD
         setSecondGoalSavings(newSecondGoalSavings)
@@ -3571,7 +3764,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         newExpenses += amount
       } else if (tx.type === 'savings') {
         savingsInRUB += amount
-        if (tx.savings_goal !== 'second') {
+        if (tx.savings_goal !== 'second' && tx.savings_goal !== 'third') {
           newSavingsUSD += convertedUSD
         }
       }
@@ -3912,6 +4105,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   )
   const secondGoalPct = Math.round(secondGoalProgress * 100)
 
+  const thirdGoalProgress = Math.min(
+    (thirdGoalSavings || 0) / (thirdGoalAmount > 0 ? thirdGoalAmount : 1),
+    1,
+  )
+  const thirdGoalPct = Math.round(thirdGoalProgress * 100)
+
   const toggleLike = (txId) => {
     const txKey = String(txId)
     vibrate()
@@ -4217,7 +4416,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <div className="glow-overlay" />
               </div>
 
-              <div className={secondGoalName && secondGoalAmount > 0 ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"}>
+              <div
+                className={
+                  (secondGoalName && secondGoalAmount > 0) && (thirdGoalName && thirdGoalAmount > 0)
+                    ? "grid grid-cols-3 gap-3"
+                    : (secondGoalName && secondGoalAmount > 0) || (thirdGoalName && thirdGoalAmount > 0)
+                      ? "grid grid-cols-2 gap-3"
+                      : "grid grid-cols-1 gap-3"
+                }
+              >
                 {/* Основная копилка */}
                 <SavingsContainer
                   theme={theme}
@@ -4245,6 +4452,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     progress={Math.round(secondGoalPct) || 0}
                     icon={<PiggyBank className="w-4 h-4" />}
                     color="purple"
+                  >
+                    {null}
+                  </SavingsContainer>
+                )}
+
+                {/* Третья копилка (если есть) */}
+                {thirdGoalName && thirdGoalAmount > 0 && (
+                  <SavingsContainer
+                    theme={theme}
+                    onShowAll={() => {
+                      setActiveTab("savings")
+                      vibrate()
+                    }}
+                    title={thirdGoalName}
+                    progress={Math.round(thirdGoalPct) || 0}
+                    icon={<PiggyBank className="w-4 h-4" />}
+                    color="green"
                   >
                     {null}
                   </SavingsContainer>
@@ -4686,11 +4910,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
-                        setShowSecondGoalModal(true)
+                        if (!secondGoalName || secondGoalAmount <= 0) {
+                          setShowSecondGoalModal(true)
+                        } else if (!thirdGoalName || thirdGoalAmount <= 0) {
+                          setShowThirdGoalModal(true)
+                        } else {
+                          alert('Можно добавить максимум 3 копилки')
+                        }
                         vibrate()
                       }}
                       className="show-all-button"
-                      title="Добавить вторую цель"
+                      title={!secondGoalName || secondGoalAmount <= 0 ? 'Добавить вторую цель' : !thirdGoalName || thirdGoalAmount <= 0 ? 'Добавить третью цель' : 'Максимум 3 копилки'}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -5691,6 +5921,112 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </BottomSheetModal>
       )}
 
+      {showThirdGoalModal && (
+        <BottomSheetModal
+          open={showThirdGoalModal}
+          onClose={() => setShowThirdGoalModal(false)}
+          theme={theme}
+          zIndex={65}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Третья копилка
+            </h3>
+          </div>
+
+          {(() => {
+            const previewName = String(thirdGoalName || '').trim() || 'Копилка'
+            const previewTarget = Number.parseFloat(String(thirdGoalInput || '0').replace(/,/g, '.')) || 0
+            const previewPct = Math.round((Number(thirdGoalSavings || 0) / (previewTarget > 0 ? previewTarget : 1)) * 100)
+            const safePct = Math.max(0, Math.min(100, Number.isFinite(previewPct) ? previewPct : 0))
+
+            return (
+              <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-[40px] p-4 mb-4 relative overflow-hidden`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className={`text-lg font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{previewName}</div>
+                    <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {formatCurrency(Number(thirdGoalSavings || 0), 'USD')} из {formatCurrency(previewTarget, 'USD')}
+                    </div>
+                  </div>
+                  <div className={`px-3 py-1.5 rounded-2xl font-bold ${theme === 'dark' ? 'bg-white/10 text-gray-100' : 'bg-white text-gray-900'}`}>
+                    {safePct}%
+                  </div>
+                </div>
+
+                <div className={`mt-3 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-emerald-500 to-cyan-500'
+                        : 'bg-gradient-to-r from-emerald-600 to-cyan-600'
+                    }`}
+                    style={{ width: `${safePct}%` }}
+                  />
+                </div>
+              </div>
+            )
+          })()}
+
+          <div className="mb-3">
+            <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              Название
+            </label>
+            <input
+              type="text"
+              value={thirdGoalName}
+              onChange={(e) => setThirdGoalName(e.target.value)}
+              className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-emerald-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              }`}
+              placeholder="Например: Ремонт"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              Сумма цели (USD)
+            </label>
+            <input
+              type="text"
+              value={thirdGoalInput}
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
+              onChange={(e) => setThirdGoalInput(e.target.value.replace(/^0+(?=\d)/, '') || '0')}
+              className={`w-full p-3 border rounded-[40px] transition-all text-lg font-bold ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-emerald-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <button
+            onClick={async () => {
+              const n = Number.parseFloat(String(thirdGoalInput || '0').replace(/,/g, '.'))
+              if (!thirdGoalName.trim() || Number.isNaN(n) || n <= 0) {
+                vibrateError()
+                alert('Введите название и корректную сумму')
+                return
+              }
+              setThirdGoalAmount(n)
+              await saveToServer(balance, income, expenses, savings)
+              setShowThirdGoalModal(false)
+              vibrateSuccess()
+            }}
+            className={`w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 ${
+              theme === "dark"
+                ? "bg-emerald-700 hover:bg-emerald-600 text-white"
+                : "bg-emerald-500 hover:bg-emerald-600 text-white"
+            }`}
+          >
+            Сохранить
+          </button>
+        </BottomSheetModal>
+      )}
+
       {showAiModal && (
         <BottomSheetModal
           open={showAiModal}
@@ -6074,6 +6410,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             secondGoalInitialAmount={secondGoalInitialAmount}
             setSecondGoalInitialAmount={setSecondGoalInitialAmount}
             setSecondGoalInput={setSecondGoalInput}
+            thirdGoalName={thirdGoalName}
+            setThirdGoalName={setThirdGoalName}
+            thirdGoalAmount={thirdGoalAmount}
+            setThirdGoalAmount={setThirdGoalAmount}
+            thirdGoalSavings={thirdGoalSavings}
+            setThirdGoalSavings={setThirdGoalSavings}
+            thirdGoalInitialAmount={thirdGoalInitialAmount}
+            setThirdGoalInitialAmount={setThirdGoalInitialAmount}
+            setThirdGoalInput={setThirdGoalInput}
             balance={balance}
             income={income}
             expenses={expenses}
@@ -7327,7 +7672,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 ) : (
-                  secondGoalName && secondGoalAmount > 0 && (
+                  (secondGoalName && secondGoalAmount > 0) && (
                     <div className="mb-4">
                       <div className="flex gap-2">
                         <button
@@ -7358,6 +7703,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         >
                           {secondGoalName}
                         </button>
+
+                        {thirdGoalName && thirdGoalAmount > 0 && (
+                          <button
+                            onClick={() => setSelectedSavingsGoal('third')}
+                            className={`flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all touch-none ${
+                              selectedSavingsGoal === 'third'
+                                ? theme === 'dark'
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-emerald-500 text-white'
+                                : theme === 'dark'
+                                  ? 'bg-gray-800/60 text-gray-200'
+                                  : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {thirdGoalName}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )
