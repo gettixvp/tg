@@ -1780,13 +1780,18 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     height: overlayHeight,
   }
 
+  const clamp01 = (v) => Math.max(0, Math.min(1, v))
+  const dragFade = clamp01(dragY / 260)
+  const backdropAlpha = 0.22 * (1 - dragFade)
+
   const node = (
     <div
-      className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
+      className={`fixed left-0 right-0 flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
       style={{
         ...overlayStyle,
         overscrollBehavior: 'none',
         touchAction: 'none',
+        backgroundColor: `rgba(0, 0, 0, ${backdropAlpha})`,
         opacity: visible ? 1 : 0,
         transition: 'opacity 520ms cubic-bezier(0.22, 1, 0.36, 1)',
         pointerEvents: visible ? 'auto' : 'none',
