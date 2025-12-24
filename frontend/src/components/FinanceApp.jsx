@@ -7096,7 +7096,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           open={showTransactionDetails}
           onClose={() => setShowTransactionDetails(false)}
           theme={theme}
-          zIndex={55}
+          zIndex={80}
         >
           {(() => {
             const tx = selectedTransaction
