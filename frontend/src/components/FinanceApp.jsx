@@ -1562,11 +1562,12 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   useEffect(() => {
     if (!open) {
       setVisible(false)
-      const t = setTimeout(() => setMounted(false), 240)
+      const t = setTimeout(() => setMounted(false), 560)
       return () => clearTimeout(t)
     }
 
     setMounted(true)
+    setDragY(0)
     const t = setTimeout(() => setVisible(true), 0)
 
     // Reset inner scroll on open to prevent "auto-scroll to bottom" glitches
@@ -1738,10 +1739,13 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     }
 
     // Only handle downward drag
-    // Add a small threshold to avoid accidental drags on simple taps
-    if (diff > 12) {
+    // Prevent iOS background "rubber-band" while we are at the top and user drags down
+    if (diff > 0) {
       e.preventDefault()
-      setDragY(diff)
+      // Add a small threshold to avoid accidental drags on simple taps
+      if (diff > 12) {
+        setDragY(diff)
+      }
     }
   }
 
@@ -1750,7 +1754,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     setIsDragging(false)
     isVerticalSwipe.current = false
     if (dragY > 110) {
-      setDragY(0)
       requestClose()
       return
     }
@@ -1761,7 +1764,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 220ms ease-out, bottom 220ms ease-out'
+  const transition = isDragging ? 'none' : 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1), bottom 520ms cubic-bezier(0.22, 1, 0.36, 1)'
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = safeTopOffset
@@ -1781,7 +1784,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         overscrollBehavior: 'none',
         touchAction: 'auto',
         opacity: visible ? 1 : 0,
-        transition: 'opacity 220ms ease-out',
+        transition: 'opacity 520ms cubic-bezier(0.22, 1, 0.36, 1)',
         pointerEvents: visible ? 'auto' : 'none',
       }}
       onMouseDown={(e) => {
@@ -5097,8 +5100,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       }}
                       className={`w-full max-w-[360px] flex items-center justify-center gap-2 px-5 py-3 rounded-[40px] font-semibold transition-all text-sm touch-none active:scale-95 ${
                         theme === "dark"
-                          ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/20"
-                          : "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-lg shadow-blue-500/15"
+                          ? "bg-black text-white"
+                          : "bg-black text-white"
                       }`}
                     >
                       <Plus className="w-4 h-4" />
@@ -5998,7 +6001,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     : "bg-blue-500 hover:bg-blue-600 text-white"
                 }`}
               >
-                Сохранить
+                Добавить
               </button>
             </div>
         </BottomSheetModal>
@@ -6024,7 +6027,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             const safePct = Math.max(0, Math.min(100, Number.isFinite(previewPct) ? previewPct : 0))
 
             return (
-              <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-[40px] p-4 mb-4 relative overflow-hidden`}>
+              <div
+                className={`rounded-[40px] p-4 mb-4 relative overflow-hidden border ${
+                  theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'
+                }`}
+                style={{
+                  backgroundImage: theme === 'dark'
+                    ? 'linear-gradient(180deg, rgba(34,197,94,0.24), rgba(16,185,129,0.08))'
+                    : 'linear-gradient(180deg, rgba(34,197,94,0.18), rgba(16,185,129,0.06))',
+                }}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className={`text-lg font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{previewName}</div>
@@ -6131,7 +6143,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 : "bg-emerald-500 hover:bg-emerald-600 text-white"
             }`}
           >
-            Сохранить
+            Добавить
           </button>
         </BottomSheetModal>
       )}
@@ -6139,9 +6151,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       {showAiModal && (
         <BottomSheetModal
           open={showAiModal}
-          onClose={() => {
-            setShowAiModal(false)
-          }}
+          onClose={() => setShowAiModal(false)}
           theme={theme}
           zIndex={80}
         >
@@ -6258,7 +6268,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
 
               <div className="flex items-end gap-2">
-                <div className={`flex-1 rounded-3xl px-4 py-2 flex items-center gap-2 ${
+                <div className={`flex-1 rounded-3xl px-4 py-3 flex items-center gap-2 ${
                   theme === 'dark' ? 'bg-gray-800/70' : 'bg-gray-100/80'
                 }`}>
                   <input
@@ -7159,18 +7169,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       </button>
                     </div>
 
-                    <div className={`flex items-center justify-between pt-3 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-                      <div>
-                        <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-xs mb-1`}>Сумма</p>
-                        <p className="text-2xl font-bold" style={{ color: txColor }}>
-                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                        </p>
+                    <div className="mt-3">
+                      <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black/20' : 'bg-black/10'}`}>
+                        <div
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            (tx.type === 'income')
+                              ? 'bg-gradient-to-r from-emerald-500 to-cyan-500'
+                              : (tx.type === 'expense')
+                                ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                                : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                          }`}
+                          style={{ width: '100%' }}
+                        />
                       </div>
-                      <div className="text-right">
-                        <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-xs mb-1`}>Дата</p>
-                        <p className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-sm font-medium`}>
-                          {formatDate(tx.date)}
-                        </p>
+                      <div className="flex justify-between items-center mt-1">
+                        <p className={`text-xs ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Сумма</p>
+                        <p className={`text-xs font-semibold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(tx.amount)}</p>
                       </div>
                     </div>
                   </div>
@@ -7313,31 +7327,32 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             </h3>
           </div>
 
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => setDebtType('owe')}
-              className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
-                debtType === 'owe'
-                  ? "bg-rose-500 text-white"
-                  : theme === "dark"
-                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Я должен
-            </button>
-            <button
-              onClick={() => setDebtType('owed')}
-              className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
-                debtType === 'owed'
-                  ? "bg-emerald-500 text-white"
-                  : theme === "dark"
-                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Мне должны
-            </button>
+          <div className="mb-3">
+            <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
+              <div
+                className="absolute top-1 bottom-1 rounded-3xl"
+                style={{
+                  width: '50%',
+                  transform: `translateX(${debtType === 'owed' ? 100 : 0}%)`,
+                  transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  backgroundColor: '#000000',
+                }}
+              />
+              <button
+                onClick={() => setDebtType('owe')}
+                className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                style={{ color: debtType === 'owe' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
+              >
+                Я должен
+              </button>
+              <button
+                onClick={() => setDebtType('owed')}
+                className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                style={{ color: debtType === 'owed' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
+              >
+                Мне должны
+              </button>
+            </div>
           </div>
 
           <div className="mb-3">
@@ -7381,33 +7396,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             />
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setShowAddDebtModal(false)
-                setDebtPerson('')
-                setDebtAmount('')
-                setDebtDescription('')
-              }}
-              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-              }`}
-            >
-              Отмена
-            </button>
-            <button
-              onClick={addDebt}
-              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                theme === "dark"
-                  ? "bg-blue-700 hover:bg-blue-600 text-white"
-                  : "bg-blue-500 hover:bg-blue-600 text-white"
-              }`}
-            >
-              Добавить
-            </button>
-          </div>
+          <button
+            onClick={addDebt}
+            className={`w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 ${
+              theme === "dark"
+                ? "bg-blue-700 hover:bg-blue-600 text-white"
+                : "bg-blue-500 hover:bg-blue-600 text-white"
+            }`}
+          >
+            Добавить
+          </button>
         </BottomSheetModal>
       )}
 
@@ -7454,7 +7452,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setBudgetCustomEnd(String(budgets[category]?.customEnd || ''))
                       setShowBudgetKeyboard(false)
                     }}
-                    className={`w-full text-left rounded-xl p-3 border transition-all ${theme === "dark" ? "bg-gray-700/30 border-gray-600 hover:bg-gray-700/50" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+                    className={`w-full text-left rounded-[40px] p-3 border transition-all ${theme === "dark" ? "bg-gray-700/30 border-gray-600 hover:bg-gray-700/50" : "bg-white border-gray-200 hover:bg-gray-50"}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -7472,6 +7470,66 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               </div>
             ) : (
               <div>
+              {(() => {
+                const meta = categoriesMeta[selectedBudgetCategory] || {}
+                const status = budgetStatuses[selectedBudgetCategory]
+                const budget = budgets[selectedBudgetCategory]
+
+                const hexToRgba = (hex, alpha) => {
+                  const h = String(hex || '').replace('#', '')
+                  if (h.length !== 6) return `rgba(100,116,139,${alpha})`
+                  const r = parseInt(h.slice(0, 2), 16)
+                  const g = parseInt(h.slice(2, 4), 16)
+                  const b = parseInt(h.slice(4, 6), 16)
+                  if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(100,116,139,${alpha})`
+                  return `rgba(${r},${g},${b},${alpha})`
+                }
+
+                if (!status && !budget) return null
+
+                return (
+                  <div
+                    className={`p-4 rounded-[40px] border mb-4 overflow-hidden ${
+                      theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'
+                    }`}
+                    style={{
+                      backgroundImage: theme === 'dark'
+                        ? `linear-gradient(180deg, ${hexToRgba(meta.chartColor, 0.26)}, rgba(17,24,39,0.18))`
+                        : `linear-gradient(180deg, ${hexToRgba(meta.chartColor, 0.18)}, rgba(255,255,255,0.88))`,
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Лимит</p>
+                        <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.limit || budget?.limit || 0)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Потрачено</p>
+                        <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.spent || 0)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black/20' : 'bg-black/10'}`}>
+                        <div
+                          className={`h-full transition-all duration-500 rounded-full ${
+                            (status?.isOverBudget)
+                              ? 'bg-gradient-to-r from-red-500 to-red-600'
+                              : (status?.isNearLimit)
+                                ? 'bg-gradient-to-r from-orange-400 to-orange-500'
+                                : 'bg-gradient-to-r from-green-400 to-green-500'
+                          }`}
+                          style={{ width: `${Math.min(status?.percentage || 0, 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <p className={`text-xs ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Осталось</p>
+                        <p className={`text-xs font-semibold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Math.abs(status?.remaining || 0))}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               <p className={`text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 Категория: {selectedBudgetCategory}
               </p>
@@ -7487,7 +7545,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   pattern="[0-9]*[.,]?[0-9]*"
                   onChange={(e) => setBudgetLimitInput(normalizeDecimalInput(e.target.value))}
                   placeholder="0"
-                  className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                  className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
                     theme === "dark"
                       ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                       : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -7501,45 +7559,66 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </label>
 
                 <div className="mb-3">
-                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex`}>
-                    {[{ key: 'relative', label: 'Обычный' }, { key: 'custom', label: 'Точный' }].map((m) => {
-                      const isActive = budgetPeriodMode === m.key
-                      return (
-                        <button
-                          key={m.key}
-                          onClick={() => setBudgetPeriodMode(m.key)}
-                          className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
-                          style={{
-                            backgroundColor: isActive ? (theme === 'dark' ? 'rgba(17,24,39,0.95)' : 'white') : 'transparent',
-                            color: isActive ? (theme === 'dark' ? '#FFFFFF' : '#111827') : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
-                            boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
-                            border: isActive ? '1px solid #000000' : '1px solid transparent',
-                            transform: isActive ? 'scale(1)' : 'scale(0.98)',
-                          }}
-                        >
-                          {m.label}
-                        </button>
-                      )
-                    })}
+                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
+                    <div
+                      className="absolute top-1 bottom-1 rounded-3xl"
+                      style={{
+                        width: '50%',
+                        transform: `translateX(${budgetPeriodMode === 'custom' ? 100 : 0}%)`,
+                        transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        backgroundColor: '#000000',
+                      }}
+                    />
+                    <button
+                      onClick={() => setBudgetPeriodMode('relative')}
+                      className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                      style={{ color: budgetPeriodMode === 'relative' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
+                    >
+                      Обычный
+                    </button>
+                    <button
+                      onClick={() => setBudgetPeriodMode('custom')}
+                      className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                      style={{ color: budgetPeriodMode === 'custom' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
+                    >
+                      Точный
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  {['week', 'month', 'year'].map((p) => (
+                <div className="mb-1">
+                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
+                    <div
+                      className="absolute top-1 bottom-1 rounded-3xl"
+                      style={{
+                        width: '33.3333%',
+                        transform: `translateX(${budgetPeriod === 'month' ? 100 : budgetPeriod === 'year' ? 200 : 0}%)`,
+                        transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        backgroundColor: '#000000',
+                      }}
+                    />
                     <button
-                      key={p}
-                      onClick={() => setBudgetPeriod(p)}
-                      className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
-                        budgetPeriod === p
-                          ? "bg-blue-500 text-white"
-                          : theme === "dark"
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+                      onClick={() => setBudgetPeriod('week')}
+                      className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                      style={{ color: budgetPeriod === 'week' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
                     >
-                      {p === 'week' ? 'Неделя' : p === 'month' ? 'Месяц' : 'Год'}
+                      Неделя
                     </button>
-                  ))}
+                    <button
+                      onClick={() => setBudgetPeriod('month')}
+                      className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                      style={{ color: budgetPeriod === 'month' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
+                    >
+                      Месяц
+                    </button>
+                    <button
+                      onClick={() => setBudgetPeriod('year')}
+                      className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                      style={{ color: budgetPeriod === 'year' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
+                    >
+                      Год
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -7548,7 +7627,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <label className={`block text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                     День начала периода
                   </label>
-                  <div className={`${theme === 'dark' ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-50 border-gray-200'} border rounded-xl p-3`}>
+                  <div className={`${theme === 'dark' ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-50 border-gray-200'} border rounded-[40px] p-3`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>С {budgetStartDay}-го числа</span>
                       <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>1–28</span>
@@ -7575,7 +7654,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       type="date"
                       value={budgetCustomStart}
                       onChange={(e) => setBudgetCustomStart(e.target.value)}
-                      className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                      className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
                         theme === "dark"
                           ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                           : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -7586,13 +7665,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       type="date"
                       value={budgetCustomEnd}
                       onChange={(e) => setBudgetCustomEnd(e.target.value)}
-                      className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                      className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
                         theme === "dark"
                           ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                           : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       }`}
                       style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
                     />
+                  </div>
+                  <div className={`mt-2 text-[11px] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Выбери дату начала и конца периода
                   </div>
                 </div>
               )}
@@ -7641,13 +7723,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowBudgetModal(false)
                     vibrateSuccess()
                   }}
-                  className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  className={`w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 ${
                     theme === "dark"
                       ? "bg-blue-700 hover:bg-blue-600 text-white"
                       : "bg-blue-500 hover:bg-blue-600 text-white"
                   }`}
                 >
-                  Сохранить
+                  Добавить
                 </button>
               </div>
               </div>
@@ -7674,6 +7756,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }
             const currentType = typeMeta[transactionType] || typeMeta.expense
             const canSubmit = Boolean(String(amount || '').trim())
+            const txTabs = ['income', 'expense', 'savings']
+            const txIndex = Math.max(0, txTabs.indexOf(transactionType))
 
             return (
               <div className="px-1">
@@ -7693,8 +7777,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
 
                 <div className="mb-4">
-                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex`}>
-                    {['income', 'expense', 'savings'].map((t) => {
+                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
+                    <div
+                      className="absolute top-1 bottom-1 rounded-3xl"
+                      style={{
+                        width: '33.3333%',
+                        transform: `translateX(${txIndex * 100}%)`,
+                        transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        backgroundColor: '#000000',
+                      }}
+                    />
+                    {txTabs.map((t) => {
                       const isActive = transactionType === t
                       const meta = typeMeta[t]
                       return (
@@ -7703,11 +7796,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           onClick={() => setTransactionType(t)}
                           className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
                           style={{
-                            backgroundColor: isActive ? (theme === 'dark' ? 'rgba(17,24,39,0.9)' : 'white') : 'transparent',
-                            color: isActive ? meta.color : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
-                            boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                            border: isActive && theme !== 'dark' ? '1px solid #000000' : '1px solid transparent',
-                            transform: isActive ? 'scale(1)' : 'scale(0.98)',
+                            color: isActive ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
+                            border: '1px solid transparent',
                           }}
                         >
                           {meta.label}
@@ -7839,18 +7929,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                 </div>
 
-                <button
-                  onClick={addTransaction}
-                  disabled={!canSubmit}
-                  className="w-full py-5 rounded-full font-semibold text-base transition-all active:scale-95 touch-none"
-                  style={{
-                    backgroundColor: canSubmit ? currentType.color : '#E5E5EA',
-                    color: canSubmit ? 'white' : '#8E8E93',
-                    opacity: canSubmit ? 1 : 0.6,
-                  }}
+                <div
+                  style={{ position: 'sticky', bottom: 0 }}
+                  className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} pt-2 pb-1`}
                 >
-                  Добавить
-                </button>
+                  <button
+                    onClick={addTransaction}
+                    disabled={!canSubmit}
+                    className="w-full py-5 rounded-full font-semibold text-base transition-all active:scale-95 touch-none"
+                    style={{
+                      backgroundColor: canSubmit ? currentType.color : '#E5E5EA',
+                      color: canSubmit ? 'white' : '#8E8E93',
+                      opacity: canSubmit ? 1 : 0.6,
+                    }}
+                  >
+                    Добавить
+                  </button>
+                </div>
               </div>
             )
           })()}
@@ -7883,8 +7978,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 }`}
                 style={{
                   backgroundImage: theme === 'dark'
-                    ? 'linear-gradient(135deg, rgba(168,85,247,0.22), rgba(236,72,153,0.10))'
-                    : 'linear-gradient(135deg, rgba(168,85,247,0.18), rgba(236,72,153,0.08))',
+                    ? 'linear-gradient(180deg, rgba(168,85,247,0.24), rgba(236,72,153,0.10))'
+                    : 'linear-gradient(180deg, rgba(168,85,247,0.18), rgba(236,72,153,0.08))',
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
