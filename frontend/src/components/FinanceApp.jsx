@@ -4644,6 +4644,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     const category = budgetPreviewCategory
                     const budget = budgets[category]
                     const status = budgetStatuses[category]
+                    const meta = categoriesMeta[category] || {}
+
+                    const hexToRgba = (hex, alpha) => {
+                      const h = String(hex || '').replace('#', '')
+                      if (h.length !== 6) return `rgba(100,116,139,${alpha})`
+                      const r = parseInt(h.slice(0, 2), 16)
+                      const g = parseInt(h.slice(2, 4), 16)
+                      const b = parseInt(h.slice(4, 6), 16)
+                      if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(100,116,139,${alpha})`
+                      return `rgba(${r},${g},${b},${alpha})`
+                    }
 
                     const startDate = budget?.createdAt ? new Date(budget.createdAt) : null
                     const ops = transactions
@@ -4683,20 +4694,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           </button>
                         </div>
 
-                        <div className={`p-3 rounded-[40px] border mb-3 ${theme === 'dark' ? 'bg-gray-700/30 border-gray-600' : 'bg-white border-gray-200'}`}>
+                        <div
+                          className={`p-4 rounded-[40px] border mb-3 overflow-hidden ${
+                            theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'
+                          }`}
+                          style={{
+                            backgroundImage: theme === 'dark'
+                              ? `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.28)}, rgba(17,24,39,0.20))`
+                              : `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.22)}, rgba(255,255,255,0.85))`,
+                          }}
+                        >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Лимит</p>
-                              <p className={`text-base font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.limit || budget?.limit || 0)}</p>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Лимит</p>
+                              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.limit || budget?.limit || 0)}</p>
                             </div>
                             <div className="text-right">
-                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Потрачено</p>
-                              <p className={`text-base font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.spent || 0)}</p>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Потрачено</p>
+                              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.spent || 0)}</p>
                             </div>
                           </div>
 
-                          <div className="mt-2">
-                            <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                          <div className="mt-3">
+                            <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black/20' : 'bg-black/10'}`}>
                               <div
                                 className={`h-full transition-all duration-500 rounded-full ${
                                   (status?.isOverBudget)
@@ -4709,8 +4729,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               />
                             </div>
                             <div className="flex justify-between items-center mt-1">
-                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Осталось</p>
-                              <p className={`text-xs font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{formatCurrency(Math.abs(status?.remaining || 0))}</p>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>Осталось</p>
+                              <p className={`text-xs font-semibold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Math.abs(status?.remaining || 0))}</p>
                             </div>
                           </div>
                         </div>
@@ -7849,20 +7869,42 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             const safePct = Math.max(0, Math.min(100, Number.isFinite(previewPct) ? previewPct : 0))
 
             return (
-              <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-[40px] p-4 mb-4 relative overflow-hidden`}>
+              <div
+                className={`rounded-[40px] p-4 mb-4 relative overflow-hidden border ${
+                  theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'
+                }`}
+                style={{
+                  backgroundImage: theme === 'dark'
+                    ? 'linear-gradient(135deg, rgba(168,85,247,0.22), rgba(236,72,153,0.10))'
+                    : 'linear-gradient(135deg, rgba(168,85,247,0.18), rgba(236,72,153,0.08))',
+                }}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className={`text-lg font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{previewName}</div>
-                    <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <div
+                      className={`text-[17px] leading-snug font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}
+                      style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                    >
+                      {previewName}
+                    </div>
+                    <div
+                      className={`text-xs mt-1 tabular-nums ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
                       {formatCurrency(Number(secondGoalSavings || 0), 'USD')} из {formatCurrency(previewTarget, 'USD')}
                     </div>
                   </div>
-                  <div className={`px-3 py-1.5 rounded-2xl font-bold ${theme === 'dark' ? 'bg-white/10 text-gray-100' : 'bg-white text-gray-900'}`}>
+                  <div
+                    className={`px-3 py-1.5 rounded-2xl font-bold tabular-nums ${
+                      theme === 'dark' ? 'bg-black/25 text-gray-100 border border-white/10' : 'bg-white/80 text-gray-900 border border-black/5'
+                    }`}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
                     {safePct}%
                   </div>
                 </div>
 
-                <div className={`mt-3 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                <div className={`mt-3 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black/20' : 'bg-black/10'}`}>
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       theme === 'dark'
@@ -7919,8 +7961,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 alert('Введите название и корректную сумму')
                 return
               }
-              setSecondGoalAmount(n)
-              await saveToServer(balance, income, expenses, savings)
+              const nextName = String(secondGoalName || '').trim()
+              const nextAmount = n
+
+              setSecondGoalName(nextName)
+              setSecondGoalAmount(nextAmount)
+
+              try {
+                if (user && user.email) {
+                  await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      goalName,
+                      initialSavingsAmount,
+                      secondGoalName: nextName,
+                      secondGoalAmount: nextAmount,
+                      secondGoalSavings,
+                      secondGoalInitialAmount,
+                      thirdGoalName,
+                      thirdGoalAmount,
+                      thirdGoalSavings,
+                      thirdGoalInitialAmount,
+                    }),
+                  })
+                }
+              } catch (e) {
+                console.warn('Failed to save second goal', e)
+              }
               setShowSecondGoalModal(false)
               vibrateSuccess()
             }}
