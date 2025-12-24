@@ -228,6 +228,120 @@ const SavingsSettingsModalContent = ({
     secondGoalInitialAmount,
   ])
 
+  const resetProgress = async () => {
+    const goalNameToReset = isSecond ? secondGoalName : goalName
+    if (!confirm(`Вы уверены, что хотите сбросить прогресс копилки "${goalNameToReset}"?\n\nЭто обнулит накопленную сумму, но сохранит название и цель.`)) {
+      return
+    }
+
+    if (!isSecond) {
+      const newSavings = 0
+      const newInitialAmount = 0
+      setSavings(newSavings)
+      setInitialSavingsAmount(newInitialAmount)
+      if (user && user.email) {
+        try {
+          await fetch(`${API_BASE}/api/user/${user.email}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              balance,
+              income,
+              expenses,
+              savings: newSavings,
+              goalSavings,
+            }),
+          })
+          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              goalName,
+              initialSavingsAmount: newInitialAmount,
+              secondGoalName,
+              secondGoalAmount,
+              secondGoalSavings,
+              secondGoalInitialAmount,
+            }),
+          })
+          vibrateSuccess && vibrateSuccess()
+        } catch (e) {
+          console.warn('Failed to reset main goal', e)
+          vibrateError && vibrateError()
+        }
+      }
+    } else {
+      const newSecondSavings = 0
+      const newSecondInitialAmount = 0
+      setSecondGoalSavings(newSecondSavings)
+      setSecondGoalInitialAmount(newSecondInitialAmount)
+      if (user && user.email) {
+        try {
+          await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              goalName,
+              initialSavingsAmount,
+              secondGoalName,
+              secondGoalAmount,
+              secondGoalSavings: newSecondSavings,
+              secondGoalInitialAmount: newSecondInitialAmount,
+            }),
+          })
+          vibrateSuccess && vibrateSuccess()
+        } catch (e) {
+          console.warn('Failed to reset second goal', e)
+          vibrateError && vibrateError()
+        }
+      }
+    }
+  }
+
+  const deleteSecondGoal = async () => {
+    if (!secondGoalName) return
+    if (!confirm(`Вы уверены, что хотите удалить копилку "${secondGoalName}"?`)) return
+    if (user && user.email) {
+      try {
+        await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            goalName,
+            initialSavingsAmount,
+            secondGoalName: '',
+            secondGoalAmount: 0,
+            secondGoalSavings: 0,
+            secondGoalInitialAmount: 0,
+          }),
+        })
+        await fetch(`${API_BASE}/api/user/${user.email}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            balance,
+            income,
+            expenses,
+            savings,
+            goalSavings,
+          }),
+        })
+      } catch (e) {
+        console.warn('Failed to delete second goal', e)
+        alert('Ошибка при удалении копилки')
+        return
+      }
+    }
+
+    setSecondGoalName('')
+    setSecondGoalAmount(0)
+    setSecondGoalSavings(0)
+    setSecondGoalInitialAmount(0)
+    setSecondGoalInput('0')
+    setSelectedSavingsGoal('main')
+    onClose && onClose()
+  }
+
   const saveSettings = async () => {
     const nm = String(nameInput || '').trim()
     const targetVal = Number.parseFloat(String(targetInput || '').trim())
@@ -298,6 +412,36 @@ const SavingsSettingsModalContent = ({
         <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
           Настройки копилки
         </h3>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={resetProgress}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all touch-none active:scale-95 ${
+              theme === 'dark'
+                ? 'bg-gray-800/70 text-gray-100 hover:bg-gray-700/70'
+                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+            }`}
+            aria-label="Сброс"
+            title="Сброс"
+          >
+            Сброс
+          </button>
+
+          {isSecond && secondGoalName && (
+            <button
+              type="button"
+              onClick={deleteSecondGoal}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all touch-none active:scale-95 ${
+                theme === 'dark' ? 'bg-red-600/20 hover:bg-red-600/30' : 'bg-red-50 hover:bg-red-100'
+              }`}
+              aria-label="Удалить копилку"
+              title="Удалить копилку"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </button>
+          )}
+        </div>
       </div>
 
       {isSecondAvailable && (
@@ -333,10 +477,9 @@ const SavingsSettingsModalContent = ({
         </div>
       )}
 
-      <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-4 mb-4 relative overflow-hidden`}>
+      <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-[40px] p-4 mb-4 relative overflow-hidden`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Превью</div>
             <div className={`text-lg font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{currentTitle || 'Копилка'}</div>
             <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
               {formatCurrency(currentSaved, 'USD')} из {formatCurrency(currentTarget, 'USD')}
@@ -372,7 +515,7 @@ const SavingsSettingsModalContent = ({
             type="text"
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            className={`w-full p-3 border rounded-2xl transition-all text-sm ${
+            className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
               theme === 'dark'
                 ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
                 : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
@@ -390,7 +533,7 @@ const SavingsSettingsModalContent = ({
             inputMode="decimal"
             value={targetInput}
             onChange={(e) => setTargetInput(e.target.value.replace(/[^0-9.]/g, ''))}
-            className={`w-full p-3 border rounded-2xl transition-all text-sm ${
+            className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
               theme === 'dark'
                 ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
                 : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
@@ -411,7 +554,7 @@ const SavingsSettingsModalContent = ({
             inputMode="decimal"
             value={initialInput}
             onChange={(e) => setInitialInput(e.target.value.replace(/[^0-9.]/g, ''))}
-            className={`w-full p-3 border rounded-2xl transition-all text-sm ${
+            className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
               theme === 'dark'
                 ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
                 : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
@@ -421,20 +564,11 @@ const SavingsSettingsModalContent = ({
         </div>
       </div>
 
-      <div className="flex gap-2 mt-4">
-        <button
-          type="button"
-          onClick={() => onClose && onClose()}
-          className={`flex-1 py-3 rounded-2xl font-medium transition-all text-sm touch-none active:scale-95 ${
-            theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-          }`}
-        >
-          Отмена
-        </button>
+      <div className="mt-4">
         <button
           type="button"
           onClick={saveSettings}
-          className={`flex-1 py-3 rounded-2xl font-medium transition-all text-sm touch-none active:scale-95 ${
+          className={`w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 ${
             isSecond
               ? theme === 'dark'
                 ? 'bg-purple-700 hover:bg-purple-600 text-white'
@@ -447,140 +581,6 @@ const SavingsSettingsModalContent = ({
           Сохранить
         </button>
       </div>
-
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={async () => {
-            const goalNameToReset = isSecond ? secondGoalName : goalName
-            if (confirm(`Вы уверены, что хотите сбросить прогресс копилки "${goalNameToReset}"?\n\nЭто обнулит накопленную сумму, но сохранит название и цель.`)) {
-              if (!isSecond) {
-                const newSavings = 0
-                const newInitialAmount = 0
-                setSavings(newSavings)
-                setInitialSavingsAmount(newInitialAmount)
-                if (user && user.email) {
-                  try {
-                    await fetch(`${API_BASE}/api/user/${user.email}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        balance,
-                        income,
-                        expenses,
-                        savings: newSavings,
-                        goalSavings,
-                      }),
-                    })
-                    await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        goalName,
-                        initialSavingsAmount: newInitialAmount,
-                        secondGoalName,
-                        secondGoalAmount,
-                        secondGoalSavings,
-                        secondGoalInitialAmount,
-                      }),
-                    })
-                    vibrateSuccess && vibrateSuccess()
-                  } catch (e) {
-                    console.warn('Failed to reset main goal', e)
-                    vibrateError && vibrateError()
-                  }
-                }
-              } else {
-                const newSecondSavings = 0
-                const newSecondInitialAmount = 0
-                setSecondGoalSavings(newSecondSavings)
-                setSecondGoalInitialAmount(newSecondInitialAmount)
-                if (user && user.email) {
-                  try {
-                    await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        goalName,
-                        initialSavingsAmount,
-                        secondGoalName,
-                        secondGoalAmount,
-                        secondGoalSavings: newSecondSavings,
-                        secondGoalInitialAmount: newSecondInitialAmount,
-                      }),
-                    })
-                    vibrateSuccess && vibrateSuccess()
-                  } catch (e) {
-                    console.warn('Failed to reset second goal', e)
-                    vibrateError && vibrateError()
-                  }
-                }
-              }
-              onClose && onClose()
-            }
-          }}
-          className={`w-full py-3 rounded-2xl font-medium transition-all text-sm touch-none active:scale-95 ${
-            theme === 'dark' ? 'bg-red-700 hover:bg-red-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-          }`}
-        >
-          Сбросить прогресс
-        </button>
-      </div>
-
-      {isSecond && secondGoalName && (
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={async () => {
-              if (confirm(`Вы уверены, что хотите удалить копилку "${secondGoalName}"?`)) {
-                if (user && user.email) {
-                  try {
-                    await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        goalName,
-                        initialSavingsAmount,
-                        secondGoalName: '',
-                        secondGoalAmount: 0,
-                        secondGoalSavings: 0,
-                        secondGoalInitialAmount: 0,
-                      }),
-                    })
-                    await fetch(`${API_BASE}/api/user/${user.email}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        balance,
-                        income,
-                        expenses,
-                        savings,
-                        goalSavings,
-                      }),
-                    })
-                  } catch (e) {
-                    console.warn('Failed to delete second goal', e)
-                    alert('Ошибка при удалении копилки')
-                  }
-                }
-
-                setSecondGoalName('')
-                setSecondGoalAmount(0)
-                setSecondGoalSavings(0)
-                setSecondGoalInitialAmount(0)
-                setSecondGoalInput('0')
-                setSelectedSavingsGoal('main')
-                onClose && onClose()
-              }
-            }}
-            className={`w-full py-3 rounded-2xl font-medium transition-all text-sm touch-none active:scale-95 ${
-              theme === 'dark' ? 'bg-red-700 hover:bg-red-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
-          >
-            Удалить копилку
-          </button>
-        </div>
-      )}
     </div>
   )
 }
@@ -1808,6 +1808,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [budgetLimitInput, setBudgetLimitInput] = useState('')
   const [budgetPeriod, setBudgetPeriod] = useState('month') // 'week', 'month', 'year'
   const [showBudgetKeyboard, setShowBudgetKeyboard] = useState(false)
+  const [budgetPeriodMode, setBudgetPeriodMode] = useState('relative') // 'relative' | 'custom'
+  const [budgetStartDay, setBudgetStartDay] = useState(1) // 1..28
+  const [budgetCustomStart, setBudgetCustomStart] = useState('') // YYYY-MM-DD
+  const [budgetCustomEnd, setBudgetCustomEnd] = useState('') // YYYY-MM-DD
   
   // Вид диаграммы (круговая, столбчатая, линейная)
   const [chartView, setChartView] = useState('pie') // 'pie', 'bar', 'line'
@@ -1836,6 +1840,19 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [aiLoading, setAiLoading] = useState(false)
   const aiInputRef = useRef(null)
 
+  const normalizeDecimalInput = (raw) => {
+    const s = String(raw ?? '')
+    const only = s.replace(/[^0-9.,]/g, '')
+    const normalized = only.replace(/,/g, '.')
+
+    const firstDot = normalized.indexOf('.')
+    if (firstDot === -1) return normalized
+
+    const before = normalized.slice(0, firstDot + 1)
+    const after = normalized.slice(firstDot + 1).replace(/\./g, '')
+    return before + after
+  }
+
   const sendAiMessage = async (text) => {
     if (!user || !user.email) {
       alert('Сначала войдите в аккаунт (email)')
@@ -1853,7 +1870,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const resp = await fetch(`${API_URL}/api/ai/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_email: user.email, message: trimmed }),
+        body: JSON.stringify({ user_email: user.email, message: trimmed, currency }),
       })
 
       const json = await resp.json().catch(() => ({}))
@@ -2917,7 +2934,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const addTransaction = async () => {
     blurAll()
-    const n = Number(amount)
+    const n = Number(normalizeDecimalInput(amount))
     if (!isFinite(n) || n <= 0) {
       vibrateError()
       alert("Введите корректную сумму")
@@ -3615,27 +3632,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       // Рассчитываем расходы за период
       const now = new Date()
       let startDate = new Date()
-      
-      if (budget.period === 'week') {
-        startDate.setDate(now.getDate() - 7)
-      } else if (budget.period === 'month') {
-        // Если задан день начала месяца
-        if (budget.startDay) {
-          const currentDay = now.getDate()
-          const startDay = budget.startDay
-          
-          if (currentDay >= startDay) {
-            // Текущий период начался в этом месяце
-            startDate = new Date(now.getFullYear(), now.getMonth(), startDay)
-          } else {
-            // Текущий период начался в прошлом месяце
-            startDate = new Date(now.getFullYear(), now.getMonth() - 1, startDay)
-          }
-        } else {
-          startDate.setMonth(now.getMonth() - 1)
+      let endDate = null
+
+      // Если задан точный период — используем его
+      if (budget.customStart && budget.customEnd) {
+        const s = new Date(budget.customStart)
+        const e = new Date(budget.customEnd)
+        if (!Number.isNaN(s.getTime()) && !Number.isNaN(e.getTime())) {
+          startDate = s
+          endDate = e
         }
-      } else if (budget.period === 'year') {
-        startDate.setFullYear(now.getFullYear() - 1)
+      }
+
+      // Если нет точного периода — считаем относительный
+      if (!endDate) {
+        if (budget.period === 'week') {
+          startDate.setDate(now.getDate() - 7)
+        } else if (budget.period === 'month') {
+          // Если задан день начала месяца
+          if (budget.startDay) {
+            const currentDay = now.getDate()
+            const startDay = budget.startDay
+
+            if (currentDay >= startDay) {
+              // Текущий период начался в этом месяце
+              startDate = new Date(now.getFullYear(), now.getMonth(), startDay)
+            } else {
+              // Текущий период начался в прошлом месяце
+              startDate = new Date(now.getFullYear(), now.getMonth() - 1, startDay)
+            }
+          } else {
+            startDate.setMonth(now.getMonth() - 1)
+          }
+        } else if (budget.period === 'year') {
+          startDate.setFullYear(now.getFullYear() - 1)
+        }
       }
       
       // ВАЖНО: Если есть дата создания бюджета, используем её как минимальную дату
@@ -3648,11 +3679,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       console.log(`[BUDGET DEBUG] Дата создания бюджета:`, budgetCreatedAt)
       console.log(`[BUDGET DEBUG] Дата начала периода:`, startDate)
       
-      const categoryTransactions = transactions.filter(tx => 
-        tx.type === 'expense' && 
-        tx.category === category &&
-        new Date(tx.date || tx.created_at) >= startDate
-      )
+      const categoryTransactions = transactions.filter(tx => {
+        if (tx.type !== 'expense') return false
+        if (tx.category !== category) return false
+        const txDate = new Date(tx.date || tx.created_at)
+        if (Number.isNaN(txDate.getTime())) return false
+        if (txDate < startDate) return false
+        if (endDate && txDate > endDate) return false
+        return true
+      })
       
       console.log(`[BUDGET DEBUG] Найдено транзакций для ${category}:`, categoryTransactions.length)
       
@@ -5730,10 +5765,22 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       style={
                         m.role === 'user'
                           ? { background: 'linear-gradient(90deg, rgb(168,85,247), rgb(236,72,153))' }
-                          : undefined
+                          : {
+                              whiteSpace: 'pre-wrap',
+                              overflowWrap: 'anywhere',
+                              wordBreak: 'break-word',
+                            }
                       }
                     >
-                      {m.content}
+                      <span
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          overflowWrap: 'anywhere',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {m.content}
+                      </span>
                     </div>
                   </div>
                 ))
@@ -6919,6 +6966,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             setSelectedBudgetCategory('')
             setBudgetLimitInput('')
             setShowBudgetKeyboard(false)
+            setBudgetPeriodMode('relative')
+            setBudgetStartDay(1)
+            setBudgetCustomStart('')
+            setBudgetCustomEnd('')
           }}
           theme={theme}
           zIndex={55}
@@ -6942,6 +6993,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setSelectedBudgetCategory(category)
                       setBudgetLimitInput(String(budgets[category]?.limit || ''))
                       setBudgetPeriod(budgets[category]?.period || 'month')
+                      const hasCustom = Boolean(budgets[category]?.customStart && budgets[category]?.customEnd)
+                      setBudgetPeriodMode(hasCustom ? 'custom' : 'relative')
+                      setBudgetStartDay(Number(budgets[category]?.startDay || 1))
+                      setBudgetCustomStart(String(budgets[category]?.customStart || ''))
+                      setBudgetCustomEnd(String(budgets[category]?.customEnd || ''))
                       setShowBudgetKeyboard(false)
                     }}
                     className={`w-full text-left rounded-xl p-3 border transition-all ${theme === "dark" ? "bg-gray-700/30 border-gray-600 hover:bg-gray-700/50" : "bg-white border-gray-200 hover:bg-gray-50"}`}
@@ -6971,9 +7027,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   Лимит
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   value={budgetLimitInput}
-                  onChange={(e) => setBudgetLimitInput(e.target.value)}
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  onChange={(e) => setBudgetLimitInput(normalizeDecimalInput(e.target.value))}
                   placeholder="0"
                   className={`w-full p-3 border rounded-xl transition-all text-sm ${
                     theme === "dark"
@@ -6987,6 +7045,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 <label className={`block text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                   Период
                 </label>
+
+                <div className="flex gap-2 mb-3">
+                  {[{ key: 'relative', label: 'Обычный' }, { key: 'custom', label: 'Точный' }].map((m) => (
+                    <button
+                      key={m.key}
+                      onClick={() => setBudgetPeriodMode(m.key)}
+                      className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
+                        budgetPeriodMode === m.key
+                          ? "bg-blue-500 text-white"
+                          : theme === "dark"
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="flex gap-2">
                   {['week', 'month', 'year'].map((p) => (
                     <button
@@ -7006,11 +7083,67 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 </div>
               </div>
 
+              {budgetPeriodMode === 'relative' && budgetPeriod === 'month' && (
+                <div className="mb-4">
+                  <label className={`block text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    День начала периода
+                  </label>
+                  <div className={`${theme === 'dark' ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-50 border-gray-200'} border rounded-xl p-3`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>С {budgetStartDay}-го числа</span>
+                      <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>1–28</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={28}
+                      value={budgetStartDay}
+                      onChange={(e) => setBudgetStartDay(Number(e.target.value || 1))}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {budgetPeriodMode === 'custom' && (
+                <div className="mb-4">
+                  <label className={`block text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Точный период
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={budgetCustomStart}
+                      onChange={(e) => setBudgetCustomStart(e.target.value)}
+                      className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                          : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      }`}
+                    />
+                    <input
+                      type="date"
+                      value={budgetCustomEnd}
+                      onChange={(e) => setBudgetCustomEnd(e.target.value)}
+                      className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                        theme === "dark"
+                          ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                          : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      }`}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     setSelectedBudgetCategory('')
                     setBudgetLimitInput('')
+                    setBudgetPeriodMode('relative')
+                    setBudgetStartDay(1)
+                    setBudgetCustomStart('')
+                    setBudgetCustomEnd('')
                   }}
                   className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                     theme === "dark"
@@ -7029,11 +7162,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       return
                     }
 
+                    if (budgetPeriodMode === 'custom') {
+                      if (!budgetCustomStart || !budgetCustomEnd) {
+                        vibrateError()
+                        alert('Выберите даты периода')
+                        return
+                      }
+                      const s = new Date(budgetCustomStart)
+                      const e = new Date(budgetCustomEnd)
+                      if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || s > e) {
+                        vibrateError()
+                        alert('Некорректный период')
+                        return
+                      }
+                    }
+
                     const newBudgets = {
                       ...budgets,
                       [selectedBudgetCategory]: {
                         limit,
                         period: budgetPeriod,
+                        startDay: budgetPeriodMode === 'relative' && budgetPeriod === 'month' ? Number(budgetStartDay || 1) : undefined,
+                        customStart: budgetPeriodMode === 'custom' ? budgetCustomStart : undefined,
+                        customEnd: budgetPeriodMode === 'custom' ? budgetCustomEnd : undefined,
                         createdAt: budgets[selectedBudgetCategory]?.createdAt || new Date().toISOString(),
                       },
                     }
@@ -7127,7 +7278,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       type="text"
                       value={amount}
                       inputMode="decimal"
-                      onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                      pattern="[0-9]*[.,]?[0-9]*"
+                      onChange={(e) => setAmount(normalizeDecimalInput(e.target.value))}
                       onFocus={() => {
                         requestAnimationFrame(() => {
                           try {
@@ -7250,9 +7402,45 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           theme={theme}
           zIndex={65}
         >
-          <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-            Вторая копилка
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Вторая копилка
+            </h3>
+          </div>
+
+          {(() => {
+            const previewName = String(secondGoalName || '').trim() || 'Копилка'
+            const previewTarget = Number.parseFloat(String(secondGoalInput || '0').replace(/,/g, '.')) || 0
+            const previewPct = Math.round((Number(secondGoalSavings || 0) / (previewTarget > 0 ? previewTarget : 1)) * 100)
+            const safePct = Math.max(0, Math.min(100, Number.isFinite(previewPct) ? previewPct : 0))
+
+            return (
+              <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-[40px] p-4 mb-4 relative overflow-hidden`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className={`text-lg font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{previewName}</div>
+                    <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {formatCurrency(Number(secondGoalSavings || 0), 'USD')} из {formatCurrency(previewTarget, 'USD')}
+                    </div>
+                  </div>
+                  <div className={`px-3 py-1.5 rounded-2xl font-bold ${theme === 'dark' ? 'bg-white/10 text-gray-100' : 'bg-white text-gray-900'}`}>
+                    {safePct}%
+                  </div>
+                </div>
+
+                <div className={`mt-3 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                        : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                    }`}
+                    style={{ width: `${safePct}%` }}
+                  />
+                </div>
+              </div>
+            )
+          })()}
 
           <div className="mb-3">
             <label className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
@@ -7262,7 +7450,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               type="text"
               value={secondGoalName}
               onChange={(e) => setSecondGoalName(e.target.value)}
-              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+              className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
                 theme === "dark"
                   ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-purple-500"
                   : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -7276,11 +7464,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               Сумма цели (USD)
             </label>
             <input
-              type="number"
+              type="text"
               value={secondGoalInput}
-              min={0}
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
               onChange={(e) => setSecondGoalInput(e.target.value.replace(/^0+(?=\d)/, '') || '0')}
-              className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
+              className={`w-full p-3 border rounded-[40px] transition-all text-lg font-bold ${
                 theme === "dark"
                   ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-purple-500"
                   : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -7288,39 +7477,27 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             />
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowSecondGoalModal(false)}
-              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                theme === "dark"
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-              }`}
-            >
-              Отмена
-            </button>
-            <button
-              onClick={async () => {
-                const n = Number.parseInt(secondGoalInput, 10)
-                if (!secondGoalName.trim() || Number.isNaN(n) || n <= 0) {
-                  vibrateError()
-                  alert('Введите название и корректную сумму')
-                  return
-                }
-                setSecondGoalAmount(n)
-                await saveToServer(balance, income, expenses, savings)
-                setShowSecondGoalModal(false)
-                vibrateSuccess()
-              }}
-              className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                theme === "dark"
-                  ? "bg-purple-700 hover:bg-purple-600 text-white"
-                  : "bg-purple-500 hover:bg-purple-600 text-white"
-              }`}
-            >
-              Сохранить
-            </button>
-          </div>
+          <button
+            onClick={async () => {
+              const n = Number.parseFloat(String(secondGoalInput || '0').replace(/,/g, '.'))
+              if (!secondGoalName.trim() || Number.isNaN(n) || n <= 0) {
+                vibrateError()
+                alert('Введите название и корректную сумму')
+                return
+              }
+              setSecondGoalAmount(n)
+              await saveToServer(balance, income, expenses, savings)
+              setShowSecondGoalModal(false)
+              vibrateSuccess()
+            }}
+            className={`w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 ${
+              theme === "dark"
+                ? "bg-purple-700 hover:bg-purple-600 text-white"
+                : "bg-purple-500 hover:bg-purple-600 text-white"
+            }`}
+          >
+            Сохранить
+          </button>
         </BottomSheetModal>
       )}
 
