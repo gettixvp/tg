@@ -646,29 +646,63 @@ const SavingsSettingsModalContent = ({
         </div>
       )}
 
-      <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-[40px] p-4 mb-4 relative overflow-hidden`}>
+      <div
+        className={`rounded-[40px] p-4 mb-4 relative overflow-hidden border ${
+          theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'
+        }`}
+        style={{
+          backgroundImage: isSecond
+            ? theme === 'dark'
+              ? 'linear-gradient(135deg, rgba(168,85,247,0.22), rgba(236,72,153,0.10))'
+              : 'linear-gradient(135deg, rgba(168,85,247,0.18), rgba(236,72,153,0.08))'
+            : isThird
+              ? theme === 'dark'
+                ? 'linear-gradient(135deg, rgba(34,197,94,0.20), rgba(16,185,129,0.10))'
+                : 'linear-gradient(135deg, rgba(34,197,94,0.16), rgba(16,185,129,0.08))'
+              : theme === 'dark'
+                ? 'linear-gradient(135deg, rgba(59,130,246,0.22), rgba(99,102,241,0.10))'
+                : 'linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.08))',
+        }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className={`text-lg font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{currentTitle || 'Копилка'}</div>
-            <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            <div
+              className={`text-[17px] leading-snug font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}
+              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+            >
+              {currentTitle || 'Копилка'}
+            </div>
+            <div
+              className={`text-xs mt-1 tabular-nums ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}
+              style={{ whiteSpace: 'nowrap' }}
+            >
               {formatCurrency(currentSaved, 'USD')} из {formatCurrency(currentTarget, 'USD')}
             </div>
           </div>
-          <div className={`px-3 py-1.5 rounded-2xl font-bold ${theme === 'dark' ? 'bg-white/10 text-gray-100' : 'bg-white text-gray-900'}`}>
+          <div
+            className={`px-3 py-1.5 rounded-2xl font-bold tabular-nums ${
+              theme === 'dark' ? 'bg-black/25 text-gray-100 border border-white/10' : 'bg-white/80 text-gray-900 border border-black/5'
+            }`}
+            style={{ whiteSpace: 'nowrap' }}
+          >
             {safePct}%
           </div>
         </div>
 
-        <div className={`mt-3 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+        <div className={`mt-3 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-black/20' : 'bg-black/10'}`}>
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               isSecond
                 ? theme === 'dark'
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500'
                   : 'bg-gradient-to-r from-purple-600 to-pink-600'
-                : theme === 'dark'
-                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
-                  : 'bg-gradient-to-r from-blue-600 to-cyan-600'
+                : isThird
+                  ? theme === 'dark'
+                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500'
+                    : 'bg-gradient-to-r from-emerald-600 to-cyan-600'
+                  : theme === 'dark'
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                    : 'bg-gradient-to-r from-blue-600 to-cyan-600'
             }`}
             style={{ width: `${safePct}%` }}
           />
@@ -1364,7 +1398,7 @@ const RecentOperationsContainer = ({ children, theme, onShowAll }) => {
 }
 
 // Компонент контейнера копилок в стиле pricing
-const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, color }) => {
+const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, color, className = '' }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const containerRef = useRef(null)
   
@@ -1434,7 +1468,7 @@ const SavingsContainer = ({ children, theme, onShowAll, title, progress, icon, c
   return (
     <div 
       ref={containerRef}
-      className={`savings-container ${theme}`}
+      className={`savings-container ${theme} ${className}`}
       onMouseMove={handleMouseMove}
       onClick={(e) => {
         e.preventDefault()
@@ -4418,11 +4452,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
               <div
                 className={
-                  (secondGoalName && secondGoalAmount > 0) && (thirdGoalName && thirdGoalAmount > 0)
-                    ? "grid grid-cols-3 gap-3"
-                    : (secondGoalName && secondGoalAmount > 0) || (thirdGoalName && thirdGoalAmount > 0)
-                      ? "grid grid-cols-2 gap-3"
-                      : "grid grid-cols-1 gap-3"
+                  (secondGoalName && secondGoalAmount > 0) || (thirdGoalName && thirdGoalAmount > 0)
+                    ? "grid grid-cols-2 gap-3"
+                    : "grid grid-cols-1 gap-3"
                 }
               >
                 {/* Основная копилка */}
@@ -4469,6 +4501,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     progress={Math.round(thirdGoalPct) || 0}
                     icon={<PiggyBank className="w-4 h-4" />}
                     color="green"
+                    className={secondGoalName && secondGoalAmount > 0 ? 'col-span-2' : ''}
                   >
                     {null}
                   </SavingsContainer>
@@ -4991,28 +5024,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   )}
 
+                  {/* Третья цель */}
+                  {thirdGoalName && thirdGoalAmount > 0 && (
+                    <div className={`mb-3 pt-3 border-t ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                          {thirdGoalName}
+                        </span>
+                        <span className={`text-sm font-bold ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`}>
+                          {Math.round((thirdGoalSavings / thirdGoalAmount) * 100)}%
+                        </span>
+                      </div>
+                      <div className={`h-2 rounded-full overflow-hidden ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            theme === "dark" ? "bg-gradient-to-r from-emerald-500 to-cyan-500" : "bg-gradient-to-r from-emerald-600 to-cyan-600"
+                          }`}
+                          style={{ width: `${Math.min((thirdGoalSavings / thirdGoalAmount) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <div className={`flex items-center justify-between mt-2 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        <span>{formatCurrency(thirdGoalSavings, "USD")}</span>
+                        <span>{formatCurrency(thirdGoalAmount, "USD")}</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Кнопки действий */}
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={() => {
-                        setShowGoalModal(true)
-                        vibrate()
-                      }}
-                      className={`flex-1 py-3 px-4 rounded-[40px] font-semibold transition-all text-sm touch-none active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-gray-800/80 text-gray-100 hover:bg-gray-700/80 border border-white/10"
-                          : "bg-white text-gray-900 hover:bg-gray-50 border border-gray-200"
-                      }`}
-                    >
-                      Изменить цель
-                    </button>
+                  <div className="flex justify-center mt-4">
                     <button
                       onClick={() => {
                         setTransactionType("savings")
                         setShowAddModal(true)
                         vibrate()
                       }}
-                      className={`flex items-center justify-center gap-2 px-5 py-3 rounded-[40px] font-semibold transition-all text-sm touch-none active:scale-95 ${
+                      className={`w-full max-w-[360px] flex items-center justify-center gap-2 px-5 py-3 rounded-[40px] font-semibold transition-all text-sm touch-none active:scale-95 ${
                         theme === "dark"
                           ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-blue-500/20"
                           : "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-lg shadow-blue-500/15"
@@ -6011,8 +6057,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 alert('Введите название и корректную сумму')
                 return
               }
-              setThirdGoalAmount(n)
-              await saveToServer(balance, income, expenses, savings)
+              const nextName = String(thirdGoalName || '').trim()
+              const nextAmount = n
+
+              setThirdGoalName(nextName)
+              setThirdGoalAmount(nextAmount)
+
+              try {
+                if (user && user.email) {
+                  await fetch(`${API_BASE}/api/user/${user.email}/savings-settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      goalName,
+                      initialSavingsAmount,
+                      secondGoalName,
+                      secondGoalAmount,
+                      secondGoalSavings,
+                      secondGoalInitialAmount,
+                      thirdGoalName: nextName,
+                      thirdGoalAmount: nextAmount,
+                      thirdGoalSavings,
+                      thirdGoalInitialAmount,
+                    }),
+                  })
+                }
+              } catch (e) {
+                console.warn('Failed to save third goal', e)
+              }
               setShowThirdGoalModal(false)
               vibrateSuccess()
             }}
