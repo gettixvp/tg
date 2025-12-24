@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, memo, useMemo } from "react"
+import { createPortal } from "react-dom"
 import "./RecentOperationsContainer.css"
 import {
   Wallet,
@@ -602,7 +603,7 @@ const SavingsSettingsModalContent = ({
       </div>
 
       {(isSecondAvailable || isThirdAvailable) && (
-        <div className={`w-full mb-4 p-1.5 rounded-full ${theme === 'dark' ? 'bg-gray-800/80' : 'bg-gray-200/80'} backdrop-blur-sm`}>
+        <div className="w-full mb-4">
           {(() => {
             const items = [
               { key: 'main', label: 'Основная' },
@@ -613,9 +614,9 @@ const SavingsSettingsModalContent = ({
             const w = `${100 / items.length}%`
 
             return (
-              <div className="flex gap-1 relative overflow-hidden rounded-full">
+              <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
                 <div
-                  className="absolute top-1.5 bottom-1.5 rounded-full"
+                  className="absolute top-1 bottom-1 rounded-3xl"
                   style={{
                     width: w,
                     transform: `translateX(${idx * 100}%)`,
@@ -628,9 +629,9 @@ const SavingsSettingsModalContent = ({
                     key={it.key}
                     type="button"
                     onClick={() => setSelectedSavingsGoal(it.key)}
-                    className="flex-1 py-2.5 rounded-full font-bold transition-all text-sm relative touch-none"
+                    className="flex-1 py-3 rounded-3xl font-semibold transition-all text-sm relative touch-none"
                     style={{
-                      color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280'),
+                      color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
                     }}
                   >
                     {it.label}
@@ -1779,7 +1780,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     height: overlayHeight,
   }
 
-  return (
+  const node = (
     <div
       className={`fixed left-0 right-0 bg-black/50 backdrop-blur-sm flex justify-center ${isTop ? 'items-start' : 'items-end'}`}
       style={{
@@ -1854,6 +1855,9 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       </div>
     </div>
   )
+
+  if (typeof document === 'undefined') return node
+  return createPortal(node, document.body)
 }
 
 const LinkedUserRow = ({ linkedUser, currentTelegramId, theme, vibrate, removeLinkedUser }) => {
@@ -4944,12 +4948,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "savings" && (
             <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               {/* Верхние вкладки: Копилка / Долги */}
-              <div className={`w-full mx-0 p-1.5 rounded-full ${
-                theme === "dark" ? "bg-gray-800/80" : "bg-gray-200/80"
-              } backdrop-blur-sm`}>
-                <div className="flex gap-1 relative overflow-hidden">
+              <div className="w-full mx-0">
+                <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
                   <div
-                    className="absolute top-1.5 bottom-1.5 rounded-full"
+                    className="absolute top-1 bottom-1 rounded-3xl"
                     style={{
                       width: '50%',
                       transform: `translateX(${savingsTab === 'debts' ? 100 : 0}%)`,
@@ -4962,8 +4964,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setSavingsTab('savings')
                       vibrateSelect()
                     }}
-                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none"
-                    style={{ color: savingsTab === 'savings' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
+                    className="flex-1 py-3 rounded-3xl font-semibold transition-all text-sm relative touch-none"
+                    style={{ color: savingsTab === 'savings' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
                   >
                     Копилка
                   </button>
@@ -4972,8 +4974,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setSavingsTab('debts')
                       vibrateSelect()
                     }}
-                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none"
-                    style={{ color: savingsTab === 'debts' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
+                    className="flex-1 py-3 rounded-3xl font-semibold transition-all text-sm relative touch-none"
+                    style={{ color: savingsTab === 'debts' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
                   >
                     Долги
                   </button>
