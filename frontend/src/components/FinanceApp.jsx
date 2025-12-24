@@ -1553,6 +1553,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [isDragging, setIsDragging] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
+  const OPEN_MS = 180
   const CLOSE_MS = 520
   const startY = useRef(0)
   const startX = useRef(0)
@@ -1797,7 +1798,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : `transform ${CLOSE_MS}ms cubic-bezier(0.22, 1, 0.36, 1), bottom ${CLOSE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`
+  const transitionMs = visible ? OPEN_MS : CLOSE_MS
+  const transition = isDragging ? 'none' : `transform ${transitionMs}ms cubic-bezier(0.22, 1, 0.36, 1), bottom ${transitionMs}ms cubic-bezier(0.22, 1, 0.36, 1)`
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = safeTopOffset
@@ -1811,7 +1813,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v))
   const dragFade = clamp01(dragY / 260)
-  const backdropAlpha = 0.36 * (1 - dragFade)
+  const backdropAlpha = (visible ? 0.36 : 0) * (1 - dragFade)
 
   const node = (
     <div
@@ -1821,8 +1823,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         overscrollBehavior: 'none',
         touchAction: 'none',
         backgroundColor: `rgba(0, 0, 0, ${backdropAlpha})`,
-        opacity: visible ? 1 : 0,
-        transition: `opacity ${CLOSE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+        transition: `background-color ${transitionMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
         pointerEvents: visible ? 'auto' : 'none',
       }}
       onMouseDown={(e) => {
