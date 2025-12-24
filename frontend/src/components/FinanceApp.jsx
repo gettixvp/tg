@@ -1553,7 +1553,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [isDragging, setIsDragging] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
-  const CLOSE_MS = 720
+  const CLOSE_MS = 520
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
@@ -1566,7 +1566,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   useEffect(() => {
     if (!open) {
       setVisible(false)
-      const t = setTimeout(() => setMounted(false), CLOSE_MS + 60)
+      const t = setTimeout(() => setMounted(false), 560)
       return () => clearTimeout(t)
     }
 
