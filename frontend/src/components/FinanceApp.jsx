@@ -174,6 +174,7 @@ const SavingsSettingsModalContent = ({
   user,
   selectedSavingsGoal,
   setSelectedSavingsGoal,
+  vibrateSelect,
   goalName,
   setGoalName,
   goalSavings,
@@ -628,7 +629,10 @@ const SavingsSettingsModalContent = ({
                   <button
                     key={it.key}
                     type="button"
-                    onClick={() => setSelectedSavingsGoal(it.key)}
+                    onClick={() => {
+                      setSelectedSavingsGoal(it.key)
+                      vibrateSelect && vibrateSelect()
+                    }}
                     className="flex-1 py-3 rounded-3xl font-semibold transition-all text-sm relative touch-none"
                     style={{
                       color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
@@ -1807,7 +1811,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v))
   const dragFade = clamp01(dragY / 260)
-  const backdropAlpha = 0.28 * (1 - dragFade)
+  const backdropAlpha = 0.36 * (1 - dragFade)
 
   const node = (
     <div
@@ -2139,9 +2143,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const haptic = tg && tg.HapticFeedback
-  const vibrate = () => haptic && haptic.impactOccurred && haptic.impactOccurred("light")
-  const vibrateSuccess = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("success")
-  const vibrateError = () => haptic && haptic.notificationOccurred && haptic.notificationOccurred("error")
+  const vibrate = () => {}
+  const vibrateSuccess = () => {}
+  const vibrateError = () => {}
   const vibrateSelect = () => haptic && haptic.selectionChanged && haptic.selectionChanged()
 
   const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
@@ -2157,7 +2161,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const openWalletMemberModal = (member) => {
     setSelectedWalletMember(member)
     setShowWalletMemberModal(true)
-    vibrateSelect()
   }
 
   const formatDateTime = (v) => {
@@ -3301,7 +3304,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const deleteTransaction = async (txId) => {
-    vibrate()
     const tx = transactions.find((t) => t.id === txId)
     if (!tx) return
 
@@ -3566,7 +3568,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const exportToPDF = async () => {
     try {
-      vibrateSelect()
       
       // Динамический импорт jsPDF
       const { jsPDF } = await import('jspdf')
@@ -3718,7 +3719,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const inviteUser = () => {
     try {
-      vibrateSelect()
       
       // Проверяем наличие Telegram ID
       if (!tgUserId) {
@@ -4130,7 +4130,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const handleForgotPassword = () => {
-    vibrateSelect()
     alert("🔜 Функция восстановления пароля будет доступна в следующем обновлении.\n\nПожалуйста, обратитесь к администратору или создайте новый аккаунт.")
   }
 
@@ -4199,7 +4198,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const toggleLike = (txId) => {
     const txKey = String(txId)
-    vibrate()
     setLikedTransactions((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(txKey)) {
@@ -4268,7 +4266,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const addComment = async (txId, commentText) => {
-    vibrate()
     const newComment = {
       id: Date.now(),
       author: displayName,
@@ -4300,7 +4297,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   }
 
   const deleteComment = async (txId, commentId) => {
-    vibrate()
     setTransactionComments((prev) => ({
       ...prev,
       [txId]: (prev[txId] || []).filter(c => c.id !== commentId),
@@ -4442,7 +4438,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <button
                       onClick={() => {
                         setShowAiModal(true)
-                        vibrateSelect()
                       }}
                       className="show-all-button"
                       title="ИИ-анализ"
@@ -4513,7 +4508,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   theme={theme}
                   onShowAll={() => {
                     setActiveTab("savings")
-                    vibrate()
                   }}
                   title={goalName || "Копилка"}
                   progress={Math.round(savingsPct) || 0}
@@ -4529,7 +4523,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     theme={theme}
                     onShowAll={() => {
                       setActiveTab("savings")
-                      vibrate()
                     }}
                     title={secondGoalName}
                     progress={Math.round(secondGoalPct) || 0}
@@ -4546,13 +4539,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     theme={theme}
                     onShowAll={() => {
                       setActiveTab("savings")
-                      vibrate()
                     }}
                     title={thirdGoalName}
                     progress={Math.round(thirdGoalPct) || 0}
                     icon={<PiggyBank className="w-4 h-4" />}
-                    color="green"
-                    className={secondGoalName && secondGoalAmount > 0 ? 'col-span-2' : ''}
+                    color="emerald"
                   >
                     {null}
                   </SavingsContainer>
@@ -5044,7 +5035,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         } else {
                           alert('Можно добавить максимум 3 копилки')
                         }
-                        vibrate()
                       }}
                       className="show-all-button"
                       title={!secondGoalName || secondGoalAmount <= 0 ? 'Добавить вторую цель' : !thirdGoalName || thirdGoalAmount <= 0 ? 'Добавить третью цель' : 'Максимум 3 копилки'}
@@ -5054,7 +5044,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <button
                       onClick={() => {
                         setShowSavingsSettingsModal(true)
-                        vibrate()
                       }}
                       className="show-all-button"
                     >
@@ -5150,7 +5139,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       onClick={() => {
                         setTransactionType("savings")
                         setShowAddModal(true)
-                        vibrate()
                       }}
                       className={`w-full max-w-[360px] flex items-center justify-center gap-2 px-5 py-3 rounded-[40px] font-semibold transition-all text-sm touch-none active:scale-95 ${
                         theme === "dark"
@@ -5960,7 +5948,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       {items.map((it) => (
                         <button
                           key={it.key}
-                          onClick={() => setSelectedSavingsGoal(it.key)}
+                          onClick={() => {
+                            setSelectedSavingsGoal(it.key)
+                            vibrateSelect && vibrateSelect()
+                          }}
                           className="flex-1 py-3 px-3 rounded-3xl text-sm font-semibold transition-all relative touch-none"
                           style={{
                             color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280'),
@@ -6570,6 +6561,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             user={user}
             selectedSavingsGoal={selectedSavingsGoal}
             setSelectedSavingsGoal={setSelectedSavingsGoal}
+            vibrateSelect={vibrateSelect}
             goalName={goalName}
             setGoalName={setGoalName}
             goalSavings={goalSavings}
@@ -7862,7 +7854,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       return (
                         <button
                           key={t}
-                          onClick={() => setTransactionType(t)}
+                          onClick={() => {
+                            setTransactionType(t)
+                            vibrateSelect()
+                          }}
                           className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
                           style={{
                             color: isActive ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
@@ -7956,7 +7951,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             {items.map((it) => (
                               <button
                                 key={it.key}
-                                onClick={() => setSelectedSavingsGoal(it.key)}
+                                onClick={() => {
+                                  setSelectedSavingsGoal(it.key)
+                                  vibrateSelect && vibrateSelect()
+                                }}
                                 className="flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all relative touch-none"
                                 style={{
                                   color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
