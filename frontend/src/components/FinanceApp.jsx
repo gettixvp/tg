@@ -1803,6 +1803,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [budgets, setBudgets] = useState({}) // { category: { limit: 500, period: 'month' } }
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [selectedBudgetCategory, setSelectedBudgetCategory] = useState('')
+  const [showBudgetPreviewModal, setShowBudgetPreviewModal] = useState(false)
+  const [budgetPreviewCategory, setBudgetPreviewCategory] = useState('')
   const [budgetLimitInput, setBudgetLimitInput] = useState('')
   const [budgetPeriod, setBudgetPeriod] = useState('month') // 'week', 'month', 'year'
   const [showBudgetKeyboard, setShowBudgetKeyboard] = useState(false)
@@ -3509,6 +3511,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
+  const deleteBudget = async (category) => {
+    if (!category) return
+    const next = { ...budgets }
+    delete next[category]
+    setBudgets(next)
+    await saveBudgetToServer(next)
+  }
+
   // Функция пересчета баланса на основе транзакций
   const recalculateBalance = async () => {
     if (!window.confirm('Пересчитать баланс на основе всех транзакций? Это исправит любые ошибки в балансе.')) return
@@ -4235,7 +4245,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               : status.isNearLimit
                               ? 'near-limit'
                               : 'normal'
-                          }`}
+                          } cursor-pointer active:scale-[0.99]`}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            blurAll()
+                            setBudgetPreviewCategory(category)
+                            setShowBudgetPreviewModal(true)
+                            vibrate()
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              blurAll()
+                              setBudgetPreviewCategory(category)
+                              setShowBudgetPreviewModal(true)
+                              vibrate()
+                            }
+                          }}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
@@ -4308,6 +4335,124 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     })}
                   </div>
                 </BudgetsContainer>
+              )}
+
+              {showBudgetPreviewModal && (
+                <BottomSheetModal
+                  key={`budget-preview-${budgetPreviewCategory || 'none'}`}
+                  open={showBudgetPreviewModal}
+                  onClose={() => {
+                    setShowBudgetPreviewModal(false)
+                    setBudgetPreviewCategory('')
+                  }}
+                  theme={theme}
+                  zIndex={56}
+                >
+                  {(() => {
+                    const category = budgetPreviewCategory
+                    const budget = budgets[category]
+                    const status = budgetStatuses[category]
+
+                    const startDate = budget?.createdAt ? new Date(budget.createdAt) : null
+                    const ops = transactions
+                      .filter((tx) => {
+                        if (tx.type !== 'expense') return false
+                        if (tx.category !== category) return false
+                        const txDate = new Date(tx.date || tx.created_at)
+                        if (startDate && txDate < startDate) return false
+                        return true
+                      })
+                      .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
+
+                    return (
+                      <div style={{ height: '75vh' }} className="flex flex-col">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                            {category || 'Бюджет'}
+                          </h3>
+
+                          <button
+                            onClick={async () => {
+                              if (!category) return
+                              const ok = window.confirm('Удалить этот бюджет?')
+                              if (!ok) return
+                              await deleteBudget(category)
+                              setShowBudgetPreviewModal(false)
+                              setBudgetPreviewCategory('')
+                              vibrateSuccess()
+                            }}
+                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                              theme === 'dark' ? 'bg-red-600/20 hover:bg-red-600/30' : 'bg-red-50 hover:bg-red-100'
+                            }`}
+                            aria-label="Удалить бюджет"
+                            title="Удалить бюджет"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+
+                        <div className={`p-3 rounded-[40px] border mb-3 ${theme === 'dark' ? 'bg-gray-700/30 border-gray-600' : 'bg-white border-gray-200'}`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Лимит</p>
+                              <p className={`text-base font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.limit || budget?.limit || 0)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Потрачено</p>
+                              <p className={`text-base font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.spent || 0)}</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-2">
+                            <div className={`w-full h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                              <div
+                                className={`h-full transition-all duration-500 rounded-full ${
+                                  (status?.isOverBudget)
+                                    ? 'bg-gradient-to-r from-red-500 to-red-600'
+                                    : (status?.isNearLimit)
+                                      ? 'bg-gradient-to-r from-orange-400 to-orange-500'
+                                      : 'bg-gradient-to-r from-green-400 to-green-500'
+                                }`}
+                                style={{ width: `${Math.min(status?.percentage || 0, 100)}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between items-center mt-1">
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Осталось</p>
+                              <p className={`text-xs font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>{formatCurrency(Math.abs(status?.remaining || 0))}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                          {ops.length === 0 ? (
+                            <div className="text-center py-8">
+                              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Пока нет операций по этому бюджету</p>
+                            </div>
+                          ) : (
+                            <div className={`${theme === "dark" ? "divide-white/10" : "divide-gray-200"} divide-y`}>
+                              {ops.map((tx) => (
+                                <TxRow
+                                  tx={{ ...tx, liked: likedTransactions.has(String(tx.id)), comments: transactionComments[tx.id] || [] }}
+                                  key={tx.id}
+                                  categoriesMeta={categoriesMeta}
+                                  formatCurrency={formatCurrency}
+                                  formatDate={formatDate}
+                                  theme={theme}
+                                  onDelete={deleteTransaction}
+                                  showCreator={(walletMembers?.length || 0) > 1}
+                                  onToggleLike={toggleLike}
+                                  onOpenDetails={openTransactionDetails}
+                                  tgUserId={tgUserId}
+                                  walletMembers={walletMembers}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </BottomSheetModal>
               )}
 
               {/* Последние операции в стиле pricing cards */}
