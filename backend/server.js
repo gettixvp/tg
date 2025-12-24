@@ -888,17 +888,21 @@ app.put("/api/user/:email", async (req, res) => {
   try {
     await pool.query(
       `UPDATE users
-       SET balance=$1, income=$2, expenses=$3, savings_usd=$4, goal_savings=$5,
+       SET balance = COALESCE($1, balance),
+           income = COALESCE($2, income),
+           expenses = COALESCE($3, expenses),
+           savings_usd = COALESCE($4, savings_usd),
+           goal_savings = COALESCE($5, goal_savings),
            balance_widget_title = COALESCE($6, balance_widget_title),
            balance_widget_emoji = COALESCE($7, balance_widget_emoji),
            balance_widget_gradient = COALESCE($8, balance_widget_gradient)
        WHERE email=$9`,
       [
-        balance || 0,
-        income || 0,
-        expenses || 0,
-        savings || 0,
-        goalSavings || 50000,
+        balance === undefined ? null : Number(balance || 0),
+        income === undefined ? null : Number(income || 0),
+        expenses === undefined ? null : Number(expenses || 0),
+        savings === undefined ? null : Number(savings || 0),
+        goalSavings === undefined ? null : Number(goalSavings || 50000),
         balanceWidgetTitle === undefined ? null : String(balanceWidgetTitle),
         balanceWidgetEmoji === undefined ? null : String(balanceWidgetEmoji),
         balanceWidgetGradient === undefined ? null : String(balanceWidgetGradient),

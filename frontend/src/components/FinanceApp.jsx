@@ -615,8 +615,7 @@ const SavingsSettingsModalContent = ({
                   style={{
                     top: 6,
                     bottom: 6,
-                    left: 6,
-                    width: `calc(${w} - 12px)`,
+                    width: w,
                     transform: `translateX(${idx * 100}%)`,
                     transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                     backgroundColor: '#000000',
@@ -1797,9 +1796,15 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         }
       }}
       onTouchMove={(e) => {
-        // Prevent background scrolling when user drags on backdrop
-        if (e.target === e.currentTarget) {
+        // Prevent background scrolling / iOS rubber-band when touch is outside the sheet
+        try {
+          const t = e.target
+          if (t && sheetRef.current && sheetRef.current.contains(t)) return
           e.preventDefault()
+        } catch (err) {
+          try {
+            e.preventDefault()
+          } catch (e2) {}
         }
       }}
       onClick={(e) => {
@@ -4403,12 +4408,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   default: theme === 'dark'
                     ? 'linear-gradient(180deg, rgba(17,24,39,1), rgba(17,24,39,1))'
                     : 'linear-gradient(180deg, rgba(249,250,251,1), rgba(249,250,251,1))',
-                  ocean: 'linear-gradient(135deg, rgba(59,130,246,1), rgba(34,211,238,1))',
-                  sunset: 'linear-gradient(135deg, rgba(249,115,22,1), rgba(236,72,153,1))',
-                  violet: 'linear-gradient(135deg, rgba(168,85,247,1), rgba(99,102,241,1))',
-                  emerald: 'linear-gradient(135deg, rgba(16,185,129,1), rgba(34,197,94,1))',
-                  graphite: 'linear-gradient(135deg, rgba(17,24,39,1), rgba(75,85,99,1))',
+                  sky: 'linear-gradient(180deg, rgba(219,234,254,1), rgba(240,249,255,1))',
+                  mint: 'linear-gradient(180deg, rgba(220,252,231,1), rgba(240,253,250,1))',
+                  sand: 'linear-gradient(180deg, rgba(254,243,199,1), rgba(255,251,235,1))',
+                  lilac: 'linear-gradient(180deg, rgba(243,232,255,1), rgba(238,242,255,1))',
+                  rose: 'linear-gradient(180deg, rgba(255,228,230,1), rgba(255,241,242,1))',
+                  dark: 'linear-gradient(180deg, rgba(17,24,39,1), rgba(55,65,81,1))',
                 }
+
+                const isDarkGradient = balanceWidgetGradient === 'dark' || (theme === 'dark' && balanceWidgetGradient === 'default')
+                const widgetText = isDarkGradient ? '#F9FAFB' : '#111827'
+                const widgetSubText = isDarkGradient ? 'rgba(249,250,251,0.85)' : 'rgba(17,24,39,0.70)'
 
                 const widgetBg = gradients[balanceWidgetGradient] || gradients.default
 
@@ -4428,8 +4438,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     console.warn('Failed to save balance widget settings', e)
                   }
                 }
-
-                const emojiPresets = ['💳', '💰', '🏦', '🧾', '📈', '💎', '🪙', '📊', '🧠', '⭐']
 
                 return (
                   <>
@@ -4499,7 +4507,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           >
                             <span className="text-[18px] leading-none">{balanceWidgetEmoji || '💳'}</span>
                           </div>
-                          <p className={`text-2xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                          <p className="text-2xl font-bold" style={{ color: widgetText }}>
                             {balanceVisible ? formatCurrency(balance) : "••••••"}
                           </p>
                         </div>
@@ -4508,10 +4516,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.06)' }}
                           >
                             <div className="flex items-center justify-center gap-1 mb-0.5">
-                              <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-100" : "text-emerald-800"}`} />
-                              <span className={`text-xs ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Доходы</span>
+                              <TrendingUp className="w-3 h-3" style={{ color: widgetSubText }} />
+                              <span className="text-xs" style={{ color: widgetSubText }}>Доходы</span>
                             </div>
-                            <p className={`text-base font-bold ${theme === "dark" ? "text-emerald-50" : "text-emerald-900"}`}>
+                            <p className="text-base font-bold" style={{ color: widgetText }}>
                               {balanceVisible ? formatCurrency(income) : "••••••"}
                             </p>
                           </div>
@@ -4520,10 +4528,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.06)' }}
                           >
                             <div className="flex items-center justify-center gap-1 mb-0.5">
-                              <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-100" : "text-rose-800"}`} />
-                              <span className={`text-xs ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Расходы</span>
+                              <TrendingDown className="w-3 h-3" style={{ color: widgetSubText }} />
+                              <span className="text-xs" style={{ color: widgetSubText }}>Расходы</span>
                             </div>
-                            <p className={`text-base font-bold ${theme === "dark" ? "text-rose-50" : "text-rose-900"}`}>
+                            <p className="text-base font-bold" style={{ color: widgetText }}>
                               {balanceVisible ? formatCurrency(expenses) : "••••••"}
                             </p>
                           </div>
@@ -4538,29 +4546,76 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         open={showBalanceWidgetSettingsModal}
                         onClose={() => setShowBalanceWidgetSettingsModal(false)}
                         theme={theme}
-                        zIndex={80}
+                        zIndex={120}
                       >
                         <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
                           Настройки общего баланса
                         </h3>
 
                         <div
-                          className={`p-4 rounded-[40px] border mb-4 overflow-hidden ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
+                          className={`styled-container ${theme}`}
                           style={{ backgroundImage: widgetBg }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}
-                              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                          <div
+                            className="container-header"
+                            style={{
+                              backdropFilter: 'none',
+                              WebkitBackdropFilter: 'none',
+                              background: 'transparent',
+                              borderBottomColor: theme === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)',
+                            }}
+                          >
+                            <h3
+                              className="container-title"
+                              style={{ minWidth: 0, color: widgetText }}
                             >
                               {balanceWidgetTitle || 'Общий баланс'}
-                            </div>
-                            <div className={`px-3 py-1.5 rounded-2xl font-bold ${theme === 'dark' ? 'bg-black/20 text-gray-100 border border-white/10' : 'bg-white/35 text-gray-900 border border-black/10'}`}>
-                              {balanceWidgetEmoji || '💳'}
+                            </h3>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <div
+                                className={`p-2 rounded-xl ${theme === 'dark' ? 'bg-black/20' : 'bg-white/35'}`}
+                                style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)' }}
+                              >
+                                <span className="text-[18px] leading-none">{balanceWidgetEmoji || '💳'}</span>
+                              </div>
                             </div>
                           </div>
-                          <div className="mt-2 text-lg font-bold tabular-nums" style={{ color: theme === 'dark' ? '#F9FAFB' : '#111827' }}>
-                            {balanceVisible ? formatCurrency(balance) : '••••••'}
+
+                          <div className="container-content">
+                            <div className="flex items-center gap-2.5 mb-3">
+                              <p className="text-2xl font-bold" style={{ color: widgetText }}>
+                                {balanceVisible ? formatCurrency(balance) : "••••••"}
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2.5">
+                              <div
+                                className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-black/15" : "bg-white/28"}`}
+                                style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.06)' }}
+                              >
+                                <div className="flex items-center justify-center gap-1 mb-0.5">
+                                  <TrendingUp className="w-3 h-3" style={{ color: widgetSubText }} />
+                                  <span className="text-xs" style={{ color: widgetSubText }}>Доходы</span>
+                                </div>
+                                <p className="text-base font-bold" style={{ color: widgetText }}>
+                                  {balanceVisible ? formatCurrency(income) : "••••••"}
+                                </p>
+                              </div>
+                              <div
+                                className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-black/15" : "bg-white/28"}`}
+                                style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.06)' }}
+                              >
+                                <div className="flex items-center justify-center gap-1 mb-0.5">
+                                  <TrendingDown className="w-3 h-3" style={{ color: widgetSubText }} />
+                                  <span className="text-xs" style={{ color: widgetSubText }}>Расходы</span>
+                                </div>
+                                <p className="text-base font-bold" style={{ color: widgetText }}>
+                                  {balanceVisible ? formatCurrency(expenses) : "••••••"}
+                                </p>
+                              </div>
+                            </div>
                           </div>
+
+                          <div className="glow-overlay" />
                         </div>
 
                         <div className="mb-3">
@@ -4584,57 +4639,42 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           <label className={`block text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                             Emoji
                           </label>
-                          <div className="grid grid-cols-5 gap-2">
-                            {emojiPresets.map((em) => (
-                              <button
-                                key={em}
-                                type="button"
-                                onClick={() => setBalanceWidgetEmoji(em)}
-                                className={`rounded-[18px] h-12 flex items-center justify-center transition-all touch-none active:scale-95 border ${
-                                  balanceWidgetEmoji === em
-                                    ? theme === 'dark'
-                                      ? 'bg-black/25 border-white/20'
-                                      : 'bg-black/10 border-black/20'
-                                    : theme === 'dark'
-                                      ? 'bg-gray-800/50 border-white/10'
-                                      : 'bg-white border-black/10'
-                                }`}
-                              >
-                                <span className="text-[20px] leading-none">{em}</span>
-                              </button>
-                            ))}
-                          </div>
+                          <input
+                            type="text"
+                            value={balanceWidgetEmoji}
+                            onChange={(e) => setBalanceWidgetEmoji(e.target.value)}
+                            className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
+                              theme === 'dark'
+                                ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
+                                : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                            }`}
+                            placeholder="Например: 💳"
+                            maxLength={4}
+                          />
                         </div>
 
                         <div className="mb-4">
                           <label className={`block text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Градиент
+                            Сменить тему оформления
                           </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {Object.keys(gradients).map((key) => (
-                              <button
-                                key={key}
-                                type="button"
-                                onClick={() => setBalanceWidgetGradient(key)}
-                                className={`rounded-[28px] p-3 border transition-all touch-none active:scale-95 ${
-                                  balanceWidgetGradient === key
-                                    ? theme === 'dark'
-                                      ? 'border-white/25'
-                                      : 'border-black/25'
-                                    : theme === 'dark'
-                                      ? 'border-white/10'
-                                      : 'border-black/10'
-                                }`}
-                                style={{ backgroundImage: gradients[key] }}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{key}</span>
-                                  {balanceWidgetGradient === key ? (
-                                    <span className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>✓</span>
-                                  ) : null}
-                                </div>
-                              </button>
-                            ))}
+                          <div className="flex items-center gap-2 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                            {Object.keys(gradients).map((key) => {
+                              const isActive = balanceWidgetGradient === key
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setBalanceWidgetGradient(key)}
+                                  className={`flex-shrink-0 w-12 h-12 rounded-full border transition-all touch-none active:scale-95 ${
+                                    isActive
+                                      ? theme === 'dark' ? 'border-white/40' : 'border-black/40'
+                                      : theme === 'dark' ? 'border-white/15' : 'border-black/15'
+                                  }`}
+                                  style={{ backgroundImage: gradients[key] }}
+                                  title={key}
+                                />
+                              )
+                            })}
                           </div>
                         </div>
 
@@ -4865,49 +4905,71 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowBudgetPreviewModal(false)
                     setBudgetPreviewCategory('')
                   }}
-                  theme={theme}
-                  zIndex={56}
-                >
-                  {(() => {
-                    const category = budgetPreviewCategory
-                    const budget = budgets[category]
-                    const status = budgetStatuses[category]
-                    const meta = categoriesMeta[category] || {}
 
-                    const hexToRgba = (hex, alpha) => {
-                      const h = String(hex || '').replace('#', '')
-                      if (h.length !== 6) return `rgba(100,116,139,${alpha})`
-                      const r = parseInt(h.slice(0, 2), 16)
-                      const g = parseInt(h.slice(2, 4), 16)
-                      const b = parseInt(h.slice(4, 6), 16)
-                      if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(100,116,139,${alpha})`
-                      return `rgba(${r},${g},${b},${alpha})`
-                    }
+    const hexToRgba = (hex, alpha) => {
+      const h = String(hex || '').replace('#', '')
+      if (h.length !== 6) return `rgba(100,116,139,${alpha})`
+      const r = parseInt(h.slice(0, 2), 16)
+      const g = parseInt(h.slice(2, 4), 16)
+      const b = parseInt(h.slice(4, 6), 16)
+      if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(100,116,139,${alpha})`
+      return `rgba(${r},${g},${b},${alpha})`
+    }
 
-                    const startDate = budget?.createdAt ? new Date(budget.createdAt) : null
-                    const ops = transactions
-                      .filter((tx) => {
-                        if (tx.type !== 'expense') return false
-                        if (tx.category !== category) return false
-                        const txDate = new Date(tx.date || tx.created_at)
-                        if (startDate && txDate < startDate) return false
-                        return true
-                      })
-                      .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
+    const startDate = budget?.createdAt ? new Date(budget.createdAt) : null
+    const ops = transactions
+      .filter((tx) => {
+        if (tx.type !== 'expense') return false
+        if (tx.category !== category) return false
+        const txDate = new Date(tx.date || tx.created_at)
+        if (startDate && txDate < startDate) return false
+        return true
+      })
+      .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
 
-                    return (
-                      <div style={{ height: '75vh' }} className="flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                            {category || 'Бюджет'}
-                          </h3>
+    return (
+      <div style={{ height: '75vh' }} className="flex flex-col">
+        <div className="container-header">
+          <h3
+            className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+            style={{ minWidth: 0 }}
+          >
+            {category}
+          </h3>
+          <button
+            onClick={async () => {
+              if (!category) return
+              const ok = window.confirm('Удалить этот бюджет?')
+              if (!ok) return
+              await deleteBudget(category)
+              setShowBudgetPreviewModal(false)
+              setBudgetPreviewCategory('')
+              vibrateSuccess()
+            }}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+              theme === 'dark' ? 'bg-red-600/20 hover:bg-red-600/30' : 'bg-red-50 hover:bg-red-100'
+            }`}
+            aria-label="Удалить бюджет"
+            title="Удалить бюджет"
+          >
+            <Trash2 className="w-4 h-4 text-red-600" />
+          </button>
+        </div>
 
-                          <button
-                            onClick={async () => {
-                              if (!category) return
-                              const ok = window.confirm('Удалить этот бюджет?')
-                              if (!ok) return
-                              await deleteBudget(category)
+        <div
+          className={`container-content p-4 rounded-[40px] border mb-3 overflow-hidden ${
+            theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'
+          }`}
+          style={{
+            backgroundImage: theme === 'dark'
+              ? `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.28)}, rgba(17,24,39,0.20))`
+              : `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.22)}, rgba(255,255,255,0.85))`,
+          }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Лимит</p>
+              <p className={`text-base font-bold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(status?.limit || budget?.limit || 0)}</p>
                               setShowBudgetPreviewModal(false)
                               setBudgetPreviewCategory('')
                               vibrateSuccess()
@@ -4963,20 +5025,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           </div>
                         </div>
 
-                        <div
-                          className="flex-1 overflow-y-auto overflow-x-hidden"
-                          style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', touchAction: 'pan-y' }}
-                          onTouchMove={(e) => {
-                            // If there's nothing to scroll, prevent iOS rubber-band which can move the background
-                            try {
-                              const el = e.currentTarget
-                              const canScroll = el && el.scrollHeight > el.clientHeight + 1
-                              if (!canScroll) {
-                                e.preventDefault()
-                              }
-                            } catch (err) {}
-                          }}
-                        >
+                        <div className="flex-1 overflow-x-hidden">
                           {ops.length === 0 ? (
                             <div className="text-center py-8">
                               <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Пока нет операций по этому бюджету</p>
