@@ -1704,7 +1704,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     const diffX = currentX - startX.current
 
     // Determine direction once
-    if (!isVerticalSwipe.current && (Math.abs(diff) > 6 || Math.abs(diffX) > 6)) {
+    if (!isVerticalSwipe.current && (Math.abs(diff) > 10 || Math.abs(diffX) > 10)) {
       isVerticalSwipe.current = Math.abs(diff) > Math.abs(diffX)
     }
 
@@ -1738,7 +1738,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     }
 
     // Only handle downward drag
-    if (diff > 0) {
+    // Add a small threshold to avoid accidental drags on simple taps
+    if (diff > 12) {
       e.preventDefault()
       setDragY(diff)
     }
@@ -4526,6 +4527,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       if (!status) return null
                       
                       const meta = categoriesMeta[category] || {}
+                      const hexToRgba = (hex, alpha) => {
+                        const h = String(hex || '').replace('#', '')
+                        if (h.length !== 6) return `rgba(100,116,139,${alpha})`
+                        const r = parseInt(h.slice(0, 2), 16)
+                        const g = parseInt(h.slice(2, 4), 16)
+                        const b = parseInt(h.slice(4, 6), 16)
+                        if ([r, g, b].some((v) => Number.isNaN(v))) return `rgba(100,116,139,${alpha})`
+                        return `rgba(${r},${g},${b},${alpha})`
+                      }
                       const periodText = budget.period === 'week' ? 'неделю' : budget.period === 'month' ? 'месяц' : 'год'
                       
                       return (
@@ -4540,6 +4550,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           } cursor-pointer active:scale-[0.99]`}
                           role="button"
                           tabIndex={0}
+                          style={{
+                            backgroundImage:
+                              theme === 'dark'
+                                ? `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.22)}, rgba(17,24,39,0.30))`
+                                : `linear-gradient(135deg, ${hexToRgba(meta.chartColor, 0.16)}, rgba(255,255,255,0.88))`,
+                            borderColor: theme === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
+                          }}
                           onClick={() => {
                             blurAll()
                             setBudgetPreviewCategory(category)
@@ -7483,22 +7500,28 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   Период
                 </label>
 
-                <div className="flex gap-2 mb-3">
-                  {[{ key: 'relative', label: 'Обычный' }, { key: 'custom', label: 'Точный' }].map((m) => (
-                    <button
-                      key={m.key}
-                      onClick={() => setBudgetPeriodMode(m.key)}
-                      className={`flex-1 py-2 rounded-xl font-medium transition text-sm touch-none active:scale-95 ${
-                        budgetPeriodMode === m.key
-                          ? "bg-blue-500 text-white"
-                          : theme === "dark"
-                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
+                <div className="mb-3">
+                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex`}>
+                    {[{ key: 'relative', label: 'Обычный' }, { key: 'custom', label: 'Точный' }].map((m) => {
+                      const isActive = budgetPeriodMode === m.key
+                      return (
+                        <button
+                          key={m.key}
+                          onClick={() => setBudgetPeriodMode(m.key)}
+                          className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                          style={{
+                            backgroundColor: isActive ? (theme === 'dark' ? 'rgba(17,24,39,0.95)' : 'white') : 'transparent',
+                            color: isActive ? (theme === 'dark' ? '#FFFFFF' : '#111827') : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
+                            boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
+                            border: isActive ? '1px solid #000000' : '1px solid transparent',
+                            transform: isActive ? 'scale(1)' : 'scale(0.98)',
+                          }}
+                        >
+                          {m.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
@@ -7557,6 +7580,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                           : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       }`}
+                      style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
                     />
                     <input
                       type="date"
@@ -7567,29 +7591,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
                           : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       }`}
+                      style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
                     />
                   </div>
                 </div>
               )}
 
               <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setSelectedBudgetCategory('')
-                    setBudgetLimitInput('')
-                    setBudgetPeriodMode('relative')
-                    setBudgetStartDay(1)
-                    setBudgetCustomStart('')
-                    setBudgetCustomEnd('')
-                  }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  Назад
-                </button>
                 <button
                   onClick={async () => {
                     const limit = Number(budgetLimitInput)
@@ -7633,7 +7641,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowBudgetModal(false)
                     vibrateSuccess()
                   }}
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
+                  className={`w-full py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
                     theme === "dark"
                       ? "bg-blue-700 hover:bg-blue-600 text-white"
                       : "bg-blue-500 hover:bg-blue-600 text-white"
