@@ -1553,6 +1553,8 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
   const sheetRef = useRef(null)
+  const closeTimeoutRef = useRef(null)
+  const closingRef = useRef(false)
 
   const hapticImpact = () => {}
 
@@ -1582,6 +1584,16 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       clearTimeout(r2)
     }
   }, [open])
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
+      closingRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!mounted) return
@@ -1683,7 +1695,20 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   }, [mounted])
 
   const requestClose = () => {
-    onClose && onClose()
+    if (closingRef.current) return
+    closingRef.current = true
+    setIsDragging(false)
+    setDragY(0)
+    setVisible(false)
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current)
+      closeTimeoutRef.current = null
+    }
+    closeTimeoutRef.current = setTimeout(() => {
+      closeTimeoutRef.current = null
+      closingRef.current = false
+      onClose && onClose()
+    }, 520)
   }
 
   const onTouchStart = (e) => {
