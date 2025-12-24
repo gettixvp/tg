@@ -475,7 +475,11 @@ const SavingsSettingsModalContent = ({
       const newSavings = (savings || 0) + diffInitial
       setSavings(newSavings)
 
-      await saveToServer(balance, income, expenses, newSavings)
+      await saveToServer(balance, income, expenses, newSavings, {
+        goalName: nm,
+        goalSavings: targetVal,
+        initialSavingsAmount: initialVal,
+      })
     } else if (isSecond) {
       const prevInitial = Number(secondGoalInitialAmount || 0)
       const diffInitial = initialVal - prevInitial
@@ -598,7 +602,7 @@ const SavingsSettingsModalContent = ({
       </div>
 
       {(isSecondAvailable || isThirdAvailable) && (
-        <div className={`mb-4 p-1.5 rounded-full ${theme === 'dark' ? 'bg-gray-800/80' : 'bg-gray-200/80'} backdrop-blur-sm`}>
+        <div className={`w-full mb-4 p-1.5 rounded-full ${theme === 'dark' ? 'bg-gray-800/80' : 'bg-gray-200/80'} backdrop-blur-sm`}>
           {(() => {
             const items = [
               { key: 'main', label: 'Основная' },
@@ -1781,7 +1785,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       style={{
         ...overlayStyle,
         overscrollBehavior: 'none',
-        touchAction: 'auto',
+        touchAction: 'none',
         opacity: visible ? 1 : 0,
         transition: 'opacity 520ms cubic-bezier(0.22, 1, 0.36, 1)',
         pointerEvents: visible ? 'auto' : 'none',
@@ -1807,7 +1811,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     >
       <div
         onWheel={(e) => {
-          e.preventDefault()
           e.stopPropagation()
         }}
         ref={sheetRef}
@@ -3117,9 +3120,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  async function saveToServer(newBalance, newIncome, newExpenses, newSavings) {
+  async function saveToServer(newBalance, newIncome, newExpenses, newSavings, next = {}) {
     if (user && user.email) {
       try {
+        const nextGoalSavings = next.goalSavings ?? goalSavings
+        const nextGoalName = next.goalName ?? goalName
+        const nextInitialSavingsAmount = next.initialSavingsAmount ?? initialSavingsAmount
+        const nextSecondGoalName = next.secondGoalName ?? secondGoalName
+        const nextSecondGoalAmount = next.secondGoalAmount ?? secondGoalAmount
+        const nextSecondGoalSavings = next.secondGoalSavings ?? secondGoalSavings
+        const nextSecondGoalInitialAmount = next.secondGoalInitialAmount ?? secondGoalInitialAmount
+        const nextThirdGoalName = next.thirdGoalName ?? thirdGoalName
+        const nextThirdGoalAmount = next.thirdGoalAmount ?? thirdGoalAmount
+        const nextThirdGoalSavings = next.thirdGoalSavings ?? thirdGoalSavings
+        const nextThirdGoalInitialAmount = next.thirdGoalInitialAmount ?? thirdGoalInitialAmount
+
         await fetch(`${API_BASE}/api/user/${user.email}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -3128,7 +3143,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             income: newIncome,
             expenses: newExpenses,
             savings: newSavings, // Savings in USD
-            goalSavings, // Also save goalSavings
+            goalSavings: nextGoalSavings, // Also save goalSavings
           }),
         })
         
@@ -3137,16 +3152,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            goalName,
-            initialSavingsAmount,
-            secondGoalName,
-            secondGoalAmount,
-            secondGoalSavings,
-            secondGoalInitialAmount,
-            thirdGoalName,
-            thirdGoalAmount,
-            thirdGoalSavings,
-            thirdGoalInitialAmount,
+            goalName: nextGoalName,
+            initialSavingsAmount: nextInitialSavingsAmount,
+            secondGoalName: nextSecondGoalName,
+            secondGoalAmount: nextSecondGoalAmount,
+            secondGoalSavings: nextSecondGoalSavings,
+            secondGoalInitialAmount: nextSecondGoalInitialAmount,
+            thirdGoalName: nextThirdGoalName,
+            thirdGoalAmount: nextThirdGoalAmount,
+            thirdGoalSavings: nextThirdGoalSavings,
+            thirdGoalInitialAmount: nextThirdGoalInitialAmount,
           }),
         })
       } catch (e) {
@@ -4687,7 +4702,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
 
                     return (
-                      <div style={{ height: '75vh' }} className="flex flex-col">
+                      <div className="flex flex-col" style={{ minHeight: 0 }}>
                         <div className="flex items-center justify-between mb-3">
                           <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                             {category || 'Бюджет'}
@@ -4929,7 +4944,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           {activeTab === "savings" && (
             <div className="space-y-4" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
               {/* Верхние вкладки: Копилка / Долги */}
-              <div className={`mx-4 p-1.5 rounded-full ${
+              <div className={`w-full mx-0 p-1.5 rounded-full ${
                 theme === "dark" ? "bg-gray-800/80" : "bg-gray-200/80"
               } backdrop-blur-sm`}>
                 <div className="flex gap-1 relative overflow-hidden">
@@ -5905,7 +5920,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   ]
                   const idx = Math.max(0, items.findIndex((i) => i.key === selectedSavingsGoal))
                   return (
-                    <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-100'} rounded-3xl p-1 flex relative overflow-hidden`}>
+                    <div className={`w-full ${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-100'} rounded-3xl p-1 flex relative overflow-hidden`}>
                       <div
                         className="absolute top-1 bottom-1 rounded-3xl"
                         style={{
@@ -6005,7 +6020,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     }
                   }
                   // Сохраняем на сервер
-                  await saveToServer(balance, income, expenses, savings)
+                  if (selectedSavingsGoal === 'main') {
+                    await saveToServer(balance, income, expenses, savings, { goalSavings: n })
+                  } else {
+                    await saveToServer(balance, income, expenses, savings, { secondGoalAmount: n })
+                  }
                   setShowGoalModal(false)
                 }}
                 className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
