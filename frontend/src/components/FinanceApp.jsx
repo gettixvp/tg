@@ -1782,7 +1782,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v))
   const dragFade = clamp01(dragY / 260)
-  const backdropAlpha = 0.22 * (1 - dragFade)
+  const backdropAlpha = 0.28 * (1 - dragFade)
 
   const node = (
     <div
@@ -4224,7 +4224,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const openTransactionDetails = async (tx) => {
     setSelectedTransaction(tx)
     setShowTransactionDetails(true)
-    vibrate()
     
     // Загрузка комментариев с сервера только если их еще нет в кэше
     if (user && user.email && !transactionComments[tx.id]) {
@@ -4544,7 +4543,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     setShowBudgetModal(true)
                     setSelectedBudgetCategory('')
                     setBudgetLimitInput('')
-                    vibrate()
                   }}
                 >
                   <div className="space-y-3">
@@ -4587,7 +4585,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             blurAll()
                             setBudgetPreviewCategory(category)
                             setShowBudgetPreviewModal(true)
-                            vibrate()
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -4595,7 +4592,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               blurAll()
                               setBudgetPreviewCategory(category)
                               setShowBudgetPreviewModal(true)
-                              vibrate()
                             }
                           }}
                         >
@@ -5757,7 +5753,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setShowBudgetModal(true)
                       setSelectedBudgetCategory('')
                       setBudgetLimitInput('')
-                      vibrate()
                     }}
                     className={`w-full flex items-center justify-between p-3 rounded-[40px] border transition-all active:scale-95 ${
                       theme === "dark"
@@ -8161,7 +8156,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               active={activeTab === "overview"}
               onClick={() => {
                 setActiveTab("overview")
-                vibrate()
               }}
               icon={<Wallet className="h-4 w-7" />}
               theme={theme}
@@ -8170,7 +8164,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               active={activeTab === "history"}
               onClick={() => {
                 setActiveTab("history")
-                vibrate()
               }}
               icon={<History className="h-5 w-5" />}
               theme={theme}
@@ -8178,7 +8171,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             <button
               onClick={() => {
                 setShowAddModal(true)
-                vibrate()
+                vibrateSelect()
               }}
               className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-110 active:scale-95 touch-none"
             >
@@ -8188,7 +8181,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               active={activeTab === "savings"}
               onClick={() => {
                 setActiveTab("savings")
-                vibrate()
               }}
               icon={<PiggyBank className="h-5 w-5" />}
               theme={theme}
@@ -8197,7 +8189,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               active={activeTab === "settings"}
               onClick={() => {
                 setActiveTab("settings")
-                vibrate()
               }}
               icon={<Settings className="h-5 w-5" />}
               theme={theme}
