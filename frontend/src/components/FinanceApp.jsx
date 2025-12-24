@@ -1553,6 +1553,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const [isDragging, setIsDragging] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
+  const CLOSE_MS = 720
   const startY = useRef(0)
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
@@ -1565,7 +1566,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   useEffect(() => {
     if (!open) {
       setVisible(false)
-      const t = setTimeout(() => setMounted(false), 560)
+      const t = setTimeout(() => setMounted(false), CLOSE_MS + 60)
       return () => clearTimeout(t)
     }
 
@@ -1702,7 +1703,6 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     if (closingRef.current) return
     closingRef.current = true
     setIsDragging(false)
-    setDragY(0)
     setVisible(false)
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current)
@@ -1712,7 +1712,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
       closeTimeoutRef.current = null
       closingRef.current = false
       onClose && onClose()
-    }, 520)
+    }, CLOSE_MS)
   }
 
   const onTouchStart = (e) => {
@@ -1797,7 +1797,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
 
   const isTop = position === 'top'
   const translate = visible ? `translateY(${dragY}px)` : 'translateY(100%)'
-  const transition = isDragging ? 'none' : 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1), bottom 520ms cubic-bezier(0.22, 1, 0.36, 1)'
+  const transition = isDragging ? 'none' : `transform ${CLOSE_MS}ms cubic-bezier(0.22, 1, 0.36, 1), bottom ${CLOSE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`
 
   const safeTopOffset = Math.max(0, Number(topOffset) || 0)
   const overlayTop = safeTopOffset
@@ -1822,7 +1822,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
         touchAction: 'none',
         backgroundColor: `rgba(0, 0, 0, ${backdropAlpha})`,
         opacity: visible ? 1 : 0,
-        transition: 'opacity 520ms cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: `opacity ${CLOSE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
         pointerEvents: visible ? 'auto' : 'none',
       }}
       onMouseDown={(e) => {
