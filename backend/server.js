@@ -881,16 +881,29 @@ app.post("/api/auth", async (req, res) => {
 // --- Обновить пользователя ---
 app.put("/api/user/:email", async (req, res) => {
   const { email } = req.params
-  const { balance, income, expenses, savings, goalSavings } = req.body
+  const { balance, income, expenses, savings, goalSavings, balanceWidgetTitle, balanceWidgetEmoji, balanceWidgetGradient } = req.body
 
   if (!email) return res.status(400).json({ error: "Email обязателен" })
 
   try {
     await pool.query(
       `UPDATE users
-       SET balance=$1, income=$2, expenses=$3, savings_usd=$4, goal_savings=$5
-       WHERE email=$6`,
-      [balance || 0, income || 0, expenses || 0, savings || 0, goalSavings || 50000, email],
+       SET balance=$1, income=$2, expenses=$3, savings_usd=$4, goal_savings=$5,
+           balance_widget_title = COALESCE($6, balance_widget_title),
+           balance_widget_emoji = COALESCE($7, balance_widget_emoji),
+           balance_widget_gradient = COALESCE($8, balance_widget_gradient)
+       WHERE email=$9`,
+      [
+        balance || 0,
+        income || 0,
+        expenses || 0,
+        savings || 0,
+        goalSavings || 50000,
+        balanceWidgetTitle === undefined ? null : String(balanceWidgetTitle),
+        balanceWidgetEmoji === undefined ? null : String(balanceWidgetEmoji),
+        balanceWidgetGradient === undefined ? null : String(balanceWidgetGradient),
+        email,
+      ],
     )
     res.json({ success: true })
   } catch (e) {
@@ -1283,6 +1296,9 @@ function convertUser(u) {
     third_goal_amount: Number(u.third_goal_amount || 0),
     third_goal_savings: Number(u.third_goal_savings || 0),
     third_goal_initial_amount: Number(u.third_goal_initial_amount || 0),
+    balance_widget_title: u.balance_widget_title || "Общий баланс",
+    balance_widget_emoji: u.balance_widget_emoji || "💳",
+    balance_widget_gradient: u.balance_widget_gradient || "default",
     budgets: u.budgets || {},
   }
 }

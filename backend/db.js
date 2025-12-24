@@ -161,6 +161,11 @@ async function initDB() {
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS third_goal_amount NUMERIC DEFAULT 0;`)
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS third_goal_savings NUMERIC DEFAULT 0;`)
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS third_goal_initial_amount NUMERIC DEFAULT 0;`)
+
+    // Настройки виджета "Общий баланс"
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_widget_title TEXT DEFAULT 'Общий баланс';`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_widget_emoji TEXT DEFAULT '💳';`)
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_widget_gradient TEXT DEFAULT 'default';`)
     
     // Добавляем колонку для бюджетов (JSON)
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS budgets JSONB DEFAULT '{}'::jsonb;`)

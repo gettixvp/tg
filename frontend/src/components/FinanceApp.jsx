@@ -611,9 +611,12 @@ const SavingsSettingsModalContent = ({
             return (
               <div className="flex gap-1 relative overflow-hidden rounded-full">
                 <div
-                  className="absolute top-1.5 bottom-1.5 rounded-full"
+                  className="absolute rounded-full"
                   style={{
-                    width: w,
+                    top: 6,
+                    bottom: 6,
+                    left: 6,
+                    width: `calc(${w} - 12px)`,
                     transform: `translateX(${idx * 100}%)`,
                     transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                     backgroundColor: '#000000',
@@ -624,7 +627,7 @@ const SavingsSettingsModalContent = ({
                     key={it.key}
                     type="button"
                     onClick={() => setSelectedSavingsGoal(it.key)}
-                    className="flex-1 py-2.5 rounded-full font-bold transition-all text-sm relative touch-none"
+                    className="flex-1 py-2.5 rounded-full font-bold transition-all text-sm relative touch-none flex items-center justify-center text-center"
                     style={{
                       color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280'),
                     }}
@@ -1548,6 +1551,7 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
   const startX = useRef(0)
   const isVerticalSwipe = useRef(false)
   const sheetRef = useRef(null)
+  const scrollTouchStartY = useRef(0)
 
   const hapticImpact = () => {}
 
@@ -1811,28 +1815,22 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           e.stopPropagation()
         }}
         ref={sheetRef}
-        className={`w-full max-w-none shadow-2xl overflow-hidden flex flex-col ${
-          theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
-        }`}
+        className={`w-full max-w-none shadow-2xl overflow-hidden flex flex-col ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'}`}
         style={{
           transform: translate,
           transition,
           bottom: isTop ? 0 : keyboardInset,
           maxHeight: Math.max(0, overlayHeight - 12),
           marginTop: isTop ? 12 : 0,
-          borderTopLeftRadius: isTop ? 40 : 40,
-          borderTopRightRadius: isTop ? 40 : 40,
+          borderTopLeftRadius: 40,
+          borderTopRightRadius: 40,
           borderBottomLeftRadius: isTop ? 24 : 0,
           borderBottomRightRadius: isTop ? 24 : 0,
           willChange: 'transform, bottom',
           touchAction: 'pan-y',
           overscrollBehavior: 'contain',
         }}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => {
-          e.stopPropagation()
-          onTouchStart(e)
-        }}
+        onTouchStart={(e) => { e.stopPropagation(); onTouchStart(e) }}
         onTouchMove={(e) => {
           onTouchMove(e)
         }}
@@ -1845,6 +1843,26 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
           data-bsm-scroll
           className="p-4 overflow-y-auto flex-1"
           style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y", overscrollBehavior: 'contain' }}
+          onTouchStart={(e) => {
+            try {
+              scrollTouchStartY.current = e.touches[0].clientY
+            } catch (err) {
+              scrollTouchStartY.current = 0
+            }
+          }}
+          onTouchMove={(e) => {
+            // Prevent iOS scroll chaining/rubber-band: when at top and pulling down, or at bottom and pushing up.
+            try {
+              const el = e.currentTarget
+              const y = e.touches[0].clientY
+              const dy = y - (scrollTouchStartY.current || y)
+              const atTop = el.scrollTop <= 0
+              const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+              if ((atTop && dy > 0) || (atBottom && dy < 0)) {
+                e.preventDefault()
+              }
+            } catch (err) {}
+          }}
         >
           {children}
         </div>
@@ -1952,6 +1970,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [initialSavingsAmount, setInitialSavingsAmount] = useState(0)
   const [initialSavingsInput, setInitialSavingsInput] = useState("0")
   const [balanceVisible, setBalanceVisible] = useState(true)
+  const [showBalanceWidgetSettingsModal, setShowBalanceWidgetSettingsModal] = useState(false)
+  const [balanceWidgetTitle, setBalanceWidgetTitle] = useState('Общий баланс')
+  const [balanceWidgetEmoji, setBalanceWidgetEmoji] = useState('💳')
+  const [balanceWidgetGradient, setBalanceWidgetGradient] = useState('default')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [fullscreenEnabled, setFullscreenEnabled] = useState(true)
   const [isReady, setIsReady] = useState(false)
@@ -2930,6 +2952,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (u.third_goal_amount !== undefined) setThirdGoalAmount(Number(u.third_goal_amount || 0))
     if (u.third_goal_savings !== undefined) setThirdGoalSavings(Number(u.third_goal_savings || 0))
     if (u.third_goal_initial_amount !== undefined) setThirdGoalInitialAmount(Number(u.third_goal_initial_amount || 0))
+
+    if (u.balance_widget_title) setBalanceWidgetTitle(String(u.balance_widget_title))
+    if (u.balance_widget_emoji) setBalanceWidgetEmoji(String(u.balance_widget_emoji))
+    if (u.balance_widget_gradient) setBalanceWidgetGradient(String(u.balance_widget_gradient))
     
     // Загрузка бюджетов
     if (u.budgets) {
@@ -4372,86 +4398,269 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         >
           {activeTab === "overview" && (
             <div className="space-y-3" style={{ paddingTop: isFullscreen ? '48px' : '16px' }}>
-              <div
-                className={`styled-container ${theme}`}
-              >
-                <div
-                  className="container-header"
-                  style={{
-                    backdropFilter: 'none',
-                    WebkitBackdropFilter: 'none',
-                    background: theme === 'dark' ? 'rgba(17,24,39,1)' : 'rgba(249,250,251,1)',
-                    borderBottomColor: theme === 'dark' ? 'rgba(55,65,81,1)' : 'rgba(229,231,235,1)',
-                  }}
-                >
-                  <h3
-                    className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
-                    style={{ minWidth: 0 }}
-                  >
-                    Общий баланс
-                  </h3>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => {
-                        setShowAiModal(true)
-                        vibrateSelect()
+              {(() => {
+                const gradients = {
+                  default: theme === 'dark'
+                    ? 'linear-gradient(180deg, rgba(17,24,39,1), rgba(17,24,39,1))'
+                    : 'linear-gradient(180deg, rgba(249,250,251,1), rgba(249,250,251,1))',
+                  ocean: 'linear-gradient(135deg, rgba(59,130,246,1), rgba(34,211,238,1))',
+                  sunset: 'linear-gradient(135deg, rgba(249,115,22,1), rgba(236,72,153,1))',
+                  violet: 'linear-gradient(135deg, rgba(168,85,247,1), rgba(99,102,241,1))',
+                  emerald: 'linear-gradient(135deg, rgba(16,185,129,1), rgba(34,197,94,1))',
+                  graphite: 'linear-gradient(135deg, rgba(17,24,39,1), rgba(75,85,99,1))',
+                }
+
+                const widgetBg = gradients[balanceWidgetGradient] || gradients.default
+
+                const saveBalanceWidgetToServer = async (next) => {
+                  try {
+                    if (!user || !user.email) return
+                    await fetch(`${API_BASE}/api/user/${user.email}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        balanceWidgetTitle: next.title,
+                        balanceWidgetEmoji: next.emoji,
+                        balanceWidgetGradient: next.gradient,
+                      }),
+                    })
+                  } catch (e) {
+                    console.warn('Failed to save balance widget settings', e)
+                  }
+                }
+
+                const emojiPresets = ['💳', '💰', '🏦', '🧾', '📈', '💎', '🪙', '📊', '🧠', '⭐']
+
+                return (
+                  <>
+                    <div
+                      className={`styled-container ${theme}`}
+                      style={{
+                        backgroundImage: widgetBg,
                       }}
-                      className="show-all-button"
-                      title="ИИ-анализ"
                     >
-                      <span className="flex items-center gap-1">
-                        <span className="text-[10px] font-bold">ИИ</span>
-                        <Sparkles className="w-4 h-4" />
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setBalanceVisible(!balanceVisible)}
-                      className="show-all-button"
-                      title={balanceVisible ? "Скрыть" : "Показать"}
-                    >
-                      {balanceVisible ? (
-                        <Eye className="w-4 h-4" />
-                      ) : (
-                        <EyeOff className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="container-content">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-blue-600/30" : "bg-blue-600/15"}`}>
-                      <CreditCard className={`w-5 h-5 ${theme === "dark" ? "text-blue-200" : "text-blue-700"}`} />
-                    </div>
-                    <p className={`text-2xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                      {balanceVisible ? formatCurrency(balance) : "••••••"}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-gray-800/60" : "bg-gray-50"}`}>
-                      <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-400" : "text-emerald-600"}`} />
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Доходы</span>
+                      <div
+                        className="container-header"
+                        style={{
+                          backdropFilter: 'none',
+                          WebkitBackdropFilter: 'none',
+                          background: 'transparent',
+                          borderBottomColor: theme === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)',
+                        }}
+                      >
+                        <h3
+                          className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                          style={{ minWidth: 0 }}
+                        >
+                          {balanceWidgetTitle || 'Общий баланс'}
+                        </h3>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => {
+                              setShowAiModal(true)
+                              vibrateSelect()
+                            }}
+                            className="show-all-button"
+                            title="ИИ-анализ"
+                          >
+                            <span className="flex items-center gap-1">
+                              <span className="text-[10px] font-bold">ИИ</span>
+                              <Sparkles className="w-4 h-4" />
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => setBalanceVisible(!balanceVisible)}
+                            className="show-all-button"
+                            title={balanceVisible ? "Скрыть" : "Показать"}
+                          >
+                            {balanceVisible ? (
+                              <Eye className="w-4 h-4" />
+                            ) : (
+                              <EyeOff className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowBalanceWidgetSettingsModal(true)
+                              vibrateSelect()
+                            }}
+                            className="show-all-button"
+                            title="Настройки"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <p className={`text-base font-bold ${theme === "dark" ? "text-emerald-300" : "text-emerald-700"}`}>
-                        {balanceVisible ? formatCurrency(income) : "••••••"}
-                      </p>
-                    </div>
 
-                    <div className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-gray-800/60" : "bg-gray-50"}`}>
-                      <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-400" : "text-rose-600"}`} />
-                        <span className={`text-xs ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Расходы</span>
+                      <div className="container-content">
+                        <div className="flex items-center gap-2.5 mb-3">
+                          <div className={`p-2 rounded-xl ${theme === "dark" ? "bg-black/20" : "bg-white/35"}`}
+                            style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)' }}
+                          >
+                            <span className="text-[18px] leading-none">{balanceWidgetEmoji || '💳'}</span>
+                          </div>
+                          <p className={`text-2xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                            {balanceVisible ? formatCurrency(balance) : "••••••"}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <div className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-black/15" : "bg-white/28"}`}
+                            style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.06)' }}
+                          >
+                            <div className="flex items-center justify-center gap-1 mb-0.5">
+                              <TrendingUp className={`w-3 h-3 ${theme === "dark" ? "text-emerald-100" : "text-emerald-800"}`} />
+                              <span className={`text-xs ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Доходы</span>
+                            </div>
+                            <p className={`text-base font-bold ${theme === "dark" ? "text-emerald-50" : "text-emerald-900"}`}>
+                              {balanceVisible ? formatCurrency(income) : "••••••"}
+                            </p>
+                          </div>
+
+                          <div className={`rounded-[40px] p-2.5 text-center ${theme === "dark" ? "bg-black/15" : "bg-white/28"}`}
+                            style={{ border: theme === 'dark' ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.06)' }}
+                          >
+                            <div className="flex items-center justify-center gap-1 mb-0.5">
+                              <TrendingDown className={`w-3 h-3 ${theme === "dark" ? "text-rose-100" : "text-rose-800"}`} />
+                              <span className={`text-xs ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>Расходы</span>
+                            </div>
+                            <p className={`text-base font-bold ${theme === "dark" ? "text-rose-50" : "text-rose-900"}`}>
+                              {balanceVisible ? formatCurrency(expenses) : "••••••"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <p className={`text-base font-bold ${theme === "dark" ? "text-rose-300" : "text-rose-700"}`}>
-                        {balanceVisible ? formatCurrency(expenses) : "••••••"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="glow-overlay" />
-              </div>
+                      <div className="glow-overlay" />
+                    </div>
+
+                    {showBalanceWidgetSettingsModal && (
+                      <BottomSheetModal
+                        open={showBalanceWidgetSettingsModal}
+                        onClose={() => setShowBalanceWidgetSettingsModal(false)}
+                        theme={theme}
+                        zIndex={80}
+                      >
+                        <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                          Настройки общего баланса
+                        </h3>
+
+                        <div
+                          className={`p-4 rounded-[40px] border mb-4 overflow-hidden ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
+                          style={{ backgroundImage: widgetBg }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}
+                              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                            >
+                              {balanceWidgetTitle || 'Общий баланс'}
+                            </div>
+                            <div className={`px-3 py-1.5 rounded-2xl font-bold ${theme === 'dark' ? 'bg-black/20 text-gray-100 border border-white/10' : 'bg-white/35 text-gray-900 border border-black/10'}`}>
+                              {balanceWidgetEmoji || '💳'}
+                            </div>
+                          </div>
+                          <div className="mt-2 text-lg font-bold tabular-nums" style={{ color: theme === 'dark' ? '#F9FAFB' : '#111827' }}>
+                            {balanceVisible ? formatCurrency(balance) : '••••••'}
+                          </div>
+                        </div>
+
+                        <div className="mb-3">
+                          <label className={`block text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Название
+                          </label>
+                          <input
+                            type="text"
+                            value={balanceWidgetTitle}
+                            onChange={(e) => setBalanceWidgetTitle(e.target.value)}
+                            className={`w-full p-3 border rounded-[40px] transition-all text-sm ${
+                              theme === 'dark'
+                                ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500'
+                                : 'bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                            }`}
+                            placeholder="Общий баланс"
+                          />
+                        </div>
+
+                        <div className="mb-4">
+                          <label className={`block text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Emoji
+                          </label>
+                          <div className="grid grid-cols-5 gap-2">
+                            {emojiPresets.map((em) => (
+                              <button
+                                key={em}
+                                type="button"
+                                onClick={() => setBalanceWidgetEmoji(em)}
+                                className={`rounded-[18px] h-12 flex items-center justify-center transition-all touch-none active:scale-95 border ${
+                                  balanceWidgetEmoji === em
+                                    ? theme === 'dark'
+                                      ? 'bg-black/25 border-white/20'
+                                      : 'bg-black/10 border-black/20'
+                                    : theme === 'dark'
+                                      ? 'bg-gray-800/50 border-white/10'
+                                      : 'bg-white border-black/10'
+                                }`}
+                              >
+                                <span className="text-[20px] leading-none">{em}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className={`block text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Градиент
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {Object.keys(gradients).map((key) => (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => setBalanceWidgetGradient(key)}
+                                className={`rounded-[28px] p-3 border transition-all touch-none active:scale-95 ${
+                                  balanceWidgetGradient === key
+                                    ? theme === 'dark'
+                                      ? 'border-white/25'
+                                      : 'border-black/25'
+                                    : theme === 'dark'
+                                      ? 'border-white/10'
+                                      : 'border-black/10'
+                                }`}
+                                style={{ backgroundImage: gradients[key] }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{key}</span>
+                                  {balanceWidgetGradient === key ? (
+                                    <span className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>✓</span>
+                                  ) : null}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            await saveBalanceWidgetToServer({
+                              title: balanceWidgetTitle,
+                              emoji: balanceWidgetEmoji,
+                              gradient: balanceWidgetGradient,
+                            })
+                            setShowBalanceWidgetSettingsModal(false)
+                            vibrateSuccess()
+                          }}
+                          className={`w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 ${
+                            theme === 'dark'
+                              ? 'bg-blue-700 hover:bg-blue-600 text-white'
+                              : 'bg-blue-500 hover:bg-blue-600 text-white'
+                          }`}
+                        >
+                          Сохранить
+                        </button>
+                      </BottomSheetModal>
+                    )}
+                  </>
+                )
+              })()}
 
               <div
                 className={
@@ -4939,7 +5148,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       width: '50%',
                       transform: `translateX(${savingsTab === 'debts' ? 100 : 0}%)`,
                       transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
-                      backgroundColor: '#000000',
+                      backgroundImage:
+                        savingsTab === 'debts'
+                          ? 'linear-gradient(90deg, rgba(249,115,22,1), rgba(239,68,68,1), rgba(236,72,153,1))'
+                          : 'linear-gradient(90deg, rgba(59,130,246,1), rgba(168,85,247,1), rgba(236,72,153,1))',
                     }}
                   />
                   <button
@@ -4947,7 +5159,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setSavingsTab('savings')
                       vibrateSelect()
                     }}
-                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none"
+                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none flex items-center justify-center text-center"
                     style={{ color: savingsTab === 'savings' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
                   >
                     Копилка
@@ -4957,7 +5169,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setSavingsTab('debts')
                       vibrateSelect()
                     }}
-                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none"
+                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none flex items-center justify-center text-center"
                     style={{ color: savingsTab === 'debts' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
                   >
                     Долги
@@ -7817,7 +8029,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         <button
                           key={t}
                           onClick={() => setTransactionType(t)}
-                          className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
+                          className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none flex items-center justify-center text-center"
                           style={{
                             color: isActive ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
                             border: '1px solid transparent',
@@ -7911,7 +8123,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               <button
                                 key={it.key}
                                 onClick={() => setSelectedSavingsGoal(it.key)}
-                                className="flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all relative touch-none"
+                                className="flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all relative touch-none flex items-center justify-center text-center"
                                 style={{
                                   color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
                                 }}
