@@ -599,50 +599,42 @@ const SavingsSettingsModalContent = ({
 
       {(isSecondAvailable || isThirdAvailable) && (
         <div className={`mb-4 p-1.5 rounded-full ${theme === 'dark' ? 'bg-gray-800/80' : 'bg-gray-200/80'} backdrop-blur-sm`}>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={() => setSelectedSavingsGoal('main')}
-              className={`flex-1 py-2.5 rounded-full font-bold transition-all text-sm touch-none active:scale-95 ${
-                selectedSavingsGoal === 'main'
-                  ? 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl'
-                  : theme === 'dark'
-                    ? 'text-gray-400 hover:text-gray-200'
-                    : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Основная
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedSavingsGoal('second')}
-              className={`flex-1 py-2.5 rounded-full font-bold transition-all text-sm touch-none active:scale-95 ${
-                selectedSavingsGoal === 'second'
-                  ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 text-white shadow-xl'
-                  : theme === 'dark'
-                    ? 'text-gray-400 hover:text-gray-200'
-                    : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Вторая
-            </button>
+          {(() => {
+            const items = [
+              { key: 'main', label: 'Основная' },
+              { key: 'second', label: 'Вторая' },
+            ]
+            if (isThirdAvailable) items.push({ key: 'third', label: 'Третья' })
+            const idx = Math.max(0, items.findIndex((i) => i.key === selectedSavingsGoal))
+            const w = `${100 / items.length}%`
 
-            {isThirdAvailable && (
-              <button
-                type="button"
-                onClick={() => setSelectedSavingsGoal('third')}
-                className={`flex-1 py-2.5 rounded-full font-bold transition-all text-sm touch-none active:scale-95 ${
-                  selectedSavingsGoal === 'third'
-                    ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-xl'
-                    : theme === 'dark'
-                      ? 'text-gray-400 hover:text-gray-200'
-                      : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Третья
-              </button>
-            )}
-          </div>
+            return (
+              <div className="flex gap-1 relative overflow-hidden rounded-full">
+                <div
+                  className="absolute top-1.5 bottom-1.5 rounded-full"
+                  style={{
+                    width: w,
+                    transform: `translateX(${idx * 100}%)`,
+                    transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    backgroundColor: '#000000',
+                  }}
+                />
+                {items.map((it) => (
+                  <button
+                    key={it.key}
+                    type="button"
+                    onClick={() => setSelectedSavingsGoal(it.key)}
+                    className="flex-1 py-2.5 rounded-full font-bold transition-all text-sm relative touch-none"
+                    style={{
+                      color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280'),
+                    }}
+                  >
+                    {it.label}
+                  </button>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -1703,6 +1695,13 @@ const BottomSheetModal = ({ open, onClose, children, theme, zIndex = 50, positio
     const diff = current - startY.current
     const currentX = e.touches[0].clientX
     const diffX = currentX - startX.current
+
+    // If user starts pulling down, prevent iOS rubber-band early even before direction lock
+    if (diff > 2 && Math.abs(diff) > Math.abs(diffX)) {
+      try {
+        e.preventDefault()
+      } catch (err) {}
+    }
 
     // Determine direction once
     if (!isVerticalSwipe.current && (Math.abs(diff) > 10 || Math.abs(diffX) > 10)) {
@@ -4755,7 +4754,20 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        <div
+                          className="flex-1 overflow-y-auto overflow-x-hidden"
+                          style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', touchAction: 'pan-y' }}
+                          onTouchMove={(e) => {
+                            // If there's nothing to scroll, prevent iOS rubber-band which can move the background
+                            try {
+                              const el = e.currentTarget
+                              const canScroll = el && el.scrollHeight > el.clientHeight + 1
+                              if (!canScroll) {
+                                e.preventDefault()
+                              }
+                            } catch (err) {}
+                          }}
+                        >
                           {ops.length === 0 ? (
                             <div className="text-center py-8">
                               <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Пока нет операций по этому бюджету</p>
@@ -4920,19 +4932,23 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               <div className={`mx-4 p-1.5 rounded-full ${
                 theme === "dark" ? "bg-gray-800/80" : "bg-gray-200/80"
               } backdrop-blur-sm`}>
-                <div className="flex gap-1">
+                <div className="flex gap-1 relative overflow-hidden">
+                  <div
+                    className="absolute top-1.5 bottom-1.5 rounded-full"
+                    style={{
+                      width: '50%',
+                      transform: `translateX(${savingsTab === 'debts' ? 100 : 0}%)`,
+                      transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      backgroundColor: '#000000',
+                    }}
+                  />
                   <button
                     onClick={() => {
                       setSavingsTab('savings')
                       vibrateSelect()
                     }}
-                    className={`flex-1 py-3 rounded-full font-bold transition-all text-sm ${
-                      savingsTab === 'savings'
-                        ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-xl scale-105"
-                        : theme === "dark"
-                          ? "text-gray-400 hover:text-gray-200"
-                          : "text-gray-600 hover:text-gray-900"
-                    }`}
+                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none"
+                    style={{ color: savingsTab === 'savings' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
                   >
                     Копилка
                   </button>
@@ -4941,13 +4957,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       setSavingsTab('debts')
                       vibrateSelect()
                     }}
-                    className={`flex-1 py-3 rounded-full font-bold transition-all text-sm ${
-                      savingsTab === 'debts'
-                        ? "bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white shadow-xl scale-105"
-                        : theme === "dark"
-                          ? "text-gray-400 hover:text-gray-200"
-                          : "text-gray-600 hover:text-gray-900"
-                    }`}
+                    className="flex-1 py-3 rounded-full font-bold transition-all text-sm relative touch-none"
+                    style={{ color: savingsTab === 'debts' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
                   >
                     Долги
                   </button>
@@ -5887,36 +5898,38 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 >
                   Выберите копилку
                 </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSelectedSavingsGoal('main')}
-                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
-                      selectedSavingsGoal === 'main'
-                        ? theme === "dark"
-                          ? "bg-blue-600 text-white"
-                          : "bg-blue-500 text-white"
-                        : theme === "dark"
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {goalName}
-                  </button>
-                  <button
-                    onClick={() => setSelectedSavingsGoal('second')}
-                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all touch-none ${
-                      selectedSavingsGoal === 'second'
-                        ? theme === "dark"
-                          ? "bg-purple-600 text-white"
-                          : "bg-purple-500 text-white"
-                        : theme === "dark"
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {secondGoalName}
-                  </button>
-                </div>
+                {(() => {
+                  const items = [
+                    { key: 'main', label: goalName || 'Основная' },
+                    { key: 'second', label: secondGoalName || 'Вторая' },
+                  ]
+                  const idx = Math.max(0, items.findIndex((i) => i.key === selectedSavingsGoal))
+                  return (
+                    <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-100'} rounded-3xl p-1 flex relative overflow-hidden`}>
+                      <div
+                        className="absolute top-1 bottom-1 rounded-3xl"
+                        style={{
+                          width: '50%',
+                          transform: `translateX(${idx * 100}%)`,
+                          transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                          backgroundColor: '#000000',
+                        }}
+                      />
+                      {items.map((it) => (
+                        <button
+                          key={it.key}
+                          onClick={() => setSelectedSavingsGoal(it.key)}
+                          className="flex-1 py-3 px-3 rounded-3xl text-sm font-semibold transition-all relative touch-none"
+                          style={{
+                            color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280'),
+                          }}
+                        >
+                          <span className="truncate block" style={{ overflowWrap: 'anywhere' }}>{it.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })()}
               </div>
             )}
             <div className="mb-3">
@@ -7108,12 +7121,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             }
 
             return (
-              <div className="flex flex-col" style={{ maxHeight: '80vh' }}>
-                <div className="px-1">
-                  <div className={`px-3 py-3 flex items-center justify-between border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`}>
-                    <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
-                      Детали операции
-                    </h1>
+              <div className="flex flex-col overflow-hidden" style={{ height: '75vh' }}>
+                <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div className="px-1">
+                    <div className={`px-3 py-3 flex items-center justify-between border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`}>
+                      <h1 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-2xl font-bold`} style={{ letterSpacing: '-0.5px' }}>
+                        Детали операции
+                      </h1>
 
                     <button
                       type="button"
@@ -7128,11 +7142,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     >
                       <Trash2 className={theme === 'dark' ? 'w-5 h-5 text-red-400' : 'w-5 h-5 text-red-600'} />
                     </button>
+                    </div>
                   </div>
-                </div>
 
-                <div className="px-1 py-4">
-                  <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-4 relative`}>
+                  <div className="px-1 py-4">
+                    <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-4 relative`}>
                     {isLiked && (
                       <div className="absolute top-3 right-3">
                         <Heart className="w-5 h-5 text-red-500 fill-red-500" />
@@ -7187,14 +7201,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         <p className={`text-xs font-semibold tabular-nums ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(tx.amount)}</p>
                       </div>
                     </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex-1 overflow-y-auto px-1 pb-2" style={{ WebkitOverflowScrolling: 'touch' }}>
-                  <div className="px-3 flex items-center justify-between mb-3">
-                    <h2 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-lg font-bold`}>Комментарии</h2>
-                    <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-sm`}>{comments.length}</span>
-                  </div>
+                  <div className="px-1 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    <div className="px-3 flex items-center justify-between mb-3">
+                      <h2 className={`${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'} text-lg font-bold`}>Комментарии</h2>
+                      <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} text-sm`}>{comments.length}</span>
+                    </div>
 
                   {comments.length === 0 ? (
                     <div className="text-center py-8">
@@ -7274,9 +7288,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       })}
                     </div>
                   )}
+                  </div>
                 </div>
 
-                <div className={`px-1 py-3 border-t ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`}>
+                <div className={`px-1 py-3 border-t ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`} style={{ position: 'sticky', bottom: 0 }}>
                   <div className="px-3 flex items-end gap-2">
                     <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} flex-1 rounded-3xl px-4 py-3 flex items-center`}>
                       <input
@@ -7426,14 +7441,14 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
           theme={theme}
           zIndex={55}
         >
-          <div style={{ height: '70vh' }} className="flex flex-col">
+          <div style={{ height: '70vh' }} className="flex flex-col overflow-x-hidden">
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
                 {selectedBudgetCategory ? 'Редактирование бюджета' : 'Бюджеты'}
               </h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', touchAction: 'pan-y' }}>
             {!selectedBudgetCategory ? (
               <div className="space-y-2">
               {Object.keys(categoriesMeta)
@@ -7577,7 +7592,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       Обычный
                     </button>
                     <button
-                      onClick={() => setBudgetPeriodMode('custom')}
+                      onClick={() => {
+                        setBudgetPeriodMode('custom')
+                        if (!budgetCustomStart || !budgetCustomEnd) {
+                          const today = new Date()
+                          const iso = today.toISOString().slice(0, 10)
+                          setBudgetCustomStart((p) => p || iso)
+                          setBudgetCustomEnd((p) => p || iso)
+                        }
+                      }}
                       className="flex-1 py-3 rounded-3xl font-semibold text-sm transition-all relative touch-none"
                       style={{ color: budgetPeriodMode === 'custom' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
                     >
@@ -7864,53 +7887,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 ) : (
                   (secondGoalName && secondGoalAmount > 0) && (
                     <div className="mb-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setSelectedSavingsGoal('main')}
-                          className={`flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all touch-none ${
-                            selectedSavingsGoal === 'main'
-                              ? theme === 'dark'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-blue-500 text-white'
-                              : theme === 'dark'
-                                ? 'bg-gray-800/60 text-gray-200'
-                                : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {goalName}
-                        </button>
-                        <button
-                          onClick={() => setSelectedSavingsGoal('second')}
-                          className={`flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all touch-none ${
-                            selectedSavingsGoal === 'second'
-                              ? theme === 'dark'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-purple-500 text-white'
-                              : theme === 'dark'
-                                ? 'bg-gray-800/60 text-gray-200'
-                                : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {secondGoalName}
-                        </button>
+                      {(() => {
+                        const items = [
+                          { key: 'main', label: goalName || 'Основная' },
+                          { key: 'second', label: secondGoalName || 'Вторая' },
+                        ]
+                        if (thirdGoalName && thirdGoalAmount > 0) items.push({ key: 'third', label: thirdGoalName || 'Третья' })
+                        const idx = Math.max(0, items.findIndex((i) => i.key === selectedSavingsGoal))
+                        const w = `${100 / items.length}%`
 
-                        {thirdGoalName && thirdGoalAmount > 0 && (
-                          <button
-                            onClick={() => setSelectedSavingsGoal('third')}
-                            className={`flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all touch-none ${
-                              selectedSavingsGoal === 'third'
-                                ? theme === 'dark'
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-emerald-500 text-white'
-                                : theme === 'dark'
-                                  ? 'bg-gray-800/60 text-gray-200'
-                                  : 'bg-gray-100 text-gray-700'
-                            }`}
-                          >
-                            {thirdGoalName}
-                          </button>
-                        )}
-                      </div>
+                        return (
+                          <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
+                            <div
+                              className="absolute top-1 bottom-1 rounded-3xl"
+                              style={{
+                                width: w,
+                                transform: `translateX(${idx * 100}%)`,
+                                transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                backgroundColor: '#000000',
+                              }}
+                            />
+                            {items.map((it) => (
+                              <button
+                                key={it.key}
+                                onClick={() => setSelectedSavingsGoal(it.key)}
+                                className="flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all relative touch-none"
+                                style={{
+                                  color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
+                                }}
+                              >
+                                <span className="truncate block" style={{ overflowWrap: 'anywhere' }}>{it.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )
                 )}
