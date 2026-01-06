@@ -2090,6 +2090,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [subscriptionTitle, setSubscriptionTitle] = useState('')
   const [subscriptionAmount, setSubscriptionAmount] = useState('')
   const [subscriptionPayDay, setSubscriptionPayDay] = useState('')
+  const [subscriptionStartDate, setSubscriptionStartDate] = useState('')
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState('')
   const [showSubscriptionPayModal, setShowSubscriptionPayModal] = useState(false)
   const [selectedSubscriptionForPay, setSelectedSubscriptionForPay] = useState(null)
   const [subscriptionPayAmount, setSubscriptionPayAmount] = useState('')
@@ -2924,6 +2926,56 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const subscriptionsDueCount = subscriptionsDue.length
 
+  const subscriptionPresets = useMemo(
+    () => [
+      { title: 'Яндекс Музыка', icon: '🎵', amount: '12.99' },
+      { title: 'Яндекс Плюс', icon: '⭐', amount: '9.99' },
+      { title: 'YouTube Premium', icon: '▶️', amount: '11.99' },
+      { title: 'Netflix', icon: '🎬', amount: '15.99' },
+      { title: 'Spotify', icon: '🟢', amount: '10.99' },
+      { title: 'Apple Music', icon: '🍎', amount: '10.99' },
+    ],
+    [],
+  )
+
+  const openAddSubscriptionModal = () => {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const end = new Date(start)
+    end.setMonth(end.getMonth() + 1)
+
+    const yyyy = (d) => String(d.getFullYear())
+    const mm = (d) => String(d.getMonth() + 1).padStart(2, '0')
+    const dd = (d) => String(d.getDate()).padStart(2, '0')
+
+    setSubscriptionTitle('')
+    setSubscriptionAmount('')
+    setSubscriptionPayDay(String(start.getDate()))
+    setSubscriptionStartDate(`${yyyy(start)}-${mm(start)}-${dd(start)}`)
+    setSubscriptionEndDate(`${yyyy(end)}-${mm(end)}-${dd(end)}`)
+    setShowAddSubscriptionModal(true)
+  }
+
+  const openAddSubscriptionWithPreset = (preset) => {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const end = new Date(start)
+    end.setMonth(end.getMonth() + 1)
+
+    const yyyy = (d) => String(d.getFullYear())
+    const mm = (d) => String(d.getMonth() + 1).padStart(2, '0')
+    const dd = (d) => String(d.getDate()).padStart(2, '0')
+
+    const icon = String(preset?.icon || '').trim()
+    const ttl = String(preset?.title || '').trim()
+    setSubscriptionTitle(icon ? `${icon} ${ttl}` : ttl)
+    setSubscriptionAmount(String(preset?.amount || ''))
+    setSubscriptionPayDay(String(start.getDate()))
+    setSubscriptionStartDate(`${yyyy(start)}-${mm(start)}-${dd(start)}`)
+    setSubscriptionEndDate(`${yyyy(end)}-${mm(end)}-${dd(end)}`)
+    setShowAddSubscriptionModal(true)
+  }
+
   const loadLinkedUsers = async (email) => {
     if (!email) return
     try {
@@ -3059,7 +3111,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
     }
 
-    if (isEmailAuth && u.email) {
+    if (u.email) {
       loadLinkedUsers(u.email)
       loadDebts(u.email)
       loadSubscriptions(u.email)
@@ -3491,7 +3543,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Функции для работы с долгами
   const loadDebts = async (email) => {
     try {
-      const res = await fetch(`${API_BASE}/api/user/${email}/debts`)
+      const res = await fetch(`${API_URL}/api/user/${email}/debts`)
       const data = await res.json()
       if (data.debts) {
         setDebts(data.debts)
@@ -3503,7 +3555,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const loadSubscriptions = async (email) => {
     try {
-      const res = await fetch(`${API_BASE}/api/user/${email}/subscriptions`)
+      const res = await fetch(`${API_URL}/api/user/${email}/subscriptions`)
       const data = await res.json().catch(() => ({}))
       setSubscriptions(Array.isArray(data.subscriptions) ? data.subscriptions : [])
     } catch (e) {
@@ -3516,6 +3568,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const title = String(subscriptionTitle || '').trim()
     const amount = Number(normalizeDecimalInput(subscriptionAmount))
     const day = Number.parseInt(String(subscriptionPayDay || '').trim(), 10)
+    const sd = String(subscriptionStartDate || '').trim()
+    const ed = String(subscriptionEndDate || '').trim()
+
+    if (sd && ed) {
+      const sdDate = new Date(sd)
+      const edDate = new Date(ed)
+      if (Number.isFinite(sdDate.getTime()) && Number.isFinite(edDate.getTime()) && edDate.getTime() < sdDate.getTime()) {
+        vibrateError()
+        alert('Дата окончания не может быть раньше даты начала')
+        return
+      }
+    }
 
     if (!title || !Number.isFinite(amount) || amount <= 0 || Number.isNaN(day) || day < 1 || day > 31) {
       vibrateError()
@@ -3530,10 +3594,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions`, {
+      const res = await fetch(`${API_URL}/api/user/${user.email}/subscriptions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, amount, pay_day: day }),
+        body: JSON.stringify({
+          title,
+          amount,
+          pay_day: day,
+          start_date: sd || null,
+          end_date: ed || null,
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Ошибка добавления')
@@ -3543,6 +3613,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         setSubscriptionTitle('')
         setSubscriptionAmount('')
         setSubscriptionPayDay('')
+        setSubscriptionStartDate('')
+        setSubscriptionEndDate('')
         vibrateSuccess()
       }
     } catch (e) {
@@ -3555,7 +3627,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const deleteSubscription = async (subId) => {
     if (!user || !user.email) return
     try {
-      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions/${subId}`, {
+      const res = await fetch(`${API_URL}/api/user/${user.email}/subscriptions/${subId}`, {
         method: 'DELETE',
       })
       const data = await res.json().catch(() => ({}))
@@ -3573,7 +3645,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!user || !user.email || !sub?.id) return
     setSubscriptionPaymentsLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions/${sub.id}/payments`)
+      const res = await fetch(`${API_URL}/api/user/${user.email}/subscriptions/${sub.id}/payments`)
       const data = await res.json().catch(() => ({}))
       setSubscriptionPayments(Array.isArray(data.payments) ? data.payments : [])
     } catch (e) {
@@ -3608,7 +3680,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions/${selectedSubscriptionForPay.id}/pay`, {
+      const res = await fetch(`${API_URL}/api/user/${user.email}/subscriptions/${selectedSubscriptionForPay.id}/pay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3672,7 +3744,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/user/${user.email}/debts`, {
+      const res = await fetch(`${API_URL}/api/user/${user.email}/debts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3703,7 +3775,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!user || !user.email) return
 
     try {
-      await fetch(`${API_BASE}/api/user/${user.email}/debts/${debtId}`, {
+      await fetch(`${API_URL}/api/user/${user.email}/debts/${debtId}`, {
         method: 'DELETE'
       })
       setDebts(debts.filter(d => d.id !== debtId))
@@ -3718,7 +3790,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (!user || !user.email || !debt?.id) return
     setDebtPaymentsLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/user/${user.email}/debts/${debt.id}/payments`)
+      const res = await fetch(`${API_URL}/api/user/${user.email}/debts/${debt.id}/payments`)
       const data = await res.json().catch(() => ({}))
       setDebtPayments(Array.isArray(data.payments) ? data.payments : [])
     } catch (e) {
@@ -3748,7 +3820,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/user/${user.email}/debts/${selectedDebtForPay.id}/pay`, {
+      const res = await fetch(`${API_URL}/api/user/${user.email}/debts/${selectedDebtForPay.id}/pay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -5691,7 +5763,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         onClick={() => {
-                          setShowAddSubscriptionModal(true)
+                          openAddSubscriptionModal()
                           vibrate()
                         }}
                         className="show-all-button"
@@ -5702,6 +5774,34 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
 
                   <div className="container-content">
+                    {subscriptionPresets.length > 0 && (
+                      <div className="mb-4">
+                        <div className="grid grid-cols-2 gap-2">
+                          {subscriptionPresets.map((p) => (
+                            <button
+                              key={p.title}
+                              onClick={() => {
+                                openAddSubscriptionWithPreset(p)
+                                vibrate()
+                              }}
+                              className={`rounded-[28px] p-3 border text-left transition-all active:scale-[0.99] ${
+                                theme === 'dark'
+                                  ? 'bg-gray-900/30 border-white/10 hover:bg-gray-900/40'
+                                  : 'bg-white border-gray-200 hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="text-xl">{p.icon}</div>
+                                <div className="min-w-0">
+                                  <div className={`text-sm font-semibold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{p.title}</div>
+                                  <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{p.amount}</div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {subscriptions.length === 0 ? (
                       <div className="text-center py-8">
                         <div className="text-6xl mb-4">🔔</div>
@@ -5717,6 +5817,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         {subscriptions.map((sub) => {
                           const day = Number(sub.pay_day || 1)
                           const amount = Number(sub.amount || 0)
+                          const startDate = sub.start_date ? new Date(sub.start_date) : null
+                          const endDate = sub.end_date ? new Date(sub.end_date) : null
                           const lastPaid = sub.last_paid_at ? new Date(sub.last_paid_at) : null
                           const now = new Date()
                           const isPaidThisMonth = lastPaid && lastPaid.getFullYear() === now.getFullYear() && lastPaid.getMonth() === now.getMonth()
@@ -5730,6 +5832,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                 <div className="min-w-0">
                                   <p className={`font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{sub.title}</p>
                                   <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>День оплаты: {day}</p>
+                                  {(startDate || endDate) && (
+                                    <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      {startDate ? `Начало: ${formatDate(sub.start_date)}` : 'Начало: —'}
+                                      {endDate ? ` • Конец: ${formatDate(sub.end_date)}` : ''}
+                                    </p>
+                                  )}
                                 </div>
                                 <div className="text-right">
                                   <p className={`text-lg font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(amount)}</p>
@@ -6587,6 +6695,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               value={subscriptionPayDay}
               onChange={(e) => setSubscriptionPayDay(e.target.value)}
               placeholder="День оплаты (1-31)"
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <input
+              type="date"
+              value={subscriptionStartDate}
+              onChange={(e) => setSubscriptionStartDate(e.target.value)}
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+            <input
+              type="date"
+              value={subscriptionEndDate}
+              onChange={(e) => setSubscriptionEndDate(e.target.value)}
               className={`w-full p-3 border rounded-xl transition-all text-sm ${
                 theme === "dark"
                   ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"

@@ -124,6 +124,8 @@ async function initDB() {
       title TEXT NOT NULL,
       amount NUMERIC(12, 2) NOT NULL,
       pay_day INTEGER NOT NULL,
+      start_date DATE,
+      end_date DATE,
       is_active BOOLEAN DEFAULT TRUE,
       last_paid_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW(),
@@ -133,6 +135,8 @@ async function initDB() {
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`)
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS last_paid_at TIMESTAMP;`)
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();`)
+    await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS start_date DATE;`)
+    await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date DATE;`)
 
     await pool.query(`CREATE TABLE IF NOT EXISTS subscription_payments (
       id BIGSERIAL PRIMARY KEY,

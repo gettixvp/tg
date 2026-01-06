@@ -1471,7 +1471,7 @@ app.get("/api/user/:email/subscriptions", async (req, res) => {
 
 app.post("/api/user/:email/subscriptions", async (req, res) => {
   const { email } = req.params
-  const { title, amount, pay_day } = req.body || {}
+  const { title, amount, pay_day, start_date, end_date } = req.body || {}
 
   const n = Number(amount)
   const day = Number(pay_day)
@@ -1479,12 +1479,21 @@ app.post("/api/user/:email/subscriptions", async (req, res) => {
     return res.status(400).json({ error: "Заполните корректно: название, сумма, день оплаты (1-31)" })
   }
 
+  const sd = start_date ? String(start_date) : null
+  const ed = end_date ? String(end_date) : null
+  if (sd && !/^\d{4}-\d{2}-\d{2}$/.test(sd)) {
+    return res.status(400).json({ error: "Некорректная дата начала (YYYY-MM-DD)" })
+  }
+  if (ed && !/^\d{4}-\d{2}-\d{2}$/.test(ed)) {
+    return res.status(400).json({ error: "Некорректная дата окончания (YYYY-MM-DD)" })
+  }
+
   try {
     const r = await pool.query(
-      `INSERT INTO subscriptions (user_email, title, amount, pay_day, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, TRUE, NOW(), NOW())
+      `INSERT INTO subscriptions (user_email, title, amount, pay_day, start_date, end_date, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5::date, $6::date, TRUE, NOW(), NOW())
        RETURNING *`,
-      [email, String(title).trim(), n, day],
+      [email, String(title).trim(), n, day, sd, ed],
     )
     res.json({ subscription: r.rows[0] })
   } catch (e) {
