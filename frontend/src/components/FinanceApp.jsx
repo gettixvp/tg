@@ -621,8 +621,8 @@ const SavingsSettingsModalContent = ({
                   className="absolute top-1 bottom-1 rounded-3xl"
                   style={{
                     width: w,
-                    transform: `translateX(${idx * 100}%)`,
-                    transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    left: `calc(${idx} * ${w})`,
+                    transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                     backgroundColor: '#000000',
                   }}
                 />
@@ -2095,7 +2095,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showSubscriptionPayModal, setShowSubscriptionPayModal] = useState(false)
   const [selectedSubscriptionForPay, setSelectedSubscriptionForPay] = useState(null)
   const [subscriptionPayAmount, setSubscriptionPayAmount] = useState('')
-  const [subscriptionPayAffectsBalance, setSubscriptionPayAffectsBalance] = useState(true)
   const [subscriptionPayMonth, setSubscriptionPayMonth] = useState(new Date().getMonth() + 1)
   const [subscriptionPayYear, setSubscriptionPayYear] = useState(new Date().getFullYear())
   const [subscriptionPayments, setSubscriptionPayments] = useState([])
@@ -2920,11 +2919,17 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const diffDays = Math.ceil((dueDate.getTime() - nowStart.getTime()) / (24 * 60 * 60 * 1000))
     const isSoon = diffDays >= 0 && diffDays <= 3
 
+    const lpY = Number(sub?.last_paid_year)
+    const lpM = Number(sub?.last_paid_month)
+    const hasYm = Number.isInteger(lpY) && lpY > 1900 && Number.isInteger(lpM) && lpM >= 1 && lpM <= 12
     const lastPaid = sub?.last_paid_at ? new Date(sub.last_paid_at) : null
-    const isPaidForThisDue =
-      lastPaid &&
-      lastPaid.getFullYear() === dueDate.getFullYear() &&
-      lastPaid.getMonth() === dueDate.getMonth()
+    const isPaidForThisDue = hasYm
+      ? (lpY === dueDate.getFullYear() && lpM === (dueDate.getMonth() + 1))
+      : (
+          lastPaid &&
+          lastPaid.getFullYear() === dueDate.getFullYear() &&
+          lastPaid.getMonth() === dueDate.getMonth()
+        )
 
     return {
       dueDate,
@@ -3617,7 +3622,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Ошибка добавления')
       if (data.subscription) {
-        setSubscriptions((prev) => [data.subscription, ...prev])
+        const created = data.subscription
+        setSubscriptions((prev) => [created, ...prev])
         setShowAddSubscriptionModal(false)
         setSubscriptionTitle('')
         setSubscriptionAmount('')
@@ -3626,47 +3632,47 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         setSubscriptionChargeNow(false)
         vibrateSuccess()
 
-        if (subscriptionChargeNow) {
-          const created = data.subscription
-          const info = getSubscriptionDueInfo(created)
-          if (info) {
-            try {
-              const payRes = await fetch(`${API_URL}/api/user/${user.email}/subscriptions/${created.id}/pay`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  amount: Number(created.amount || amount),
-                  affects_balance: true,
-                  paid_year: info.dueYear,
-                  paid_month: info.dueMonth,
-                  created_by_telegram_id: tgUserId || null,
-                  created_by_name: displayName || null,
-                }),
-              })
-              const payData = await payRes.json().catch(() => ({}))
-              if (payRes.ok) {
-                if (payData.subscription) {
-                  setSubscriptions((prev) => prev.map((s) => (String(s.id) === String(payData.subscription.id) ? payData.subscription : s)))
-                }
-
-                if (payData.transaction) {
-                  const tx = payData.transaction
-                  setTransactions((prev) => [tx, ...prev])
-                  const txAmount = Number(tx.amount || 0)
-                  let newBalance = Number(balance)
-                  let newExpenses = Number(expenses)
-                  if (tx.type === 'expense') {
-                    newExpenses += txAmount
-                    newBalance -= txAmount
-                    setExpenses(newExpenses)
-                    setBalance(newBalance)
-                  }
-                  await saveToServer(newBalance, income, newExpenses, savings)
-                }
+        // Если «списать сейчас» выключено — баланс не меняем, но считаем подписку оплаченой за текущий период.
+        // Если включено — создаём оплату с влиянием на баланс.
+        const info = getSubscriptionDueInfo(created)
+        if (info) {
+          try {
+            const payRes = await fetch(`${API_URL}/api/user/${user.email}/subscriptions/${created.id}/pay`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                amount: Number(created.amount || amount),
+                affects_balance: subscriptionChargeNow ? true : false,
+                paid_year: info.dueYear,
+                paid_month: info.dueMonth,
+                created_by_telegram_id: tgUserId || null,
+                created_by_name: displayName || null,
+              }),
+            })
+            const payData = await payRes.json().catch(() => ({}))
+            if (payRes.ok) {
+              if (payData.subscription) {
+                setSubscriptions((prev) => prev.map((s) => (String(s.id) === String(payData.subscription.id) ? payData.subscription : s)))
               }
-            } catch (e) {
-              console.warn('Failed to charge subscription on create', e)
+
+              if (payData.transaction) {
+                const tx = payData.transaction
+                setTransactions((prev) => [tx, ...prev])
+
+                const txAmount = Number(tx.amount || 0)
+                let newBalance = Number(balance)
+                let newExpenses = Number(expenses)
+                if (tx.type === 'expense') {
+                  newExpenses += txAmount
+                  newBalance -= txAmount
+                  setExpenses(newExpenses)
+                  setBalance(newBalance)
+                }
+                await saveToServer(newBalance, income, newExpenses, savings)
+              }
             }
+          } catch (e) {
+            console.warn('Failed to auto-pay subscription on create', e)
           }
         }
       }
@@ -3713,7 +3719,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const now = new Date()
     setSelectedSubscriptionForPay(sub)
     setSubscriptionPayAmount(String(sub?.amount ?? ''))
-    setSubscriptionPayAffectsBalance(true)
     const info = getSubscriptionDueInfo(sub)
     setSubscriptionPayMonth(Number(opts.month || (info ? info.dueMonth : now.getMonth() + 1)))
     setSubscriptionPayYear(Number(opts.year || (info ? info.dueYear : now.getFullYear())))
@@ -3744,7 +3749,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: n,
-          affects_balance: subscriptionPayAffectsBalance,
+          affects_balance: true,
           paid_year: y,
           paid_month: m,
           created_by_telegram_id: tgUserId || null,
@@ -5375,8 +5380,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     className="absolute top-1 bottom-1 rounded-3xl"
                     style={{
                       width: '33.3333%',
-                      transform: `translateX(${(savingsTab === 'debts' ? 1 : savingsTab === 'subscriptions' ? 2 : 0) * 100}%)`,
-                      transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      left: `calc(${(savingsTab === 'debts' ? 1 : savingsTab === 'subscriptions' ? 2 : 0)} * 33.3333%)`,
+                      transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                       backgroundColor: '#000000',
                     }}
                   />
@@ -5849,8 +5854,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           const amount = Number(sub.amount || 0)
                           const startDate = sub.start_date ? new Date(sub.start_date) : null
                           const endDate = sub.end_date ? new Date(sub.end_date) : null
-                          const lastPaid = sub.last_paid_at ? new Date(sub.last_paid_at) : null
-                          const now = new Date()
                           const dueInfo = getSubscriptionDueInfo(sub)
                           const isPaidForThisDue = Boolean(dueInfo?.isPaidForThisDue)
                           const diffDays = typeof dueInfo?.diffDays === 'number' ? dueInfo.diffDays : null
@@ -5862,8 +5865,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                 openSubscriptionPayModal(sub)
                                 vibrate()
                               }}
-                              className={`rounded-[40px] p-4 border cursor-pointer transition-all active:scale-[0.99] ${theme === 'dark' ? 'bg-gray-900/30 border-white/10 hover:bg-gray-900/40' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                              className={`rounded-[40px] p-4 border cursor-pointer transition-all active:scale-[0.99] relative ${theme === 'dark' ? 'bg-gray-900/30 border-white/10 hover:bg-gray-900/40' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
                             >
+                              <div
+                                className={`absolute right-4 top-1/2 -translate-y-1/2 text-[11px] px-2 py-1 rounded-full border ${
+                                  theme === 'dark' ? 'border-white/10 text-gray-300 bg-gray-900/30' : 'border-gray-200 text-gray-700 bg-white'
+                                }`}
+                              >
+                                {sub?.is_active === false ? 'Не активна' : 'Активна'}
+                              </div>
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <p className={`font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{sub.title}</p>
@@ -5901,7 +5911,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                                   style={isPaidForThisDue ? undefined : { backgroundColor: '#000000' }}
                                   disabled={isPaidForThisDue}
                                 >
-                                  {isPaidForThisDue ? 'Оплачено' : 'Открыть'}
+                                  {isPaidForThisDue ? 'Оплачено' : 'Оплатить'}
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -6843,19 +6853,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     }`}
                   />
                 </div>
-
-                <label className={`flex items-center justify-between gap-3 mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">Учитывать общий баланс</p>
-                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Если выключить — это просто отметка оплаты</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={subscriptionPayAffectsBalance}
-                    onChange={(e) => setSubscriptionPayAffectsBalance(e.target.checked)}
-                    className="w-5 h-5 rounded"
-                  />
-                </label>
 
                 <button
                   onClick={submitSubscriptionPayment}
@@ -8238,8 +8235,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className="absolute top-1 bottom-1 rounded-3xl"
                 style={{
                   width: '50%',
-                  transform: `translateX(${debtType === 'owed' ? 100 : 0}%)`,
-                  transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  left: debtType === 'owed' ? '50%' : '0%',
+                  transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                   backgroundColor: '#000000',
                 }}
               />
@@ -8469,8 +8466,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       className="absolute top-1 bottom-1 rounded-3xl"
                       style={{
                         width: '50%',
-                        transform: `translateX(${budgetPeriodMode === 'custom' ? 100 : 0}%)`,
-                        transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        left: budgetPeriodMode === 'custom' ? '50%' : '0%',
+                        transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                         backgroundColor: '#000000',
                       }}
                     />
@@ -8505,8 +8502,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       className="absolute top-1 bottom-1 rounded-3xl"
                       style={{
                         width: '33.3333%',
-                        transform: `translateX(${budgetPeriod === 'month' ? 100 : budgetPeriod === 'year' ? 200 : 0}%)`,
-                        transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        left: `calc(${budgetPeriod === 'month' ? 1 : budgetPeriod === 'year' ? 2 : 0} * 33.3333%)`,
+                        transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                         backgroundColor: '#000000',
                       }}
                     />
@@ -8695,8 +8692,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       className="absolute top-1 bottom-1 rounded-3xl"
                       style={{
                         width: '33.3333%',
-                        transform: `translateX(${txIndex * 100}%)`,
-                        transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        left: `calc(${txIndex} * 33.3333%)`,
+                        transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                         backgroundColor: '#000000',
                       }}
                     />
@@ -8778,48 +8775,45 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     </div>
                   </div>
                 ) : (
-                  (secondGoalName && secondGoalAmount > 0) && (
-                    <div className="mb-4">
-                      {(() => {
-                        const items = [
-                          { key: 'main', label: goalName || 'Основная' },
-                          { key: 'second', label: secondGoalName || 'Вторая' },
-                        ]
-                        if (thirdGoalName && thirdGoalAmount > 0) items.push({ key: 'third', label: thirdGoalName || 'Третья' })
-                        const idx = Math.max(0, items.findIndex((i) => i.key === selectedSavingsGoal))
-                        const w = `${100 / items.length}%`
+                  <div className="mb-4">
+                    {(() => {
+                      const items = [{ key: 'main', label: goalName || 'Основная' }]
+                      if (secondGoalName && secondGoalAmount > 0) items.push({ key: 'second', label: secondGoalName || 'Вторая' })
+                      if (thirdGoalName && thirdGoalAmount > 0) items.push({ key: 'third', label: thirdGoalName || 'Третья' })
+                      const idx = Math.max(0, items.findIndex((i) => i.key === selectedSavingsGoal))
+                      const w = `${100 / items.length}%`
 
-                        return (
-                          <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
-                            <div
-                              className="absolute top-1 bottom-1 rounded-3xl"
-                              style={{
-                                width: w,
-                                transform: `translateX(${idx * 100}%)`,
-                                transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                backgroundColor: '#000000',
+                      return (
+                        <div className={`${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-50'} rounded-3xl p-1 flex relative overflow-hidden`}>
+                          <div
+                            className="absolute top-1 bottom-1 rounded-3xl"
+                            style={{
+                              width: w,
+                              left: `calc(${idx} * ${w})`,
+                              transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                              backgroundColor: '#000000',
+                            }}
+                          />
+                          {items.map((it) => (
+                            <button
+                              key={it.key}
+                              type="button"
+                              onClick={() => {
+                                setSelectedSavingsGoal(it.key)
+                                vibrateSelect()
                               }}
-                            />
-                            {items.map((it) => (
-                              <button
-                                key={it.key}
-                                onClick={() => {
-                                  setSelectedSavingsGoal(it.key)
-                                  vibrateSelect && vibrateSelect()
-                                }}
-                                className="flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all relative touch-none"
-                                style={{
-                                  color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
-                                }}
-                              >
-                                <span className="truncate block" style={{ overflowWrap: 'anywhere' }}>{it.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  )
+                              className="flex-1 py-3 px-4 rounded-3xl text-sm font-semibold transition-all relative touch-none"
+                              style={{
+                                color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93'),
+                              }}
+                            >
+                              <span className="truncate block" style={{ overflowWrap: 'anywhere' }}>{it.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </div>
                 )}
 
                 <div className="mb-6">

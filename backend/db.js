@@ -128,12 +128,16 @@ async function initDB() {
       end_date DATE,
       is_active BOOLEAN DEFAULT TRUE,
       last_paid_at TIMESTAMP,
+      last_paid_year INTEGER,
+      last_paid_month INTEGER,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     );`)
 
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`)
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS last_paid_at TIMESTAMP;`)
+    await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS last_paid_year INTEGER;`)
+    await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS last_paid_month INTEGER;`)
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();`)
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS start_date DATE;`)
     await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date DATE;`)

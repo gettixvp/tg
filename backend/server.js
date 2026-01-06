@@ -1565,8 +1565,11 @@ app.post("/api/user/:email/subscriptions/:subId/pay", async (req, res) => {
     )
 
     const updatedSubRes = await client.query(
-      `UPDATE subscriptions SET last_paid_at = NOW(), updated_at = NOW() WHERE id = $1::bigint AND user_email = $2 RETURNING *`,
-      [String(subId), email],
+      `UPDATE subscriptions
+       SET last_paid_at = NOW(), last_paid_year = $3, last_paid_month = $4, updated_at = NOW()
+       WHERE id = $1::bigint AND user_email = $2
+       RETURNING *`,
+      [String(subId), email, y, m],
     )
 
     let createdTransaction = null
