@@ -620,9 +620,10 @@ const SavingsSettingsModalContent = ({
                 <div
                   className="absolute top-1 bottom-1 rounded-3xl"
                   style={{
-                    width: w,
-                    left: `calc(${idx} * ${w})`,
-                    transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    width: `calc(100% / ${items.length})`,
+                    transform: `translate3d(${idx * 100}%, 0, 0)`,
+                    transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    willChange: 'transform',
                     backgroundColor: '#000000',
                   }}
                 />
@@ -2092,6 +2093,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [subscriptionStartDate, setSubscriptionStartDate] = useState('')
   const [subscriptionEndDate, setSubscriptionEndDate] = useState('')
   const [subscriptionChargeNow, setSubscriptionChargeNow] = useState(false)
+  const [subscriptionCreateAffectsBalance, setSubscriptionCreateAffectsBalance] = useState(true)
   const [showSubscriptionPayModal, setShowSubscriptionPayModal] = useState(false)
   const [selectedSubscriptionForPay, setSelectedSubscriptionForPay] = useState(null)
   const [subscriptionPayAmount, setSubscriptionPayAmount] = useState('')
@@ -2970,6 +2972,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setSubscriptionStartDate(`${yyyy(start)}-${mm(start)}-${dd(start)}`)
     setSubscriptionEndDate(`${yyyy(end)}-${mm(end)}-${dd(end)}`)
     setSubscriptionChargeNow(false)
+    setSubscriptionCreateAffectsBalance(true)
     setShowAddSubscriptionModal(true)
   }
 
@@ -3637,12 +3640,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         const info = getSubscriptionDueInfo(created)
         if (info) {
           try {
+            const affectsBalance = subscriptionChargeNow ? Boolean(subscriptionCreateAffectsBalance) : false
             const payRes = await fetch(`${API_URL}/api/user/${user.email}/subscriptions/${created.id}/pay`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 amount: Number(created.amount || amount),
-                affects_balance: subscriptionChargeNow ? true : false,
+                affects_balance: affectsBalance,
                 paid_year: info.dueYear,
                 paid_month: info.dueMonth,
                 created_by_telegram_id: tgUserId || null,
@@ -5379,9 +5383,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div
                     className="absolute top-1 bottom-1 rounded-3xl"
                     style={{
-                      width: '33.3333%',
-                      left: `calc(${(savingsTab === 'debts' ? 1 : savingsTab === 'subscriptions' ? 2 : 0)} * 33.3333%)`,
-                      transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      width: 'calc(100% / 3)',
+                      transform: `translate3d(${(savingsTab === 'debts' ? 1 : savingsTab === 'subscriptions' ? 2 : 0) * 100}%, 0, 0)`,
+                      transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      willChange: 'transform',
                       backgroundColor: '#000000',
                     }}
                   />
@@ -5868,8 +5873,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               className={`rounded-[40px] p-4 border cursor-pointer transition-all active:scale-[0.99] relative ${theme === 'dark' ? 'bg-gray-900/30 border-white/10 hover:bg-gray-900/40' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
                             >
                               <div
-                                className={`absolute right-4 top-1/2 -translate-y-1/2 text-[11px] px-2 py-1 rounded-full border ${
-                                  theme === 'dark' ? 'border-white/10 text-gray-300 bg-gray-900/30' : 'border-gray-200 text-gray-700 bg-white'
+                                className={`absolute right-4 top-1/2 -translate-y-1/2 text-[11px] px-2 py-1 rounded-full ${
+                                  sub?.is_active === false
+                                    ? (theme === 'dark' ? 'bg-red-500/90 text-white border border-red-400/60' : 'bg-red-500 text-white border border-red-500')
+                                    : (theme === 'dark' ? 'bg-green-500/90 text-white border border-green-400/60' : 'bg-green-500 text-white border border-green-500')
                                 }`}
                               >
                                 {sub?.is_active === false ? 'Не активна' : 'Активна'}
@@ -6754,6 +6761,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               className="w-5 h-5 rounded"
             />
           </label>
+
+          {subscriptionChargeNow && (
+            <label className={`flex items-center justify-between gap-3 mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Учитывать общий баланс</p>
+                <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Если выключить — подписка отметится как оплаченная, но баланс не изменится</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={subscriptionCreateAffectsBalance}
+                onChange={(e) => setSubscriptionCreateAffectsBalance(e.target.checked)}
+                className="w-5 h-5 rounded"
+              />
+            </label>
+          )}
 
           <div className="mb-3 grid grid-cols-2 gap-2">
             <input
@@ -8235,8 +8257,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                 className="absolute top-1 bottom-1 rounded-3xl"
                 style={{
                   width: '50%',
-                  left: debtType === 'owed' ? '50%' : '0%',
-                  transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  transform: `translate3d(${debtType === 'owed' ? 100 : 0}%, 0, 0)`,
+                  transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  willChange: 'transform',
                   backgroundColor: '#000000',
                 }}
               />
@@ -8466,8 +8489,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                       className="absolute top-1 bottom-1 rounded-3xl"
                       style={{
                         width: '50%',
-                        left: budgetPeriodMode === 'custom' ? '50%' : '0%',
-                        transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        transform: `translate3d(${budgetPeriodMode === 'custom' ? 100 : 0}%, 0, 0)`,
+                        transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        willChange: 'transform',
                         backgroundColor: '#000000',
                       }}
                     />
@@ -8501,9 +8525,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <div
                       className="absolute top-1 bottom-1 rounded-3xl"
                       style={{
-                        width: '33.3333%',
-                        left: `calc(${budgetPeriod === 'month' ? 1 : budgetPeriod === 'year' ? 2 : 0} * 33.3333%)`,
-                        transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        width: 'calc(100% / 3)',
+                        transform: `translate3d(${(budgetPeriod === 'month' ? 1 : budgetPeriod === 'year' ? 2 : 0) * 100}%, 0, 0)`,
+                        transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        willChange: 'transform',
                         backgroundColor: '#000000',
                       }}
                     />
@@ -8691,9 +8716,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     <div
                       className="absolute top-1 bottom-1 rounded-3xl"
                       style={{
-                        width: '33.3333%',
-                        left: `calc(${txIndex} * 33.3333%)`,
-                        transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        width: 'calc(100% / 3)',
+                        transform: `translate3d(${txIndex * 100}%, 0, 0)`,
+                        transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        willChange: 'transform',
                         backgroundColor: '#000000',
                       }}
                     />
@@ -8788,9 +8814,10 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           <div
                             className="absolute top-1 bottom-1 rounded-3xl"
                             style={{
-                              width: w,
-                              left: `calc(${idx} * ${w})`,
-                              transition: 'left 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                              width: `calc(100% / ${items.length})`,
+                              transform: `translate3d(${idx * 100}%, 0, 0)`,
+                              transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                              willChange: 'transform',
                               backgroundColor: '#000000',
                             }}
                           />
