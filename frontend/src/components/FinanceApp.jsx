@@ -2089,9 +2089,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [showAddSubscriptionModal, setShowAddSubscriptionModal] = useState(false)
   const [subscriptionTitle, setSubscriptionTitle] = useState('')
   const [subscriptionAmount, setSubscriptionAmount] = useState('')
-  const [subscriptionPayDay, setSubscriptionPayDay] = useState('')
   const [subscriptionStartDate, setSubscriptionStartDate] = useState('')
   const [subscriptionEndDate, setSubscriptionEndDate] = useState('')
+  const [subscriptionChargeNow, setSubscriptionChargeNow] = useState(false)
   const [showSubscriptionPayModal, setShowSubscriptionPayModal] = useState(false)
   const [selectedSubscriptionForPay, setSelectedSubscriptionForPay] = useState(null)
   const [subscriptionPayAmount, setSubscriptionPayAmount] = useState('')
@@ -2877,7 +2877,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     const now = new Date()
     const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    const payDay = Number.parseInt(String(sub?.pay_day ?? ''), 10)
+    const sdRaw = sub?.start_date ? String(sub.start_date) : ''
+    const edRaw = sub?.end_date ? String(sub.end_date) : ''
+    const sd = sdRaw ? new Date(sdRaw) : null
+    const ed = edRaw ? new Date(edRaw) : null
+
+    if (ed && Number.isFinite(ed.getTime())) {
+      const edStart = new Date(ed.getFullYear(), ed.getMonth(), ed.getDate())
+      if (edStart < nowStart) return null
+    }
+
+    let payDay = null
+    if (sd && Number.isFinite(sd.getTime())) {
+      payDay = sd.getDate()
+    } else {
+      const legacy = Number.parseInt(String(sub?.pay_day ?? ''), 10)
+      if (Number.isFinite(legacy) && !Number.isNaN(legacy)) payDay = legacy
+    }
+
     if (!Number.isFinite(payDay) || Number.isNaN(payDay) || payDay < 1 || payDay > 31) return null
 
     const daysInMonth = (y, m0) => new Date(y, m0 + 1, 0).getDate()
@@ -2889,6 +2906,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
 
     let dueDate = buildDueDate(nowStart.getFullYear(), nowStart.getMonth())
+    if (sd && Number.isFinite(sd.getTime())) {
+      const sdStart = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate())
+      if (sdStart > nowStart) {
+        dueDate = buildDueDate(sdStart.getFullYear(), sdStart.getMonth())
+      }
+    }
+
     if (dueDate < nowStart) {
       dueDate = buildDueDate(nowStart.getFullYear(), nowStart.getMonth() + 1)
     }
@@ -2926,18 +2950,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
   const subscriptionsDueCount = subscriptionsDue.length
 
-  const subscriptionPresets = useMemo(
-    () => [
-      { title: 'Яндекс Музыка', icon: '🎵', amount: '12.99' },
-      { title: 'Яндекс Плюс', icon: '⭐', amount: '9.99' },
-      { title: 'YouTube Premium', icon: '▶️', amount: '11.99' },
-      { title: 'Netflix', icon: '🎬', amount: '15.99' },
-      { title: 'Spotify', icon: '🟢', amount: '10.99' },
-      { title: 'Apple Music', icon: '🍎', amount: '10.99' },
-    ],
-    [],
-  )
-
   const openAddSubscriptionModal = () => {
     const now = new Date()
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -2950,29 +2962,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
     setSubscriptionTitle('')
     setSubscriptionAmount('')
-    setSubscriptionPayDay(String(start.getDate()))
     setSubscriptionStartDate(`${yyyy(start)}-${mm(start)}-${dd(start)}`)
     setSubscriptionEndDate(`${yyyy(end)}-${mm(end)}-${dd(end)}`)
-    setShowAddSubscriptionModal(true)
-  }
-
-  const openAddSubscriptionWithPreset = (preset) => {
-    const now = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const end = new Date(start)
-    end.setMonth(end.getMonth() + 1)
-
-    const yyyy = (d) => String(d.getFullYear())
-    const mm = (d) => String(d.getMonth() + 1).padStart(2, '0')
-    const dd = (d) => String(d.getDate()).padStart(2, '0')
-
-    const icon = String(preset?.icon || '').trim()
-    const ttl = String(preset?.title || '').trim()
-    setSubscriptionTitle(icon ? `${icon} ${ttl}` : ttl)
-    setSubscriptionAmount(String(preset?.amount || ''))
-    setSubscriptionPayDay(String(start.getDate()))
-    setSubscriptionStartDate(`${yyyy(start)}-${mm(start)}-${dd(start)}`)
-    setSubscriptionEndDate(`${yyyy(end)}-${mm(end)}-${dd(end)}`)
+    setSubscriptionChargeNow(false)
     setShowAddSubscriptionModal(true)
   }
 
@@ -3567,12 +3559,29 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const addSubscription = async () => {
     const title = String(subscriptionTitle || '').trim()
     const amount = Number(normalizeDecimalInput(subscriptionAmount))
-    const day = Number.parseInt(String(subscriptionPayDay || '').trim(), 10)
     const sd = String(subscriptionStartDate || '').trim()
     const ed = String(subscriptionEndDate || '').trim()
 
-    if (sd && ed) {
-      const sdDate = new Date(sd)
+    if (!sd || !/^\d{4}-\d{2}-\d{2}$/.test(sd)) {
+      vibrateError()
+      alert('Выберите корректную дату начала')
+      return
+    }
+
+    const sdDate = new Date(sd)
+    const day = Number(sdDate.getDate())
+    if (!Number.isInteger(day) || day < 1 || day > 31) {
+      vibrateError()
+      alert('Некорректная дата начала')
+      return
+    }
+
+    if (ed) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(ed)) {
+        vibrateError()
+        alert('Некорректная дата окончания')
+        return
+      }
       const edDate = new Date(ed)
       if (Number.isFinite(sdDate.getTime()) && Number.isFinite(edDate.getTime()) && edDate.getTime() < sdDate.getTime()) {
         vibrateError()
@@ -3581,9 +3590,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
     }
 
-    if (!title || !Number.isFinite(amount) || amount <= 0 || Number.isNaN(day) || day < 1 || day > 31) {
+    if (!title || !Number.isFinite(amount) || amount <= 0) {
       vibrateError()
-      alert('Заполните корректно: название, сумма, день оплаты (1-31)')
+      alert('Заполните корректно: название и сумма')
       return
     }
 
@@ -3612,10 +3621,54 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         setShowAddSubscriptionModal(false)
         setSubscriptionTitle('')
         setSubscriptionAmount('')
-        setSubscriptionPayDay('')
         setSubscriptionStartDate('')
         setSubscriptionEndDate('')
+        setSubscriptionChargeNow(false)
         vibrateSuccess()
+
+        if (subscriptionChargeNow) {
+          const created = data.subscription
+          const info = getSubscriptionDueInfo(created)
+          if (info) {
+            try {
+              const payRes = await fetch(`${API_URL}/api/user/${user.email}/subscriptions/${created.id}/pay`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  amount: Number(created.amount || amount),
+                  affects_balance: true,
+                  paid_year: info.dueYear,
+                  paid_month: info.dueMonth,
+                  created_by_telegram_id: tgUserId || null,
+                  created_by_name: displayName || null,
+                }),
+              })
+              const payData = await payRes.json().catch(() => ({}))
+              if (payRes.ok) {
+                if (payData.subscription) {
+                  setSubscriptions((prev) => prev.map((s) => (String(s.id) === String(payData.subscription.id) ? payData.subscription : s)))
+                }
+
+                if (payData.transaction) {
+                  const tx = payData.transaction
+                  setTransactions((prev) => [tx, ...prev])
+                  const txAmount = Number(tx.amount || 0)
+                  let newBalance = Number(balance)
+                  let newExpenses = Number(expenses)
+                  if (tx.type === 'expense') {
+                    newExpenses += txAmount
+                    newBalance -= txAmount
+                    setExpenses(newExpenses)
+                    setBalance(newBalance)
+                  }
+                  await saveToServer(newBalance, income, newExpenses, savings)
+                }
+              }
+            } catch (e) {
+              console.warn('Failed to charge subscription on create', e)
+            }
+          }
+        }
       }
     } catch (e) {
       console.error('Failed to add subscription', e)
@@ -3661,8 +3714,9 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     setSelectedSubscriptionForPay(sub)
     setSubscriptionPayAmount(String(sub?.amount ?? ''))
     setSubscriptionPayAffectsBalance(true)
-    setSubscriptionPayMonth(Number(opts.month || (now.getMonth() + 1)))
-    setSubscriptionPayYear(Number(opts.year || now.getFullYear()))
+    const info = getSubscriptionDueInfo(sub)
+    setSubscriptionPayMonth(Number(opts.month || (info ? info.dueMonth : now.getMonth() + 1)))
+    setSubscriptionPayYear(Number(opts.year || (info ? info.dueYear : now.getFullYear())))
     setShowSubscriptionPayModal(true)
     setSubscriptionPayments([])
     loadSubscriptionPayments(sub)
@@ -3671,8 +3725,13 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const submitSubscriptionPayment = async () => {
     if (!user || !user.email || !selectedSubscriptionForPay?.id) return
     const n = Number(normalizeDecimalInput(subscriptionPayAmount))
-    const m = Number.parseInt(String(subscriptionPayMonth || ''), 10)
-    const y = Number.parseInt(String(subscriptionPayYear || ''), 10)
+    const dueInfo = getSubscriptionDueInfo(selectedSubscriptionForPay)
+    const m = Number.parseInt(String(dueInfo ? dueInfo.dueMonth : subscriptionPayMonth || ''), 10)
+    const y = Number.parseInt(String(dueInfo ? dueInfo.dueYear : subscriptionPayYear || ''), 10)
+    if (dueInfo && dueInfo.isPaidForThisDue) {
+      vibrate()
+      return
+    }
     if (!Number.isFinite(n) || n <= 0 || Number.isNaN(m) || m < 1 || m > 12 || Number.isNaN(y) || y < 1970) {
       vibrateError()
       alert('Введите корректно сумму и период')
@@ -5625,11 +5684,11 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           className={`rounded-[40px] p-4 border ${
                             debt.type === 'owe'
                               ? theme === "dark"
-                                ? "bg-red-900/20 border-red-700/30"
-                                : "bg-red-50 border-red-200"
+                                ? "bg-gray-900/30 border-red-700/30"
+                                : "bg-white border-red-200"
                               : theme === "dark"
-                                ? "bg-green-900/20 border-green-700/30"
-                                : "bg-green-50 border-green-200"
+                                ? "bg-gray-900/30 border-green-700/30"
+                                : "bg-white border-green-200"
                           }`}
                         >
                           <div className="flex items-start justify-between mb-2">
@@ -5774,34 +5833,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
 
                   <div className="container-content">
-                    {subscriptionPresets.length > 0 && (
-                      <div className="mb-4">
-                        <div className="grid grid-cols-2 gap-2">
-                          {subscriptionPresets.map((p) => (
-                            <button
-                              key={p.title}
-                              onClick={() => {
-                                openAddSubscriptionWithPreset(p)
-                                vibrate()
-                              }}
-                              className={`rounded-[28px] p-3 border text-left transition-all active:scale-[0.99] ${
-                                theme === 'dark'
-                                  ? 'bg-gray-900/30 border-white/10 hover:bg-gray-900/40'
-                                  : 'bg-white border-gray-200 hover:bg-gray-50'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="text-xl">{p.icon}</div>
-                                <div className="min-w-0">
-                                  <div className={`text-sm font-semibold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{p.title}</div>
-                                  <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{p.amount}</div>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                     {subscriptions.length === 0 ? (
                       <div className="text-center py-8">
                         <div className="text-6xl mb-4">🔔</div>
@@ -5815,29 +5846,38 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     ) : (
                       <div className="space-y-3">
                         {subscriptions.map((sub) => {
-                          const day = Number(sub.pay_day || 1)
                           const amount = Number(sub.amount || 0)
                           const startDate = sub.start_date ? new Date(sub.start_date) : null
                           const endDate = sub.end_date ? new Date(sub.end_date) : null
                           const lastPaid = sub.last_paid_at ? new Date(sub.last_paid_at) : null
                           const now = new Date()
-                          const isPaidThisMonth = lastPaid && lastPaid.getFullYear() === now.getFullYear() && lastPaid.getMonth() === now.getMonth()
+                          const dueInfo = getSubscriptionDueInfo(sub)
+                          const isPaidForThisDue = Boolean(dueInfo?.isPaidForThisDue)
+                          const diffDays = typeof dueInfo?.diffDays === 'number' ? dueInfo.diffDays : null
 
                           return (
                             <div
                               key={sub.id}
-                              className={`rounded-[40px] p-4 border ${theme === 'dark' ? 'bg-gray-900/30 border-white/10' : 'bg-white border-gray-200'}`}
+                              onClick={() => {
+                                openSubscriptionPayModal(sub)
+                                vibrate()
+                              }}
+                              className={`rounded-[40px] p-4 border cursor-pointer transition-all active:scale-[0.99] ${theme === 'dark' ? 'bg-gray-900/30 border-white/10 hover:bg-gray-900/40' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <p className={`font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{sub.title}</p>
-                                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>День оплаты: {day}</p>
                                   {(startDate || endDate) && (
                                     <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                                       {startDate ? `Начало: ${formatDate(sub.start_date)}` : 'Начало: —'}
                                       {endDate ? ` • Конец: ${formatDate(sub.end_date)}` : ''}
                                     </p>
                                   )}
+                                  {isPaidForThisDue ? (
+                                    <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`}>Подписка оплачена</p>
+                                  ) : diffDays !== null && diffDays <= 3 ? (
+                                    <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>Осталось {diffDays} дн. до оплаты — оплатите</p>
+                                  ) : null}
                                 </div>
                                 <div className="text-right">
                                   <p className={`text-lg font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(amount)}</p>
@@ -5846,23 +5886,26 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                               <div className="flex gap-2 mt-3">
                                 <button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation()
                                     openSubscriptionPayModal(sub)
                                     vibrate()
                                   }}
                                   className={`flex-1 py-2 rounded-[40px] text-xs font-medium transition-all active:scale-95 ${
-                                    isPaidThisMonth
+                                    isPaidForThisDue
                                       ? theme === 'dark'
                                         ? 'bg-gray-700 text-gray-400'
                                         : 'bg-gray-200 text-gray-500'
                                       : 'text-white'
                                   }`}
-                                  style={isPaidThisMonth ? undefined : { backgroundColor: '#000000' }}
+                                  style={isPaidForThisDue ? undefined : { backgroundColor: '#000000' }}
+                                  disabled={isPaidForThisDue}
                                 >
-                                  {isPaidThisMonth ? 'Оплачено' : 'Оплатить'}
+                                  {isPaidForThisDue ? 'Оплачено' : 'Открыть'}
                                 </button>
                                 <button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation()
                                     if (window.confirm('Удалить эту подписку?')) {
                                       deleteSubscription(sub.id)
                                     }
@@ -6637,7 +6680,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                         </div>
                         <div className="text-right">
                           <div className={`text-sm font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Number(sub.amount || 0))}</div>
-                          <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Оплатить</div>
+                          <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Открыть</div>
                         </div>
                       </div>
                     </button>
@@ -6689,19 +6732,18 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             />
           </div>
 
-          <div className="mb-4">
+          <label className={`flex items-center justify-between gap-3 mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Списать сейчас с общего баланса</p>
+              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Если выключить — списание будет при следующей оплате</p>
+            </div>
             <input
-              type="number"
-              value={subscriptionPayDay}
-              onChange={(e) => setSubscriptionPayDay(e.target.value)}
-              placeholder="День оплаты (1-31)"
-              className={`w-full p-3 border rounded-xl transition-all text-sm ${
-                theme === "dark"
-                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              }`}
+              type="checkbox"
+              checked={subscriptionChargeNow}
+              onChange={(e) => setSubscriptionChargeNow(e.target.checked)}
+              className="w-5 h-5 rounded"
             />
-          </div>
+          </label>
 
           <div className="mb-3 grid grid-cols-2 gap-2">
             <input
@@ -6751,17 +6793,41 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
             const sub = selectedSubscriptionForPay
             if (!sub) return null
 
+            const info = getSubscriptionDueInfo(sub)
+            const isPaidForThisDue = Boolean(info?.isPaidForThisDue)
+            const diffDays = typeof info?.diffDays === 'number' ? info.diffDays : null
+
+            const statusText = isPaidForThisDue
+              ? 'Подписка оплачена'
+              : diffDays !== null && diffDays <= 3
+              ? `Осталось ${diffDays} дн. до оплаты — оплатите`
+              : null
+
+            const statusClass = isPaidForThisDue
+              ? theme === 'dark'
+                ? 'text-green-400'
+                : 'text-green-600'
+              : theme === 'dark'
+              ? 'text-red-400'
+              : 'text-red-600'
+
             return (
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-                    Оплата подписки
+                    Подписка
                   </h3>
                 </div>
 
                 <div className={`rounded-[32px] p-4 border mb-4 ${theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'}`}>
                   <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{sub.title}</p>
-                  <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>День оплаты: {Number(sub.pay_day || 1)}</p>
+                  {(sub.start_date || sub.end_date) && (
+                    <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {sub.start_date ? `Начало: ${formatDate(sub.start_date)}` : 'Начало: —'}
+                      {sub.end_date ? ` • Конец: ${formatDate(sub.end_date)}` : ''}
+                    </p>
+                  )}
+                  {statusText && <p className={`text-xs mt-2 ${statusClass}`}>{statusText}</p>}
                 </div>
 
                 <div className="mb-3">
@@ -6770,31 +6836,6 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     value={subscriptionPayAmount}
                     onChange={(e) => setSubscriptionPayAmount(e.target.value)}
                     placeholder="Сумма"
-                    className={`w-full p-3 border rounded-xl transition-all text-sm ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    }`}
-                  />
-                </div>
-
-                <div className="mb-3 grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    value={subscriptionPayMonth}
-                    onChange={(e) => setSubscriptionPayMonth(e.target.value)}
-                    placeholder="Месяц (1-12)"
-                    className={`w-full p-3 border rounded-xl transition-all text-sm ${
-                      theme === "dark"
-                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    }`}
-                  />
-                  <input
-                    type="number"
-                    value={subscriptionPayYear}
-                    onChange={(e) => setSubscriptionPayYear(e.target.value)}
-                    placeholder="Год"
                     className={`w-full p-3 border rounded-xl transition-all text-sm ${
                       theme === "dark"
                         ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
@@ -6818,8 +6859,15 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
 
                 <button
                   onClick={submitSubscriptionPayment}
-                  className="w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 text-white"
-                  style={{ backgroundColor: '#000000' }}
+                  disabled={isPaidForThisDue}
+                  className={`w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 ${
+                    isPaidForThisDue
+                      ? theme === 'dark'
+                        ? 'bg-gray-700 text-gray-400'
+                        : 'bg-gray-200 text-gray-500'
+                      : 'text-white'
+                  }`}
+                  style={isPaidForThisDue ? undefined : { backgroundColor: '#000000' }}
                 >
                   Оплатить
                 </button>
