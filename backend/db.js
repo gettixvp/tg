@@ -118,9 +118,40 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );`)
 
+    await pool.query(`CREATE TABLE IF NOT EXISTS subscriptions (
+      id BIGSERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      amount NUMERIC(12, 2) NOT NULL,
+      pay_day INTEGER NOT NULL,
+      is_active BOOLEAN DEFAULT TRUE,
+      last_paid_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );`)
+
+    await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`)
+    await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS last_paid_at TIMESTAMP;`)
+    await pool.query(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();`)
+
+    await pool.query(`CREATE TABLE IF NOT EXISTS subscription_payments (
+      id BIGSERIAL PRIMARY KEY,
+      subscription_id BIGINT NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+      user_email TEXT NOT NULL,
+      amount NUMERIC(12, 2) NOT NULL,
+      affects_balance BOOLEAN DEFAULT TRUE,
+      paid_year INTEGER NOT NULL,
+      paid_month INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );`)
+
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_debts_user_email ON debts(user_email);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_debt_payments_debt_id ON debt_payments(debt_id);`)
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_debt_payments_user_email ON debt_payments(user_email);`)
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subscriptions_user_email ON subscriptions(user_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subscription_payments_sub_id ON subscription_payments(subscription_id);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subscription_payments_user_email ON subscription_payments(user_email);`)
 
     await pool.query(`CREATE TABLE IF NOT EXISTS linked_telegram_users (
       id SERIAL PRIMARY KEY,

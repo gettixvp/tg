@@ -36,6 +36,7 @@ import {
   UserPlus,
   Users,
   Shield,
+  Bell,
 } from "lucide-react"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from "chart.js"
 import { Pie, Bar, Line } from "react-chartjs-2"
@@ -2070,8 +2071,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   // Вид диаграммы (круговая, столбчатая, линейная)
   const [chartView, setChartView] = useState('pie') // 'pie', 'bar', 'line'
   
-  // Вкладка копилки (Копилка / Долги)
-  const [savingsTab, setSavingsTab] = useState('savings') // 'savings', 'debts'
+  // Вкладка копилки (Копилка / Долги / Подписки)
+  const [savingsTab, setSavingsTab] = useState('savings') // 'savings', 'debts', 'subscriptions'
   
   // Система долгов
   const [debts, setDebts] = useState([]) // Список долгов
@@ -2083,6 +2084,21 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [debtPayAffectsBalance, setDebtPayAffectsBalance] = useState(true)
   const [debtPayments, setDebtPayments] = useState([])
   const [debtPaymentsLoading, setDebtPaymentsLoading] = useState(false)
+
+  const [subscriptions, setSubscriptions] = useState([])
+  const [showAddSubscriptionModal, setShowAddSubscriptionModal] = useState(false)
+  const [subscriptionTitle, setSubscriptionTitle] = useState('')
+  const [subscriptionAmount, setSubscriptionAmount] = useState('')
+  const [subscriptionPayDay, setSubscriptionPayDay] = useState('')
+  const [showSubscriptionPayModal, setShowSubscriptionPayModal] = useState(false)
+  const [selectedSubscriptionForPay, setSelectedSubscriptionForPay] = useState(null)
+  const [subscriptionPayAmount, setSubscriptionPayAmount] = useState('')
+  const [subscriptionPayAffectsBalance, setSubscriptionPayAffectsBalance] = useState(true)
+  const [subscriptionPayMonth, setSubscriptionPayMonth] = useState(new Date().getMonth() + 1)
+  const [subscriptionPayYear, setSubscriptionPayYear] = useState(new Date().getFullYear())
+  const [subscriptionPayments, setSubscriptionPayments] = useState([])
+  const [subscriptionPaymentsLoading, setSubscriptionPaymentsLoading] = useState(false)
+  const [showSubscriptionsDueModal, setShowSubscriptionsDueModal] = useState(false)
   
   // Раскрываемое меню системных настроек
   const [showSystemSettings, setShowSystemSettings] = useState(false)
@@ -2855,6 +2871,59 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
   }
 
+  const getSubscriptionDueInfo = (sub) => {
+    const now = new Date()
+    const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    const payDay = Number.parseInt(String(sub?.pay_day ?? ''), 10)
+    if (!Number.isFinite(payDay) || Number.isNaN(payDay) || payDay < 1 || payDay > 31) return null
+
+    const daysInMonth = (y, m0) => new Date(y, m0 + 1, 0).getDate()
+
+    const buildDueDate = (y, m0) => {
+      const dim = daysInMonth(y, m0)
+      const d = Math.min(Math.max(1, payDay), dim)
+      return new Date(y, m0, d)
+    }
+
+    let dueDate = buildDueDate(nowStart.getFullYear(), nowStart.getMonth())
+    if (dueDate < nowStart) {
+      dueDate = buildDueDate(nowStart.getFullYear(), nowStart.getMonth() + 1)
+    }
+
+    const diffDays = Math.ceil((dueDate.getTime() - nowStart.getTime()) / (24 * 60 * 60 * 1000))
+    const isSoon = diffDays >= 0 && diffDays <= 3
+
+    const lastPaid = sub?.last_paid_at ? new Date(sub.last_paid_at) : null
+    const isPaidForThisDue =
+      lastPaid &&
+      lastPaid.getFullYear() === dueDate.getFullYear() &&
+      lastPaid.getMonth() === dueDate.getMonth()
+
+    return {
+      dueDate,
+      diffDays,
+      isSoon,
+      isPaidForThisDue,
+      dueMonth: dueDate.getMonth() + 1,
+      dueYear: dueDate.getFullYear(),
+    }
+  }
+
+  const subscriptionsDue = (() => {
+    const list = []
+    for (const sub of subscriptions) {
+      const info = getSubscriptionDueInfo(sub)
+      if (!info) continue
+      if (info.isSoon && !info.isPaidForThisDue) {
+        list.push({ sub, info })
+      }
+    }
+    return list
+  })()
+
+  const subscriptionsDueCount = subscriptionsDue.length
+
   const loadLinkedUsers = async (email) => {
     if (!email) return
     try {
@@ -2922,6 +2991,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       await loadLikesForWallet(walletEmail)
       await loadLinkedUsers(walletEmail)
       await loadDebts(walletEmail)
+      await loadSubscriptions(walletEmail)
       return true
     } catch (e) {
       console.warn('Failed to load wallet view', e)
@@ -2992,6 +3062,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     if (isEmailAuth && u.email) {
       loadLinkedUsers(u.email)
       loadDebts(u.email)
+      loadSubscriptions(u.email)
     }
 
     // Restore wallet view if previously linked
@@ -3427,6 +3498,162 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
       }
     } catch (e) {
       console.error('Failed to load debts', e)
+    }
+  }
+
+  const loadSubscriptions = async (email) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${email}/subscriptions`)
+      const data = await res.json().catch(() => ({}))
+      setSubscriptions(Array.isArray(data.subscriptions) ? data.subscriptions : [])
+    } catch (e) {
+      console.error('Failed to load subscriptions', e)
+      setSubscriptions([])
+    }
+  }
+
+  const addSubscription = async () => {
+    const title = String(subscriptionTitle || '').trim()
+    const amount = Number(normalizeDecimalInput(subscriptionAmount))
+    const day = Number.parseInt(String(subscriptionPayDay || '').trim(), 10)
+
+    if (!title || !Number.isFinite(amount) || amount <= 0 || Number.isNaN(day) || day < 1 || day > 31) {
+      vibrateError()
+      alert('Заполните корректно: название, сумма, день оплаты (1-31)')
+      return
+    }
+
+    if (!user || !user.email) {
+      vibrateError()
+      alert('Необходимо войти в систему')
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, amount, pay_day: day }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Ошибка добавления')
+      if (data.subscription) {
+        setSubscriptions((prev) => [data.subscription, ...prev])
+        setShowAddSubscriptionModal(false)
+        setSubscriptionTitle('')
+        setSubscriptionAmount('')
+        setSubscriptionPayDay('')
+        vibrateSuccess()
+      }
+    } catch (e) {
+      console.error('Failed to add subscription', e)
+      vibrateError()
+      alert(e.message || 'Ошибка при добавлении подписки')
+    }
+  }
+
+  const deleteSubscription = async (subId) => {
+    if (!user || !user.email) return
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions/${subId}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Ошибка удаления')
+      setSubscriptions((prev) => prev.filter((s) => String(s.id) !== String(subId)))
+      vibrateSuccess()
+    } catch (e) {
+      console.error('Failed to delete subscription', e)
+      vibrateError()
+      alert(e.message || 'Ошибка при удалении подписки')
+    }
+  }
+
+  const loadSubscriptionPayments = async (sub) => {
+    if (!user || !user.email || !sub?.id) return
+    setSubscriptionPaymentsLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions/${sub.id}/payments`)
+      const data = await res.json().catch(() => ({}))
+      setSubscriptionPayments(Array.isArray(data.payments) ? data.payments : [])
+    } catch (e) {
+      console.error('Failed to load subscription payments', e)
+      setSubscriptionPayments([])
+    } finally {
+      setSubscriptionPaymentsLoading(false)
+    }
+  }
+
+  const openSubscriptionPayModal = (sub, opts = {}) => {
+    const now = new Date()
+    setSelectedSubscriptionForPay(sub)
+    setSubscriptionPayAmount(String(sub?.amount ?? ''))
+    setSubscriptionPayAffectsBalance(true)
+    setSubscriptionPayMonth(Number(opts.month || (now.getMonth() + 1)))
+    setSubscriptionPayYear(Number(opts.year || now.getFullYear()))
+    setShowSubscriptionPayModal(true)
+    setSubscriptionPayments([])
+    loadSubscriptionPayments(sub)
+  }
+
+  const submitSubscriptionPayment = async () => {
+    if (!user || !user.email || !selectedSubscriptionForPay?.id) return
+    const n = Number(normalizeDecimalInput(subscriptionPayAmount))
+    const m = Number.parseInt(String(subscriptionPayMonth || ''), 10)
+    const y = Number.parseInt(String(subscriptionPayYear || ''), 10)
+    if (!Number.isFinite(n) || n <= 0 || Number.isNaN(m) || m < 1 || m > 12 || Number.isNaN(y) || y < 1970) {
+      vibrateError()
+      alert('Введите корректно сумму и период')
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/subscriptions/${selectedSubscriptionForPay.id}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: n,
+          affects_balance: subscriptionPayAffectsBalance,
+          paid_year: y,
+          paid_month: m,
+          created_by_telegram_id: tgUserId || null,
+          created_by_name: displayName || null,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Ошибка оплаты')
+
+      if (data.subscription) {
+        setSubscriptions((prev) => prev.map((s) => (String(s.id) === String(data.subscription.id) ? data.subscription : s)))
+        setSelectedSubscriptionForPay(data.subscription)
+      }
+
+      if (data.payment) {
+        setSubscriptionPayments((prev) => [data.payment, ...prev])
+      }
+
+      if (data.transaction) {
+        const tx = data.transaction
+        setTransactions((prev) => [tx, ...prev])
+
+        const txAmount = Number(tx.amount || 0)
+        let newBalance = Number(balance)
+        let newExpenses = Number(expenses)
+        if (tx.type === 'expense') {
+          newExpenses += txAmount
+          newBalance -= txAmount
+          setExpenses(newExpenses)
+          setBalance(newBalance)
+        }
+        await saveToServer(newBalance, income, newExpenses, savings)
+      }
+
+      vibrateSuccess()
+    } catch (e) {
+      console.error('Failed to pay subscription', e)
+      vibrateError()
+      alert(e.message || 'Ошибка при оплате подписки')
     }
   }
 
@@ -4465,6 +4692,24 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => {
+                        setShowSubscriptionsDueModal(true)
+                        vibrateSelect()
+                      }}
+                      className="show-all-button relative"
+                      title={subscriptionsDueCount > 0 ? `Подписки к оплате: ${subscriptionsDueCount}` : 'Подписки'}
+                    >
+                      <Bell className="w-4 h-4" />
+                      {subscriptionsDueCount > 0 && (
+                        <span
+                          className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-[4px] rounded-full text-[10px] leading-[16px] font-bold text-white text-center"
+                          style={{ backgroundColor: '#FF3B30' }}
+                        >
+                          {subscriptionsDueCount > 99 ? '99+' : String(subscriptionsDueCount)}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
                         setShowAiModal(true)
                       }}
                       className="show-all-button"
@@ -4998,8 +5243,8 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   <div
                     className="absolute top-1 bottom-1 rounded-3xl"
                     style={{
-                      width: '50%',
-                      transform: `translateX(${savingsTab === 'debts' ? 100 : 0}%)`,
+                      width: '33.3333%',
+                      transform: `translateX(${(savingsTab === 'debts' ? 1 : savingsTab === 'subscriptions' ? 2 : 0) * 100}%)`,
                       transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                       backgroundColor: '#000000',
                     }}
@@ -5023,6 +5268,16 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                     style={{ color: savingsTab === 'debts' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
                   >
                     Долги
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSavingsTab('subscriptions')
+                      vibrateSelect()
+                    }}
+                    className="flex-1 py-3 rounded-3xl font-semibold transition-all text-sm relative touch-none"
+                    style={{ color: savingsTab === 'subscriptions' ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#8E8E93') }}
+                  >
+                    Подписки
                   </button>
                 </div>
               </div>
@@ -5411,6 +5666,115 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                   </div>
                   
                   {/* Эффект свечения */}
+                  <div className="glow-overlay" />
+                </div>
+              )}
+
+              {savingsTab === 'subscriptions' && (
+                <div
+                  className={`styled-container ${theme}`}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const x = ((e.clientX - rect.left) / rect.width) * 100
+                    const y = ((e.clientY - rect.top) / rect.height) * 100
+                    e.currentTarget.style.setProperty('--mouse-x', `${x}%`)
+                    e.currentTarget.style.setProperty('--mouse-y', `${y}%`)
+                  }}
+                >
+                  <div className="container-header">
+                    <h3
+                      className={`container-title ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}
+                      style={{ minWidth: 0 }}
+                    >
+                      Подписки
+                    </h3>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setShowAddSubscriptionModal(true)
+                          vibrate()
+                        }}
+                        className="show-all-button"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="container-content">
+                    {subscriptions.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="text-6xl mb-4">🔔</div>
+                        <h3 className={`text-xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                          Нет подписок
+                        </h3>
+                        <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                          Нажмите "+" чтобы добавить
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {subscriptions.map((sub) => {
+                          const day = Number(sub.pay_day || 1)
+                          const amount = Number(sub.amount || 0)
+                          const lastPaid = sub.last_paid_at ? new Date(sub.last_paid_at) : null
+                          const now = new Date()
+                          const isPaidThisMonth = lastPaid && lastPaid.getFullYear() === now.getFullYear() && lastPaid.getMonth() === now.getMonth()
+
+                          return (
+                            <div
+                              key={sub.id}
+                              className={`rounded-[40px] p-4 border ${theme === 'dark' ? 'bg-gray-900/30 border-white/10' : 'bg-white border-gray-200'}`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className={`font-bold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{sub.title}</p>
+                                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>День оплаты: {day}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`text-lg font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(amount)}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2 mt-3">
+                                <button
+                                  onClick={() => {
+                                    openSubscriptionPayModal(sub)
+                                    vibrate()
+                                  }}
+                                  className={`flex-1 py-2 rounded-[40px] text-xs font-medium transition-all active:scale-95 ${
+                                    isPaidThisMonth
+                                      ? theme === 'dark'
+                                        ? 'bg-gray-700 text-gray-400'
+                                        : 'bg-gray-200 text-gray-500'
+                                      : 'text-white'
+                                  }`}
+                                  style={isPaidThisMonth ? undefined : { backgroundColor: '#000000' }}
+                                >
+                                  {isPaidThisMonth ? 'Оплачено' : 'Оплатить'}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm('Удалить эту подписку?')) {
+                                      deleteSubscription(sub.id)
+                                    }
+                                  }}
+                                  className={`px-4 py-2 rounded-[40px] text-xs font-medium transition-all ${
+                                    theme === 'dark'
+                                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                                  }`}
+                                >
+                                  Удалить
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="glow-overlay" />
                 </div>
               )}
@@ -6104,6 +6468,252 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                             <div className="min-w-0">
                               <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Number(p.amount || 0))}</p>
                               <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{formatDate(p.created_at || p.date || new Date().toISOString())}</p>
+                            </div>
+                            <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {p.affects_balance ? 'с балансом' : 'без баланса'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+        </BottomSheetModal>
+      )}
+
+      {showSubscriptionsDueModal && (
+        <BottomSheetModal
+          open={showSubscriptionsDueModal}
+          onClose={() => setShowSubscriptionsDueModal(false)}
+          theme={theme}
+          zIndex={56}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Подписки
+            </h3>
+          </div>
+
+          {subscriptionsDueCount === 0 ? (
+            <div className={`text-center py-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Нет оплат в ближайшие 3 дня
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {subscriptionsDue
+                .slice()
+                .sort((a, b) => a.info.dueDate.getTime() - b.info.dueDate.getTime())
+                .map(({ sub, info }) => {
+                  const subtitle = info.diffDays === 0 ? 'Сегодня' : info.diffDays === 1 ? 'Завтра' : `Через ${info.diffDays} дн.`
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => {
+                        setShowSubscriptionsDueModal(false)
+                        openSubscriptionPayModal(sub, { month: info.dueMonth, year: info.dueYear })
+                        vibrate()
+                      }}
+                      className={`w-full text-left rounded-[32px] p-4 border transition-all active:scale-[0.99] ${
+                        theme === 'dark'
+                          ? 'bg-gray-900/30 border-white/10 hover:bg-gray-900/40'
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`text-sm font-semibold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{sub.title}</div>
+                          <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{subtitle} • {String(info.dueDate.getDate()).padStart(2, '0')}.{String(info.dueMonth).padStart(2, '0')}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-sm font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Number(sub.amount || 0))}</div>
+                          <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Оплатить</div>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+            </div>
+          )}
+        </BottomSheetModal>
+      )}
+
+      {showAddSubscriptionModal && (
+        <BottomSheetModal
+          open={showAddSubscriptionModal}
+          onClose={() => setShowAddSubscriptionModal(false)}
+          theme={theme}
+          zIndex={56}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+              Добавить подписку
+            </h3>
+          </div>
+
+          <div className="mb-3">
+            <input
+              type="text"
+              value={subscriptionTitle}
+              onChange={(e) => setSubscriptionTitle(e.target.value)}
+              placeholder="Название (например, Яндекс Музыка)"
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <div className="mb-3">
+            <input
+              type="text"
+              value={subscriptionAmount}
+              onChange={(e) => setSubscriptionAmount(e.target.value)}
+              placeholder="Стоимость"
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <div className="mb-4">
+            <input
+              type="number"
+              value={subscriptionPayDay}
+              onChange={(e) => setSubscriptionPayDay(e.target.value)}
+              placeholder="День оплаты (1-31)"
+              className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                theme === "dark"
+                  ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                  : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              }`}
+            />
+          </div>
+
+          <button
+            onClick={addSubscription}
+            className="w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 text-white"
+            style={{ backgroundColor: '#000000' }}
+          >
+            Добавить
+          </button>
+        </BottomSheetModal>
+      )}
+
+      {showSubscriptionPayModal && (
+        <BottomSheetModal
+          open={showSubscriptionPayModal}
+          onClose={() => {
+            setShowSubscriptionPayModal(false)
+            setSelectedSubscriptionForPay(null)
+            setSubscriptionPayments([])
+          }}
+          theme={theme}
+          zIndex={56}
+        >
+          {(() => {
+            const sub = selectedSubscriptionForPay
+            if (!sub) return null
+
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Оплата подписки
+                  </h3>
+                </div>
+
+                <div className={`rounded-[32px] p-4 border mb-4 ${theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'}`}>
+                  <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{sub.title}</p>
+                  <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>День оплаты: {Number(sub.pay_day || 1)}</p>
+                </div>
+
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={subscriptionPayAmount}
+                    onChange={(e) => setSubscriptionPayAmount(e.target.value)}
+                    placeholder="Сумма"
+                    className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    }`}
+                  />
+                </div>
+
+                <div className="mb-3 grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    value={subscriptionPayMonth}
+                    onChange={(e) => setSubscriptionPayMonth(e.target.value)}
+                    placeholder="Месяц (1-12)"
+                    className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    }`}
+                  />
+                  <input
+                    type="number"
+                    value={subscriptionPayYear}
+                    onChange={(e) => setSubscriptionPayYear(e.target.value)}
+                    placeholder="Год"
+                    className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    }`}
+                  />
+                </div>
+
+                <label className={`flex items-center justify-between gap-3 mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">Учитывать общий баланс</p>
+                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Если выключить — это просто отметка оплаты</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={subscriptionPayAffectsBalance}
+                    onChange={(e) => setSubscriptionPayAffectsBalance(e.target.checked)}
+                    className="w-5 h-5 rounded"
+                  />
+                </label>
+
+                <button
+                  onClick={submitSubscriptionPayment}
+                  className="w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 text-white"
+                  style={{ backgroundColor: '#000000' }}
+                >
+                  Оплатить
+                </button>
+
+                <div className="mt-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>История</p>
+                    {subscriptionPaymentsLoading && (
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Загрузка…</p>
+                    )}
+                  </div>
+
+                  {(!subscriptionPaymentsLoading && subscriptionPayments.length === 0) ? (
+                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Пока нет оплат</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {subscriptionPayments.map((p) => (
+                        <div
+                          key={p.id}
+                          className={`rounded-[24px] p-3 border ${theme === 'dark' ? 'bg-gray-900/30 border-white/10' : 'bg-white border-gray-200'}`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Number(p.amount || 0))}</p>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{String(p.paid_month).padStart(2, '0')}.{p.paid_year}</p>
                             </div>
                             <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                               {p.affects_balance ? 'с балансом' : 'без баланса'}

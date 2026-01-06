@@ -1453,6 +1453,145 @@ app.post("/api/user/:email/debts/:debtId/pay", async (req, res) => {
   }
 })
 
+// --- Подписки ---
+app.get("/api/user/:email/subscriptions", async (req, res) => {
+  const { email } = req.params
+
+  try {
+    const r = await pool.query(
+      `SELECT * FROM subscriptions WHERE user_email = $1 ORDER BY created_at DESC`,
+      [email],
+    )
+    res.json({ subscriptions: r.rows })
+  } catch (e) {
+    console.error("Get subscriptions error:", e)
+    res.status(500).json({ error: "Не удалось получить подписки: " + e.message })
+  }
+})
+
+app.post("/api/user/:email/subscriptions", async (req, res) => {
+  const { email } = req.params
+  const { title, amount, pay_day } = req.body || {}
+
+  const n = Number(amount)
+  const day = Number(pay_day)
+  if (!String(title || '').trim() || !Number.isFinite(n) || n <= 0 || !Number.isInteger(day) || day < 1 || day > 31) {
+    return res.status(400).json({ error: "Заполните корректно: название, сумма, день оплаты (1-31)" })
+  }
+
+  try {
+    const r = await pool.query(
+      `INSERT INTO subscriptions (user_email, title, amount, pay_day, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, TRUE, NOW(), NOW())
+       RETURNING *`,
+      [email, String(title).trim(), n, day],
+    )
+    res.json({ subscription: r.rows[0] })
+  } catch (e) {
+    console.error("Add subscription error:", e)
+    res.status(500).json({ error: "Не удалось добавить подписку: " + e.message })
+  }
+})
+
+app.delete("/api/user/:email/subscriptions/:subId", async (req, res) => {
+  const { email, subId } = req.params
+  try {
+    const r = await pool.query(
+      `DELETE FROM subscriptions WHERE id = $1::bigint AND user_email = $2 RETURNING *`,
+      [String(subId), email],
+    )
+    if (r.rowCount === 0) return res.status(404).json({ error: "Подписка не найдена" })
+    res.json({ success: true })
+  } catch (e) {
+    console.error("Delete subscription error:", e)
+    res.status(500).json({ error: "Не удалось удалить подписку: " + e.message })
+  }
+})
+
+app.get("/api/user/:email/subscriptions/:subId/payments", async (req, res) => {
+  const { email, subId } = req.params
+  try {
+    const r = await pool.query(
+      `SELECT * FROM subscription_payments WHERE user_email = $1 AND subscription_id = $2::bigint ORDER BY created_at DESC`,
+      [email, String(subId)],
+    )
+    res.json({ payments: r.rows })
+  } catch (e) {
+    console.error("Get subscription payments error:", e)
+    res.status(500).json({ error: "Не удалось получить историю подписки: " + e.message })
+  }
+})
+
+app.post("/api/user/:email/subscriptions/:subId/pay", async (req, res) => {
+  const { email, subId } = req.params
+  const { amount, affects_balance, paid_year, paid_month, created_by_telegram_id, created_by_name } = req.body || {}
+
+  const n = Number(amount)
+  const affects = affects_balance !== false
+  const y = Number(paid_year)
+  const m = Number(paid_month)
+  if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(y) || y < 1970 || !Number.isInteger(m) || m < 1 || m > 12) {
+    return res.status(400).json({ error: "Введите корректно сумму и период (год/месяц)" })
+  }
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const subRes = await client.query(
+      `SELECT * FROM subscriptions WHERE id = $1::bigint AND user_email = $2 FOR UPDATE`,
+      [String(subId), email],
+    )
+    if (subRes.rowCount === 0) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ error: "Подписка не найдена" })
+    }
+    const sub = subRes.rows[0]
+
+    const payRes = await client.query(
+      `INSERT INTO subscription_payments (subscription_id, user_email, amount, affects_balance, paid_year, paid_month)
+       VALUES ($1::bigint, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [String(subId), email, n, affects, y, m],
+    )
+
+    const updatedSubRes = await client.query(
+      `UPDATE subscriptions SET last_paid_at = NOW(), updated_at = NOW() WHERE id = $1::bigint AND user_email = $2 RETURNING *`,
+      [String(subId), email],
+    )
+
+    let createdTransaction = null
+    if (affects) {
+      const txRes = await client.query(
+        `INSERT INTO transactions (user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name, savings_goal)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING *`,
+        [
+          email,
+          'expense',
+          n,
+          null,
+          `Подписка: ${sub.title}`,
+          'Подписки',
+          created_by_telegram_id || null,
+          created_by_name || null,
+          'main',
+        ],
+      )
+      createdTransaction = txRes.rows[0] || null
+    }
+
+    await client.query('COMMIT')
+    res.json({ success: true, subscription: updatedSubRes.rows[0], payment: payRes.rows[0], transaction: createdTransaction })
+  } catch (e) {
+    await client.query('ROLLBACK')
+    console.error("Subscription pay error:", e)
+    res.status(500).json({ error: "Не удалось оплатить подписку: " + e.message })
+  } finally {
+    client.release()
+  }
+})
+
 // --- Связывание пользователей (совместный кошелек) ---
 app.post("/api/user/:email/link", async (req, res) => {
   const { email } = req.params
