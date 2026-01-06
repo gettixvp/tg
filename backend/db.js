@@ -90,6 +90,38 @@ async function initDB() {
     // Добавляем столбец, если его нет
     await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS converted_amount_usd NUMERIC;`)
 
+    await pool.query(`CREATE TABLE IF NOT EXISTS debts (
+      id SERIAL PRIMARY KEY,
+      user_email VARCHAR(255) NOT NULL,
+      type VARCHAR(10) NOT NULL,
+      person VARCHAR(255) NOT NULL,
+      amount NUMERIC(12, 2) NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      original_amount NUMERIC(12, 2),
+      remaining_amount NUMERIC(12, 2),
+      is_closed BOOLEAN DEFAULT FALSE
+    );`)
+
+    await pool.query(`ALTER TABLE debts ADD COLUMN IF NOT EXISTS original_amount NUMERIC(12, 2);`)
+    await pool.query(`ALTER TABLE debts ADD COLUMN IF NOT EXISTS remaining_amount NUMERIC(12, 2);`)
+    await pool.query(`ALTER TABLE debts ADD COLUMN IF NOT EXISTS is_closed BOOLEAN DEFAULT FALSE;`)
+    await pool.query(`UPDATE debts SET original_amount = amount WHERE original_amount IS NULL;`)
+    await pool.query(`UPDATE debts SET remaining_amount = amount WHERE remaining_amount IS NULL;`)
+
+    await pool.query(`CREATE TABLE IF NOT EXISTS debt_payments (
+      id BIGSERIAL PRIMARY KEY,
+      debt_id INTEGER NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
+      user_email TEXT NOT NULL,
+      amount NUMERIC(12, 2) NOT NULL,
+      affects_balance BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP DEFAULT NOW()
+    );`)
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_debts_user_email ON debts(user_email);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_debt_payments_debt_id ON debt_payments(debt_id);`)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_debt_payments_user_email ON debt_payments(user_email);`)
+
     await pool.query(`CREATE TABLE IF NOT EXISTS linked_telegram_users (
       id SERIAL PRIMARY KEY,
       user_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,

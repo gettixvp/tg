@@ -1314,8 +1314,8 @@ app.post("/api/user/:email/debts", async (req, res) => {
   
   try {
     const result = await pool.query(
-      `INSERT INTO debts (user_email, type, person, amount, description, created_at) 
-       VALUES ($1, $2, $3, $4, $5, NOW()) 
+      `INSERT INTO debts (user_email, type, person, amount, description, created_at, original_amount, remaining_amount, is_closed) 
+       VALUES ($1, $2, $3, $4, $5, NOW(), $4, $4, FALSE) 
        RETURNING *`,
       [email, type, person, amount, description || '']
     )
@@ -1339,6 +1339,117 @@ app.delete("/api/user/:email/debts/:debtId", async (req, res) => {
   } catch (e) {
     console.error("Delete debt error:", e)
     res.status(500).json({ error: "Не удалось удалить долг: " + e.message })
+  }
+})
+
+// --- История операций по долгу ---
+app.get("/api/user/:email/debts/:debtId/payments", async (req, res) => {
+  const { email, debtId } = req.params
+
+  try {
+    const r = await pool.query(
+      `SELECT * FROM debt_payments WHERE user_email = $1 AND debt_id = $2 ORDER BY created_at DESC`,
+      [email, debtId],
+    )
+    res.json({ payments: r.rows })
+  } catch (e) {
+    console.error("Get debt payments error:", e)
+    res.status(500).json({ error: "Не удалось получить историю долга: " + e.message })
+  }
+})
+
+// --- Внести по долгу (частично/полностью) ---
+app.post("/api/user/:email/debts/:debtId/pay", async (req, res) => {
+  const { email, debtId } = req.params
+  const { amount, affects_balance, created_by_telegram_id, created_by_name } = req.body || {}
+
+  const n = Number(amount)
+  const affects = affects_balance !== false
+  if (!Number.isFinite(n) || n <= 0) {
+    return res.status(400).json({ error: "Введите корректную сумму" })
+  }
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const debtRes = await client.query(
+      `SELECT * FROM debts WHERE id = $1 AND user_email = $2 FOR UPDATE`,
+      [debtId, email],
+    )
+
+    if (debtRes.rowCount === 0) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ error: "Долг не найден" })
+    }
+
+    const debt = debtRes.rows[0]
+    const remaining = Number(debt.remaining_amount ?? debt.amount ?? 0)
+    const payAmount = Math.min(n, Math.max(0, remaining))
+
+    if (!Number.isFinite(payAmount) || payAmount <= 0) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({ error: "Долг уже погашен" })
+    }
+
+    const paymentRes = await client.query(
+      `INSERT INTO debt_payments (debt_id, user_email, amount, affects_balance)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [debtId, email, payAmount, affects],
+    )
+
+    const newRemaining = Math.max(0, remaining - payAmount)
+    const isClosed = newRemaining <= 0
+
+    const updatedDebtRes = await client.query(
+      `UPDATE debts
+       SET remaining_amount = $1,
+           is_closed = $2
+       WHERE id = $3 AND user_email = $4
+       RETURNING *`,
+      [newRemaining, isClosed, debtId, email],
+    )
+
+    let createdTransaction = null
+    if (affects) {
+      const txType = debt.type === 'owe' ? 'expense' : 'income'
+      const category = debt.type === 'owe' ? 'Долги' : 'Возврат долга'
+      const description = `Долг: ${debt.person}${debt.description ? ' - ' + debt.description : ''}`
+
+      const txRes = await client.query(
+        `INSERT INTO transactions (user_email, type, amount, converted_amount_usd, description, category, created_by_telegram_id, created_by_name, savings_goal)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING *`,
+        [
+          email,
+          txType,
+          payAmount,
+          null,
+          description,
+          category,
+          created_by_telegram_id || null,
+          created_by_name || null,
+          'main',
+        ],
+      )
+      createdTransaction = txRes.rows[0] || null
+    }
+
+    await client.query('COMMIT')
+
+    res.json({
+      success: true,
+      debt: updatedDebtRes.rows[0],
+      payment: paymentRes.rows[0],
+      transaction: createdTransaction,
+    })
+  } catch (e) {
+    await client.query('ROLLBACK')
+    console.error("Debt pay error:", e)
+    res.status(500).json({ error: "Не удалось внести по долгу: " + e.message })
+  } finally {
+    client.release()
   }
 })
 

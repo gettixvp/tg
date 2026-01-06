@@ -2077,6 +2077,12 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
   const [debts, setDebts] = useState([]) // Список долгов
   const [showAddDebtModal, setShowAddDebtModal] = useState(false)
   const [debtType, setDebtType] = useState('owe') // 'owe' (я должен) или 'owed' (мне должны)
+  const [showDebtPayModal, setShowDebtPayModal] = useState(false)
+  const [selectedDebtForPay, setSelectedDebtForPay] = useState(null)
+  const [debtPayAmount, setDebtPayAmount] = useState('')
+  const [debtPayAffectsBalance, setDebtPayAffectsBalance] = useState(true)
+  const [debtPayments, setDebtPayments] = useState([])
+  const [debtPaymentsLoading, setDebtPaymentsLoading] = useState(false)
   
   // Раскрываемое меню системных настроек
   const [showSystemSettings, setShowSystemSettings] = useState(false)
@@ -3481,75 +3487,96 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
     }
   }
 
-  const repayDebt = async (debt) => {
-    if (!user || !user.email) return
+  const loadDebtPayments = async (debt) => {
+    if (!user || !user.email || !debt?.id) return
+    setDebtPaymentsLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/debts/${debt.id}/payments`)
+      const data = await res.json().catch(() => ({}))
+      setDebtPayments(Array.isArray(data.payments) ? data.payments : [])
+    } catch (e) {
+      console.error('Failed to load debt payments', e)
+      setDebtPayments([])
+    } finally {
+      setDebtPaymentsLoading(false)
+    }
+  }
 
-    // Спрашиваем, хочет ли пользователь внести деньги в бюджет
-    const shouldAddToBudget = window.confirm(
-      `Долг погашен!\n\nВнести ${formatCurrency(debt.amount)} в общий бюджет?\n\n` +
-      `ДА - деньги будут добавлены как ${debt.type === 'owe' ? 'расход' : 'доход'}\n` +
-      `НЕТ - долг просто удалится`
-    )
+  const openDebtPayModal = (debt) => {
+    setSelectedDebtForPay(debt)
+    setDebtPayAmount('')
+    setDebtPayAffectsBalance(true)
+    setShowDebtPayModal(true)
+    setDebtPayments([])
+    loadDebtPayments(debt)
+  }
 
-    if (shouldAddToBudget) {
-      // Создаем транзакцию
-      const transactionData = {
-        amount: debt.amount,
-        type: debt.type === 'owe' ? 'expense' : 'income', // Если я должен - расход, если мне должны - доход
-        category: debt.type === 'owe' ? 'Долги' : 'Возврат долга',
-        description: `Погашение долга: ${debt.person}${debt.description ? ' - ' + debt.description : ''}`,
-        date: new Date().toISOString(),
-        user_email: user.email,
-        currency: currency
-      }
-
-      try {
-        // Добавляем транзакцию
-        const txRes = await fetch(`${API_BASE}/api/user/${user.email}/transactions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(transactionData)
-        })
-
-        const txData = await txRes.json()
-        
-        if (txData.transaction) {
-          // Обновляем баланс
-          const newBalance = debt.type === 'owe' 
-            ? balance - debt.amount  // Я должен - уменьшаем баланс
-            : balance + debt.amount  // Мне должны - увеличиваем баланс
-
-          const newIncome = debt.type === 'owed' ? income + debt.amount : income
-          const newExpenses = debt.type === 'owe' ? expenses + debt.amount : expenses
-
-          setBalance(newBalance)
-          setIncome(newIncome)
-          setExpenses(newExpenses)
-          setTransactions([txData.transaction, ...transactions])
-
-          // Сохраняем на сервер
-          await fetch(`${API_BASE}/api/user/${user.email}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              balance: newBalance,
-              income: newIncome,
-              expenses: newExpenses,
-              savings: savings,
-              goalSavings: goalSavings
-            })
-          })
-        }
-      } catch (e) {
-        console.error('Failed to add transaction', e)
-        vibrateError()
-        alert('Ошибка при добавлении транзакции')
-        return
-      }
+  const submitDebtPayment = async () => {
+    if (!user || !user.email || !selectedDebtForPay?.id) return
+    const n = Number(normalizeDecimalInput(debtPayAmount))
+    if (!Number.isFinite(n) || n <= 0) {
+      vibrateError()
+      alert('Введите корректную сумму')
+      return
     }
 
-    // Удаляем долг в любом случае
-    await deleteDebt(debt.id)
+    try {
+      const res = await fetch(`${API_BASE}/api/user/${user.email}/debts/${selectedDebtForPay.id}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: n,
+          affects_balance: debtPayAffectsBalance,
+          created_by_telegram_id: tgUserId || null,
+          created_by_name: displayName || null,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || 'Ошибка внесения')
+      }
+
+      if (data.debt) {
+        setDebts((prev) => prev.map((d) => (d.id === data.debt.id ? data.debt : d)))
+        setSelectedDebtForPay(data.debt)
+      }
+
+      if (data.payment) {
+        setDebtPayments((prev) => [data.payment, ...prev])
+      }
+
+      if (data.transaction) {
+        const tx = data.transaction
+        setTransactions((prev) => [tx, ...prev])
+
+        const txAmount = Number(tx.amount || 0)
+        let newBalance = Number(balance)
+        let newIncome = Number(income)
+        let newExpenses = Number(expenses)
+
+        if (tx.type === 'income') {
+          newIncome += txAmount
+          newBalance += txAmount
+          setIncome(newIncome)
+          setBalance(newBalance)
+        } else if (tx.type === 'expense') {
+          newExpenses += txAmount
+          newBalance -= txAmount
+          setExpenses(newExpenses)
+          setBalance(newBalance)
+        }
+
+        await saveToServer(newBalance, newIncome, newExpenses, savings)
+      }
+
+      vibrateSuccess()
+      setDebtPayAmount('')
+    } catch (e) {
+      console.error('Failed to pay debt', e)
+      vibrateError()
+      alert(e.message || 'Ошибка при внесении')
+    }
   }
 
   // Функция транслитерации для PDF
@@ -5281,7 +5308,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="text-2xl">
-                                {debt.type === 'owe' ? '📤' : '📥'}
+                                {debt.type === 'owe' ? '💸' : '💰'}
                               </span>
                               <div className="min-w-0">
                                 <h4 className={`font-bold truncate ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
@@ -5293,15 +5320,48 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className={`text-lg font-bold ${
-                                debt.type === 'owe'
-                                  ? theme === "dark" ? "text-red-400" : "text-red-600"
-                                  : theme === "dark" ? "text-green-400" : "text-green-600"
-                              }`}>
-                                {formatCurrency(debt.amount)}
-                              </p>
+                              {(() => {
+                                const original = Number(debt.original_amount ?? debt.amount ?? 0)
+                                const remaining = Number(debt.remaining_amount ?? debt.amount ?? 0)
+                                const shown = Number.isFinite(remaining) ? remaining : Number(debt.amount || 0)
+                                return (
+                                  <p className={`text-lg font-bold ${
+                                    debt.type === 'owe'
+                                      ? theme === "dark" ? "text-red-400" : "text-red-600"
+                                      : theme === "dark" ? "text-green-400" : "text-green-600"
+                                  }`}>
+                                    {formatCurrency(shown)}
+                                  </p>
+                                )
+                              })()}
                             </div>
                           </div>
+                          {(() => {
+                            const original = Number(debt.original_amount ?? debt.amount ?? 0)
+                            const remaining = Number(debt.remaining_amount ?? debt.amount ?? 0)
+                            if (!Number.isFinite(original) || original <= 0) return null
+                            const paid = Math.max(0, original - Math.max(0, remaining))
+                            const pct = Math.max(0, Math.min(100, (paid / original) * 100))
+                            return (
+                              <div className="mt-2">
+                                <div
+                                  className={`${theme === 'dark' ? 'bg-white/10' : 'bg-black/10'} h-2 rounded-full overflow-hidden`}
+                                >
+                                  <div
+                                    className="h-full rounded-full"
+                                    style={{
+                                      width: `${pct}%`,
+                                      backgroundColor: '#000000',
+                                      transition: 'width 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                    }}
+                                  />
+                                </div>
+                                <div className={`mt-1 text-[11px] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {formatCurrency(paid)} / {formatCurrency(original)}
+                                </div>
+                              </div>
+                            )
+                          })()}
                           {debt.description && (
                             <p className={`text-sm break-words ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                               {debt.description}
@@ -5309,14 +5369,25 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
                           )}
                           <div className="flex gap-2 mt-3">
                             <button
-                              onClick={() => repayDebt(debt)}
-                              className={`flex-1 py-2 rounded-[40px] text-xs font-medium transition-all ${
-                                theme === "dark"
-                                  ? "bg-green-700 hover:bg-green-600 text-white"
-                                  : "bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => {
+                                openDebtPayModal(debt)
+                                vibrate()
+                              }}
+                              disabled={Boolean(debt.is_closed) || Number(debt.remaining_amount ?? debt.amount ?? 0) <= 0}
+                              className={`flex-1 py-2 rounded-[40px] text-xs font-medium transition-all active:scale-95 ${
+                                (Boolean(debt.is_closed) || Number(debt.remaining_amount ?? debt.amount ?? 0) <= 0)
+                                  ? theme === 'dark'
+                                    ? 'bg-gray-700 text-gray-400'
+                                    : 'bg-gray-200 text-gray-500'
+                                  : 'text-white'
                               }`}
+                              style={
+                                (Boolean(debt.is_closed) || Number(debt.remaining_amount ?? debt.amount ?? 0) <= 0)
+                                  ? undefined
+                                  : { backgroundColor: '#000000' }
+                              }
                             >
-                              Погашено
+                              Внести
                             </button>
                             <button
                               onClick={() => {
@@ -5912,149 +5983,140 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
         </div>
       </main>
 
-      {showGoalModal && (
+      {showDebtPayModal && (
         <BottomSheetModal
-          open={showGoalModal}
-          onClose={() => setShowGoalModal(false)}
+          open={showDebtPayModal}
+          onClose={() => {
+            setShowDebtPayModal(false)
+            setSelectedDebtForPay(null)
+            setDebtPayAmount('')
+            setDebtPayments([])
+          }}
           theme={theme}
-          zIndex={50}
+          zIndex={56}
         >
-          <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-            Цель накопления (USD)
-          </h3>
-            {secondGoalName && secondGoalAmount > 0 && (
-              <div className="mb-3">
-                <label
-                  className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  Выберите копилку
-                </label>
-                {(() => {
-                  const items = [
-                    { key: 'main', label: goalName || 'Основная' },
-                    { key: 'second', label: secondGoalName || 'Вторая' },
-                  ]
-                  const idx = Math.max(0, items.findIndex((i) => i.key === selectedSavingsGoal))
-                  return (
-                    <div className={`w-full ${theme === 'dark' ? 'bg-gray-800/60' : 'bg-gray-100'} rounded-3xl p-1 flex relative overflow-hidden`}>
-                      <div
-                        className="absolute top-1 bottom-1 rounded-3xl"
-                        style={{
-                          width: '50%',
-                          transform: `translateX(${idx * 100}%)`,
-                          transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)',
-                          backgroundColor: '#000000',
-                        }}
-                      />
-                      {items.map((it) => (
-                        <button
-                          key={it.key}
-                          onClick={() => {
-                            setSelectedSavingsGoal(it.key)
-                            vibrateSelect && vibrateSelect()
-                          }}
-                          className="flex-1 py-3 px-3 rounded-3xl text-sm font-semibold transition-all relative touch-none"
+          {(() => {
+            const debt = selectedDebtForPay
+            if (!debt) return null
+
+            const original = Number(debt.original_amount ?? debt.amount ?? 0)
+            const remaining = Number(debt.remaining_amount ?? debt.amount ?? 0)
+            const paid = Number.isFinite(original) ? Math.max(0, original - Math.max(0, remaining)) : 0
+            const pct = original > 0 ? Math.max(0, Math.min(100, (paid / original) * 100)) : 0
+
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-xl font-bold ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
+                    Внести
+                  </h3>
+                </div>
+
+                <div className={`rounded-[32px] p-4 border mb-4 ${theme === 'dark' ? 'bg-gray-900/40 border-white/10' : 'bg-white border-gray-200'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{debt.type === 'owe' ? '💸' : '💰'}</span>
+                        <div className="min-w-0">
+                          <p className={`text-sm font-semibold truncate ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{debt.person}</p>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{debt.type === 'owe' ? 'Я должен' : 'Мне должны'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Остаток</p>
+                      <p className={`text-base font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(remaining)}</p>
+                    </div>
+                  </div>
+
+                  {original > 0 && (
+                    <div className="mt-3">
+                      <div className={`${theme === 'dark' ? 'bg-white/10' : 'bg-black/10'} h-2 rounded-full overflow-hidden`}>
+                        <div
+                          className="h-full rounded-full"
                           style={{
-                            color: selectedSavingsGoal === it.key ? '#FFFFFF' : (theme === 'dark' ? '#9CA3AF' : '#6B7280'),
+                            width: `${pct}%`,
+                            backgroundColor: '#000000',
+                            transition: 'width 420ms cubic-bezier(0.22, 1, 0.36, 1)',
                           }}
+                        />
+                      </div>
+                      <div className={`mt-1 text-[11px] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {formatCurrency(paid)} / {formatCurrency(original)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={debtPayAmount}
+                    onChange={(e) => setDebtPayAmount(e.target.value)}
+                    placeholder="Сумма"
+                    className={`w-full p-3 border rounded-xl transition-all text-sm ${
+                      theme === "dark"
+                        ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
+                        : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    }`}
+                  />
+                </div>
+
+                <label className={`flex items-center justify-between gap-3 mb-4 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-900'}`}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">Учитывать общий баланс</p>
+                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Если выключить — изменится только долг, баланс не трогаем</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={debtPayAffectsBalance}
+                    onChange={(e) => setDebtPayAffectsBalance(e.target.checked)}
+                    className="w-5 h-5 rounded"
+                  />
+                </label>
+
+                <button
+                  onClick={submitDebtPayment}
+                  className="w-full py-3 rounded-[40px] font-medium transition-all text-sm touch-none active:scale-95 text-white"
+                  style={{ backgroundColor: '#000000' }}
+                >
+                  Внести
+                </button>
+
+                <div className="mt-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>История</p>
+                    {debtPaymentsLoading && (
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Загрузка…</p>
+                    )}
+                  </div>
+
+                  {(!debtPaymentsLoading && debtPayments.length === 0) ? (
+                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Пока нет операций</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {debtPayments.map((p) => (
+                        <div
+                          key={p.id}
+                          className={`rounded-[24px] p-3 border ${theme === 'dark' ? 'bg-gray-900/30 border-white/10' : 'bg-white border-gray-200'}`}
                         >
-                          <span className="truncate block" style={{ overflowWrap: 'anywhere' }}>{it.label}</span>
-                        </button>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{formatCurrency(Number(p.amount || 0))}</p>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{formatDate(p.created_at || p.date || new Date().toISOString())}</p>
+                            </div>
+                            <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {p.affects_balance ? 'с балансом' : 'без баланса'}
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  )
-                })()}
+                  )}
+                </div>
               </div>
-            )}
-            <div className="mb-3">
-              <label
-                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-              >
-                Название цели
-              </label>
-              <input
-                type="text"
-                value={selectedSavingsGoal === 'main' ? goalName : secondGoalName}
-                onChange={(e) => {
-                  if (selectedSavingsGoal === 'main') {
-                    setGoalName(e.target.value)
-                  } else {
-                    setSecondGoalName(e.target.value)
-                  }
-                }}
-                className={`w-full p-3 border rounded-xl transition-all text-sm ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-                placeholder="На что копите?"
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                className={`block font-medium mb-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}
-              >
-                Сумма цели
-              </label>
-              <input
-                type="number"
-                value={selectedSavingsGoal === 'main' ? goalInput : secondGoalInput}
-                min={0}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/^0+(?=\d)/, '')
-                  if (selectedSavingsGoal === 'main') {
-                    setGoalInput(val || '0')
-                  } else {
-                    setSecondGoalInput(val || '0')
-                  }
-                }}
-                className={`w-full p-3 border rounded-xl transition-all text-lg font-bold ${
-                  theme === "dark"
-                    ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
-                    : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                }`}
-                placeholder="Введите сумму"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowGoalModal(false)}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={async () => {
-                  const inputVal = selectedSavingsGoal === 'main' ? goalInput : secondGoalInput
-                  const n = Number.parseInt(inputVal, 10)
-                  if (!Number.isNaN(n) && n >= 0) {
-                    if (selectedSavingsGoal === 'main') {
-                      setGoalSavings(n)
-                    } else {
-                      setSecondGoalAmount(n)
-                    }
-                  }
-                  // Сохраняем на сервер
-                  if (selectedSavingsGoal === 'main') {
-                    await saveToServer(balance, income, expenses, savings, { goalSavings: n })
-                  } else {
-                    await saveToServer(balance, income, expenses, savings, { secondGoalAmount: n })
-                  }
-                  setShowGoalModal(false)
-                }}
-                className={`flex-1 py-3 rounded-xl font-medium transition-all text-sm touch-none active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-blue-700 hover:bg-blue-600 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                Добавить
-              </button>
-            </div>
+            )
+          })()}
         </BottomSheetModal>
       )}
 
@@ -7414,7 +7476,7 @@ export default function FinanceApp({ apiUrl = API_BASE }) {
               type="text"
               value={debtPerson}
               onChange={(e) => setDebtPerson(e.target.value)}
-              placeholder="Кто?"
+              placeholder={debtType === 'owe' ? 'Кому?' : 'Кто?'}
               className={`w-full p-3 border rounded-xl transition-all text-sm ${
                 theme === "dark"
                   ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-blue-500"
